@@ -15,7 +15,7 @@ export default defineConfig({
     target: 'es2020',
     lib: {
       entry: path.resolve(root, 'src/index.ts'),
-      name: 'VueFormx',
+      name: 'VueFormless',
       formats: ['es', 'cjs'],
       fileName: (format) => (format === 'es' ? 'index.js' : 'index.cjs'),
     },

@@ -11,3 +11,7 @@
 ### Added
 
 - 初始化空包脚手架（Vite 构建；Vue 3 only；docs/adr 占位）
+
+### Changed
+
+- 包名定为 `vue-formless`（避免与 `vue-form-x` / `vue-formx` 混淆）

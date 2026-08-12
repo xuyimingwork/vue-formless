@@ -1,5 +1,5 @@
 {
-  "name": "vue-formx",
+  "name": "vue-formless",
   "version": "0.0.1",
   "description": "Vue 3 表单组合式 hooks",
   "type": "module",
@@ -27,11 +27,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/xuyimingwork/vue-formx.git"
+    "url": "git+https://github.com/xuyimingwork/vue-formless.git"
   },
-  "homepage": "https://github.com/xuyimingwork/vue-formx#readme",
+  "homepage": "https://github.com/xuyimingwork/vue-formless#readme",
   "bugs": {
-    "url": "https://github.com/xuyimingwork/vue-formx/issues"
+    "url": "https://github.com/xuyimingwork/vue-formless/issues"
   },
   "keywords": [
     "vue",

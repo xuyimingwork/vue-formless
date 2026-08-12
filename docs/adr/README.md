@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-本目录记录 vue-formx 的重要设计决策。每篇 ADR 自洽，包含背景、备选方案、取舍与结论（或待定项）。
+本目录记录 vue-formless 的重要设计决策。每篇 ADR 自洽，包含背景、备选方案、取舍与结论（或待定项）。
 
 观点提炼自《动态表单架构设计推演》：在 Schema 复用与 Template 定制之间，用「静态 View-Model + 命名空间字段 + FormLayout/Context」取得平衡，而不是全量 JSON 布局引擎。布局栅格消费外部 Row/Col（或等价物），不自研。
 

@@ -1,4 +1,4 @@
-# vue-formx
+# vue-formless
 
 English | [简体中文](./README.md)
 
@@ -13,9 +13,9 @@ English | [简体中文](./README.md)
 ## Install
 
 ```bash
-pnpm add vue-formx
+pnpm add vue-formless
 # or
-npm install vue-formx
+npm install vue-formless
 ```
 
 ## Development
