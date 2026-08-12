@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+.pnpm-store
+docs/.vitepress/cache
+docs/.vitepress/dist
+*.local
+.DS_Store
+.VSCodeCounter
