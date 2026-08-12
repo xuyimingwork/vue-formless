@@ -6,6 +6,8 @@
 
 ## [Unreleased]
 
+## [0.0.1] - 2026-08-12
+
 ### Added
 
 - 初始化空包脚手架（Vite 构建；Vue 3 only；docs/adr 占位）

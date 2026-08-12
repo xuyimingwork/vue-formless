@@ -1,6 +1,6 @@
 {
   "name": "vue-formx",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Vue 3 表单组合式 hooks",
   "type": "module",
   "sideEffects": false,
