@@ -1,7 +1,8 @@
 # ADR-007：外部栅格适配、span 优先级与 Layout 级响应式
 
-- **状态**：Accepted
+- **状态**：Accepted（修订）
 - **日期**：2026-08-12
+- **修订**：2026-08-13 — 适配最小面、`gutter` 透传与空白 Col 占位策略见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)；文中「Layout」对应 `FormView` 的托管模式 / 页级默认。
 - **来源**：动态表单架构设计推演之后续澄清（相对 ADR-004 初版修正）
 
 ## 背景
@@ -43,12 +44,12 @@ Item 上的布局配置  >  Layout 上的默认配置  >  兜底
 - 业务按字段顺序扁平摆放
 - 行末不足等留白，由布局层按规则处理（例如用占位列补齐），而不是要求业务嵌套多个 Row
 
-（具体算法与适配挂载方式属实现问题，本文不约定。）
+（具体算法与适配挂载方式的收口见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)：公约数为 `Row` + `Col(span)`；换行 / 类 offset / 行末补齐用空白 Col；`gutter` 可选透传。）
 
 ## 备选方案
 
 1. **库内 CSS Grid 替代 Row/Col**：与中后台既有心智、设计稿和其它页面不一致；重复造轮子。已否决。
-2. **业务继续手写 Row/Col 包裹每个字段**：灵活，但回到高样板，削弱 FormLayout 价值。
+2. **业务继续手写 Row/Col 包裹每个字段**：灵活，但回到高样板，削弱 FormView 托管布局的价值。
 3. **Item 级 `xs/sm/md` 响应式**：表达力强，但不是表单布局的主流真实需求，且与「页级密度 + 留白策略」难共存。默认不做。
 4. **Schema 写死 span 作为主来源**：利于「模型即布局」，但与跨页不同密度、Layout 级响应式冲突。
 
@@ -56,4 +57,4 @@ Item 上的布局配置  >  Layout 上的默认配置  >  兜底
 
 - **正向**：内核保持 UI 无关；沿用各家成熟栅格；页级调密度、字段级少覆盖；响应式模型简单。
 - **代价**：接入时需提供布局适配；无适配则布局能力不可用（或仅无栅格降级，若将来提供）。
-- **关联**：FormContext 与静态 Fields 见 [ADR-004](./004-form-layout-and-context.md)；Schema 不管复杂布局见 [ADR-002](./002-schema-vs-template.md)。
+- **关联**：FormContext 与静态 Fields 见 [ADR-004](./004-form-layout-and-context.md)；适配公约数与 FormView 见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)；Schema 不管复杂布局见 [ADR-002](./002-schema-vs-template.md)。

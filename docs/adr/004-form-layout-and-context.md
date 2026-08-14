@@ -1,8 +1,10 @@
-# ADR-004：FormLayout + FormContext，静态 Fields
+# ADR-004：FormContext + 静态 Fields（原 FormLayout）
 
 - **状态**：Accepted（修订）
 - **日期**：2026-08-12
-- **修订**：同日 — 布局栅格策略改由 [ADR-007](./007-layout-adapter-and-span-priority.md) 约定；本文不再主张内置 CSS Grid。
+- **修订**：
+  - 2026-08-12 — 布局栅格策略改由 [ADR-007](./007-layout-adapter-and-span-priority.md) 约定；本文不再主张内置 CSS Grid。
+  - 2026-08-13 — 对外根组件改称 `FormView`，数据口为 `v-model`；见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。本文保留 Context / 静态 Fields 职责划分；文中历史名 `FormLayout` 均指后来的 `FormView`。
 - **来源**：动态表单架构设计推演
 
 ## 背景
@@ -18,10 +20,10 @@
 
 ## 决策
 
-确立职责公式（语义，非绑定某一 UI 库）：
+确立职责公式（语义，非绑定某一 UI 库；根组件现名见 ADR-008）：
 
 ```text
-FormLayout + User.Xxx  ≈  行容器 + 列格子 + 表单项 + 控件
+FormView + User.Xxx  ≈  （可选）行容器 + 列格子 + 表单项 + 控件
 ```
 
 职责划分：
@@ -29,9 +31,9 @@ FormLayout + User.Xxx  ≈  行容器 + 列格子 + 表单项 + 控件
 1. **`createFormFields(schema)`**  
    纯静态、无数据；产出命名空间组件（可放在 `models/*.ts` 单例导出）。**不**接收、**不**绑定具体布局组件库。
 
-2. **`FormLayout`**  
-   - 提供 **FormContext**（model、只读/禁用、以及布局相关的页级默认等）  
-   - 作为字段的布局宿主（如何落到外部 Row/Col，见 ADR-007）
+2. **`FormView`（原推演名 FormLayout）**  
+   - 提供 **FormContext**（以 `v-model` 接入的可写状态、只读/禁用、以及布局相关的页级默认等）  
+   - **可选**作为字段的布局宿主（如何落到外部 Row/Col，见 ADR-007 / ADR-008）
 
 3. **`User.Xxx`**  
    - 从 FormContext 取得运行时数据与布局默认  
@@ -50,6 +52,6 @@ FormLayout + User.Xxx  ≈  行容器 + 列格子 + 表单项 + 控件
 
 ## 后果
 
-- **正向**：模型单例跨页复用；多模型同 Layout 混排；全局态可广播；内核与具体组件库解耦。
-- **代价**：字段需在 FormLayout（或兼容 Context）下使用；布局细节依赖 ADR-007 的适配约定。
-- **关联**：命名空间字段见 ADR-003；栅格与 span 优先级见 ADR-007；运行时 JSON 见 ADR-006。
+- **正向**：模型单例跨页复用；多模型同 View 混排；全局态可广播；内核与具体组件库解耦。
+- **代价**：字段需在 FormView（或兼容 Context）下使用；布局细节依赖 ADR-007 / ADR-008 的适配约定。
+- **关联**：命名空间字段见 ADR-003；栅格与 span 优先级见 ADR-007；FormView / `v-model` / 适配公约数见 ADR-008；运行时 JSON 见 ADR-006。
