@@ -25,7 +25,12 @@ export const demos = [
 ] as const
 
 export type DemoId = (typeof demos)[number]['id']
-export type DemoMode = 'baseline' | 'formless'
+export type DemoMode = 'baseline' | 'formless' | 'compare'
+
+export function parseDemoMode(mode: string): DemoMode {
+  if (mode === 'formless' || mode === 'compare') return mode
+  return 'baseline'
+}
 
 export const router = createRouter({
   history: createWebHistory(),

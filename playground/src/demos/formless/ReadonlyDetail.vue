@@ -8,7 +8,7 @@ const form = ref(createSampleUser())
 
 <template>
   <el-form :model="form" label-width="96px">
-    <FormView v-model="form" readonly :default-span="12" :gutter="16">
+    <FormView v-model="form" readonly layout>
       <User.Name />
       <User.Gender />
       <User.Mobile />

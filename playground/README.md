@@ -8,7 +8,7 @@ pnpm i
 pnpm dev
 ```
 
-打开 http://localhost:5173 ，左侧选场景，顶部切换「Element 基线 / Formless 预演」。
+打开 http://localhost:5173 ，左侧选场景，顶部切换「Element 基线 / Formless 预演 / 平铺对比」。
 
 ## 说明
 

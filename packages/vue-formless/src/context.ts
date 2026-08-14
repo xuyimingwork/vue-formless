@@ -12,13 +12,13 @@ export interface FormContext<T extends Record<string, unknown> = Record<string, 
   model: T
   readonly: boolean
   disabled: boolean
-  /** Page-level default span when FormView hosts the grid. */
+  /** Page-level default span when layout hosting is on (`total / column`). */
   defaultSpan?: number
-  columns?: number
+  column?: number
   gutter?: number
   /**
-   * Present when FormView was created with Row/Col and `layout` is on.
-   * Field components wrap with `Col` + `span`; escape with `bare` / `layout=false`.
+   * Present when FormView was created with Row/Col.
+   * `layout: true` means hosting is on — fields wrap with Col; escape with `bare` / omit layout.
    */
   grid?: FormGridAdapter & { layout: boolean }
 }

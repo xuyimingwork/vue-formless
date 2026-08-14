@@ -22,7 +22,7 @@ function onReset() {
 
 <template>
   <el-form :model="query" label-width="72px" @submit.prevent>
-    <FormView v-model="query" :default-span="6" :gutter="12">
+    <FormView v-model="query" :layout="{ column: 4, gutter: 12 }">
       <User.Name />
       <User.Gender />
       <User.Mobile />

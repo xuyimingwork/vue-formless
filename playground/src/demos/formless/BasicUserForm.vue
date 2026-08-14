@@ -19,12 +19,8 @@ function onReset() {
 </script>
 
 <template>
-  <!--
-    createFormView({ Row: ElRow, Col: ElCol }) once in bridge/ep.ts
-    → <FormView v-model="form" :default-span="12" :gutter="16">
-  -->
   <el-form ref="formRef" :model="form" label-width="96px">
-    <FormView v-model="form" :default-span="12" :gutter="16">
+    <FormView v-model="form" :layout="{ column: 2, gutter: 16 }">
       <User.Name />
       <User.Gender />
       <User.Mobile />

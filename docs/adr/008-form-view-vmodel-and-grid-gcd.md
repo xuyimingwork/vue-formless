@@ -1,7 +1,10 @@
 # ADR-008：FormView、`v-model` 与栅格适配公约数
 
-- **状态**：Accepted
+- **状态**：Accepted（修订）
 - **日期**：2026-08-13
+- **修订**：
+  - 2026-08-13 — 适配挂载、`v-model`、公约数与空白 Col；见正文。
+  - 2026-08-14 — 页级密度收拢为 `layout: boolean | { column, gutter }`，默认 `false`。
 - **来源**：相对 [ADR-004](./004-form-layout-and-context.md) / [ADR-007](./007-layout-adapter-and-span-priority.md) 的后续澄清（命名、数据口、适配面与占位策略）
 
 ## 背景
@@ -38,7 +41,7 @@ ADR-004 中的 `FormLayout` 名称由本文废止为推荐对外名；文档与�
 ### 2. 表单数据口使用 `v-model`
 
 ```vue
-<FormView v-model="user" :columns="4" :gutter="16">
+<FormView v-model="user" :layout="{ column: 2, gutter: 16 }">
   <User.Name />
 </FormView>
 ```
@@ -53,7 +56,26 @@ ADR-004 中的 `FormLayout` 名称由本文废止为推荐对外名；文档与�
 
 - `modelValue`（`v-model`）放入 Context；字段就地改 `modelValue.xxx`（共享引用）
 - **不**要求每改一字段就 `emit` 整包新对象（除非将来明确做不可变表单）
-- `columns` / `gutter` 等仍为普通 props
+- 页级密度收在 **`layout`**（见下），不再散落 `default-span` / `gutter` / `columns`
+
+### 2.1 `layout`：`boolean | { column, gutter }`，默认 `false`
+
+与 HTML 布尔属性一致：**不写 = false = 纯 Context**（不托管栅格）。
+
+```ts
+layout?: boolean | {
+  column?: number  // 一行几列；defaultSpan = total / column（total 默认 24）
+  gutter?: number
+}
+```
+
+| 写法 | 含义 |
+|------|------|
+| 不写 / `:layout="false"` | 不托管，业务手写 Row/Col |
+| `layout` / `:layout="true"` | 托管；密度用默认（当前 `column: 2`, `gutter: 16`；后续可按容器宽度推断） |
+| `:layout="{ column: 4, gutter: 12 }"` | 托管；显式页级密度 |
+
+字段上的 `:span` 仍是例外覆盖（如整行 24），不是页级配置。
 
 ### 3. 适配公约数：`Row` + `Col(span)`；不开放自由配
 
@@ -74,7 +96,7 @@ export const FormView = createFormView({ Row: ElRow, Col: ElCol })
 | **Row 容器** | 外部（实际上必须） | 经典栅格下 Col 的 span 依赖行容器 |
 | **gutter** | `FormView` → Row **可选透传** | Row 有则生效；无则间距能力不可用（或将来 CSS 降级），**不影响**排版算法 |
 | **换行 / 类 offset / 行末补齐** | `FormView` 算法 | 一律渲染**空白 `Col(span=n)`**，不调用外部 `offset` / `push` / `pull` |
-| **Item 级 `xs/sm/md`、任意 Col 透传** | 不做默认能力 | 超出公约数时**退出托管**，手写外部栅格（`layout=false` 或字段 `bare`） |
+| **Item 级 `xs/sm/md`、任意 Col 透传** | 不做默认能力 | 超出公约数时**退出托管**，手写外部栅格（不写 `layout` 或字段 `bare`） |
 
 最小接入条件：
 

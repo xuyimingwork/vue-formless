@@ -1,4 +1,5 @@
 import {
+  computed,
   defineComponent,
   h,
   provide,
@@ -8,6 +9,10 @@ import {
   type VNodeChild,
 } from 'vue'
 import { formContextKey, type FormContext, type FormGridAdapter } from './context'
+import {
+  resolveLayout,
+  type FormLayoutProp,
+} from './layout'
 
 export interface CreateFormViewOptions {
   /** Row container (e.g. ElRow). Required together with Col for hosted layout. */
@@ -18,18 +23,18 @@ export interface CreateFormViewOptions {
   total?: number
 }
 
+export type { FormLayoutProp, FormLayoutOptions } from './layout'
+
 export interface FormViewProps {
   modelValue: Record<string, unknown>
   readonly?: boolean
   disabled?: boolean
-  columns?: number
-  gutter?: number
-  defaultSpan?: number
   /**
-   * When true (default), wrap default slot with Row and expose Col to fields.
-   * When false, Context only — caller owns Row/Col (escape hatch).
+   * Grid hosting. Default `false` (omit = Context only, matches HTML boolean attrs).
+   * - `true` / `layout`: hosted with defaults (`column: 2`, `gutter: 16`)
+   * - `{ column, gutter }`: hosted with explicit density (`defaultSpan = total / column`)
    */
-  layout?: boolean
+  layout?: FormLayoutProp
 }
 
 /**
@@ -57,15 +62,17 @@ export function createFormView(options: CreateFormViewOptions): Component {
       },
       readonly: { type: Boolean, default: false },
       disabled: { type: Boolean, default: false },
-      columns: { type: Number, default: undefined },
-      gutter: { type: Number, default: undefined },
-      defaultSpan: { type: Number, default: undefined },
-      layout: { type: Boolean, default: true },
+      layout: {
+        type: [Boolean, Object] as PropType<FormLayoutProp>,
+        default: false,
+      },
     },
     emits: {
       'update:modelValue': (_value: Record<string, unknown>) => true,
     },
     setup(props, { slots }) {
+      const resolved = computed(() => resolveLayout(props.layout, adapter.total))
+
       const ctx = reactive({
         get model() {
           return props.modelValue
@@ -76,19 +83,19 @@ export function createFormView(options: CreateFormViewOptions): Component {
         get disabled() {
           return props.disabled
         },
-        get columns() {
-          return props.columns
+        get column() {
+          return resolved.value.column
         },
         get gutter() {
-          return props.gutter
+          return resolved.value.gutter
         },
         get defaultSpan() {
-          return props.defaultSpan
+          return resolved.value.enabled ? resolved.value.defaultSpan : undefined
         },
         get grid() {
           return {
             ...adapter,
-            layout: props.layout,
+            layout: resolved.value.enabled,
           }
         },
       }) as FormContext
@@ -97,13 +104,10 @@ export function createFormView(options: CreateFormViewOptions): Component {
 
       return (): VNodeChild => {
         const children = slots.default?.() ?? null
-        if (!props.layout) return children
+        if (!resolved.value.enabled) return children
 
         // Gutter: optional passthrough — Row may ignore if unsupported (ADR-008).
-        const rowProps: Record<string, unknown> = {}
-        if (props.gutter != null) rowProps.gutter = props.gutter
-
-        return h(adapter.Row, rowProps, () => children)
+        return h(adapter.Row, { gutter: resolved.value.gutter }, () => children)
       }
     },
   })
@@ -111,7 +115,6 @@ export function createFormView(options: CreateFormViewOptions): Component {
 
 /**
  * Context-only FormView (no Row/Col). Prefer `createFormView({ Row, Col })` for hosted grid.
- * Kept for escape-hatch roots and tests.
  */
 export const FormView = defineComponent({
   name: 'FormView',
@@ -122,10 +125,10 @@ export const FormView = defineComponent({
     },
     readonly: { type: Boolean, default: false },
     disabled: { type: Boolean, default: false },
-    columns: { type: Number, default: undefined },
-    gutter: { type: Number, default: undefined },
-    defaultSpan: { type: Number, default: undefined },
-    layout: { type: Boolean, default: false },
+    layout: {
+      type: [Boolean, Object] as PropType<FormLayoutProp>,
+      default: false,
+    },
   },
   emits: {
     'update:modelValue': (_value: Record<string, unknown>) => true,
@@ -140,15 +143,6 @@ export const FormView = defineComponent({
       },
       get disabled() {
         return props.disabled
-      },
-      get columns() {
-        return props.columns
-      },
-      get gutter() {
-        return props.gutter
-      },
-      get defaultSpan() {
-        return props.defaultSpan
       },
     }) as FormContext
 

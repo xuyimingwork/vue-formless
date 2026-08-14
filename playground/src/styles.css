@@ -172,6 +172,25 @@ button {
   box-shadow: 0 12px 40px #1c19170a;
 }
 
+.pg-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.pg-compare-col {
+  min-width: 0;
+}
+
+.pg-compare-label {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--pg-muted);
+}
+
 .pg-actions {
   display: flex;
   gap: 10px;
@@ -213,5 +232,9 @@ button {
   .pg-nav {
     border-right: 0;
     border-bottom: 1px solid var(--pg-line);
+  }
+
+  .pg-compare {
+    grid-template-columns: 1fr;
   }
 }

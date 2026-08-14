@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, type Component } from 'vue'
 import { RouterLink } from 'vue-router'
-import { demos, type DemoId, type DemoMode } from '../router'
+import { demos, parseDemoMode, type DemoId } from '../router'
 import BaselineBasic from '../demos/baseline/BasicUserForm.vue'
 import BaselineFilter from '../demos/baseline/FilterForm.vue'
 import BaselineReadonly from '../demos/baseline/ReadonlyDetail.vue'
@@ -17,27 +17,44 @@ const props = defineProps<{
 }>()
 
 const demo = computed(() => demos.find((d) => d.id === props.id))
-const mode = computed(() => (props.mode === 'formless' ? 'formless' : 'baseline') as DemoMode)
+const mode = computed(() => parseDemoMode(props.mode))
 const demoId = computed(() => props.id as DemoId)
 
-const notes: Record<DemoId, { baseline: string; formless: string }> = {
+const baselineMap: Record<DemoId, Component> = {
+  basic: BaselineBasic,
+  filter: BaselineFilter,
+  readonly: BaselineReadonly,
+  mixed: BaselineMixed,
+}
+
+const formlessMap: Record<DemoId, Component> = {
+  basic: FormlessBasic,
+  filter: FormlessFilter,
+  readonly: FormlessReadonly,
+  mixed: FormlessMixed,
+}
+
+const notes: Record<DemoId, { baseline: string; formless: string; compare: string }> = {
   basic: {
     baseline: '经典写法：ElForm + ElRow/ElCol + ElFormItem，字段 v-model 写在模板里。',
     formless:
-      '目标写法：项目级 createFormView({ Row: ElRow, Col: ElCol })；页面 FormView v-model 接管数据；静态 User.* 从 Context 读写。空白 Col 补齐算法尚未实现。',
+      'FormView :layout="{ column, gutter }" 管页级密度（defaultSpan = 24/column）；不写 layout = 纯 Context。空白 Col 补齐尚未实现。',
+    compare: '左侧 Element 基线，右侧 Formless 预演；各自独立一份表单状态，便于对照样板量与写法。',
   },
   filter: {
     baseline: '筛选区同样手写栅格与绑定，和编辑表单样板几乎同构。',
-    formless: '同一份 User 模型复用到筛选；FormView 只换一份 query 对象。',
+    formless: '同一份 User；:layout="{ column: 4, gutter: 12 }" 更密。',
+    compare: '左右对照筛选条：基线手写四格 vs Formless 复用 User.*。',
   },
   readonly: {
     baseline: '详情页再抄一套，或给每个控件绑 :disabled。',
-    formless: '同一套 User.*，FormView 设 readonly，字段从 Context 读到禁用态。',
+    formless: '同一套 User.*；`layout` 开默认两列 + readonly。',
+    compare: '左右对照只读：基线逐项 disabled vs FormView readonly。',
   },
   mixed: {
     baseline: '分组标题、整行、offset 全靠手写 Col。',
-    formless:
-      '常规字段走扁平 span；需要奇怪排布的一段可退出托管，手写 ElRow（ADR-008 逃逸）。',
+    formless: '托管段写 :layout="{ column }"；逃逸段不写 layout，手写 ElRow + bare。',
+    compare: '左右对照混合布局：手写分组 vs 托管 + 逃逸分段。',
   },
 }
 </script>
@@ -62,6 +79,12 @@ const notes: Record<DemoId, { baseline: string; formless: string }> = {
         >
           Formless 预演
         </RouterLink>
+        <RouterLink
+          :class="{ 'is-active': mode === 'compare' }"
+          :to="`/demo/${demoId}/compare`"
+        >
+          平铺对比
+        </RouterLink>
       </div>
     </div>
 
@@ -69,15 +92,25 @@ const notes: Record<DemoId, { baseline: string; formless: string }> = {
       {{ notes[demoId][mode] }}
     </p>
 
-    <div class="pg-panel">
-      <BaselineBasic v-if="demoId === 'basic' && mode === 'baseline'" />
-      <BaselineFilter v-else-if="demoId === 'filter' && mode === 'baseline'" />
-      <BaselineReadonly v-else-if="demoId === 'readonly' && mode === 'baseline'" />
-      <BaselineMixed v-else-if="demoId === 'mixed' && mode === 'baseline'" />
-      <FormlessBasic v-else-if="demoId === 'basic' && mode === 'formless'" />
-      <FormlessFilter v-else-if="demoId === 'filter' && mode === 'formless'" />
-      <FormlessReadonly v-else-if="demoId === 'readonly' && mode === 'formless'" />
-      <FormlessMixed v-else-if="demoId === 'mixed' && mode === 'formless'" />
+    <div v-if="mode === 'compare'" class="pg-compare">
+      <section class="pg-compare-col">
+        <h3 class="pg-compare-label">Element 基线</h3>
+        <div class="pg-panel">
+          <component :is="baselineMap[demoId]" />
+        </div>
+      </section>
+      <section class="pg-compare-col">
+        <h3 class="pg-compare-label">Formless 预演</h3>
+        <div class="pg-panel">
+          <component :is="formlessMap[demoId]" />
+        </div>
+      </section>
+    </div>
+
+    <div v-else class="pg-panel">
+      <component
+        :is="mode === 'baseline' ? baselineMap[demoId] : formlessMap[demoId]"
+      />
     </div>
   </div>
   <p v-else>未知示例</p>

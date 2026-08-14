@@ -3,6 +3,8 @@ export {
   FormView,
   type CreateFormViewOptions,
   type FormViewProps,
+  type FormLayoutProp,
+  type FormLayoutOptions,
 } from './createFormView'
 export {
   createFormFields,
@@ -10,6 +12,11 @@ export {
   type FormFieldsSchema,
   type NamespacedFields,
 } from './createFormFields'
+export {
+  resolveLayout,
+  DEFAULT_LAYOUT,
+  type ResolvedFormLayout,
+} from './layout'
 export { camelToPascal, pascalToCamel, type CamelToPascal } from './case'
 export {
   useFormContext,

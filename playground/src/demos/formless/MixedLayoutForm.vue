@@ -16,16 +16,15 @@ async function onSubmit() {
 
 <template>
   <el-form ref="formRef" :model="form" label-width="96px">
-    <p class="pg-section-title">基本信息（托管：扁平 span）</p>
-    <FormView v-model="form" :default-span="8" :gutter="16">
+    <p class="pg-section-title">基本信息（托管：column: 3）</p>
+    <FormView v-model="form" :layout="{ column: 3, gutter: 16 }">
       <User.Name />
       <User.Gender />
       <User.Mobile />
     </FormView>
 
-    <p class="pg-section-title">证件与联系（逃逸：手写 ElRow）</p>
-    <!-- layout=false → FormView 只提供 Context，栅格自己排 -->
-    <FormView v-model="form" :layout="false">
+    <p class="pg-section-title">证件与联系（不写 layout = 纯 Context，手写 ElRow）</p>
+    <FormView v-model="form">
       <el-row :gutter="16">
         <el-col :span="24">
           <User.IdCard bare />
@@ -40,8 +39,8 @@ async function onSubmit() {
     </FormView>
 
     <p class="pg-section-title">其他</p>
-    <FormView v-model="form" :default-span="24" :gutter="16">
-      <User.Remark :span="24" />
+    <FormView v-model="form" :layout="{ column: 1, gutter: 16 }">
+      <User.Remark />
     </FormView>
   </el-form>
 
