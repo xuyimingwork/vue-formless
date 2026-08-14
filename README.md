@@ -2,29 +2,38 @@
 
 简体中文 | [English](./README.en.md)
 
-> Vue 3 表单组合式 hooks（脚手架占位，尚未发布 API）。
+> Vue 3 表单组合式 hooks（API 预演中，尚未正式发布）。
 
-## 特性
+## 仓库结构
 
-- Vue 3.3+ Composition API hooks
-- TypeScript 编写：提供完整类型定义
-- 零运行时依赖目标：不依赖第三方 npm 包（除 Vue peer）
-
-## 安装
-
-```bash
-pnpm add vue-formless
-# or
-npm install vue-formless
+```text
+packages/vue-formless   # 库本体
+playground              # Element Plus 基线 vs Formless 预演
+docs/adr                # 架构决策
 ```
 
 ## 开发
 
 ```bash
 pnpm i
-pnpm build
+pnpm dev          # 启动 playground
+pnpm build        # 构建库
 pnpm test
 pnpm typecheck
+```
+
+## Playground
+
+对比四类典型表单的 **Element 手写基线** 与 **vue-formless 目标写法**：
+
+- 基础新建 / 编辑
+- 筛选条
+- 只读详情
+- 混合布局（托管 + 手写逃逸）
+
+```bash
+pnpm playground
+# http://localhost:5173
 ```
 
 ## License

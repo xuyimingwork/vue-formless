@@ -59,18 +59,28 @@ ADR-004 中的 `FormLayout` 名称由本文废止为推荐对外名；文档与�
 
 接外部栅格等于只吃**能力公约数**。策略层（密度、补白、换行）由 `FormView` 主控；若把底层 Row/Col 原生 props 全量透传，会与托管算法抢方向盘（两套响应式、`offset` 与空白补齐冲突等）。
 
+**挂载方式**：项目级一次 `createFormView({ Row, Col, total? })`，得到绑定了外部栅格的 `FormView`；不在内核写死某一组件库。
+
+```ts
+import { ElRow, ElCol } from 'element-plus'
+import { createFormView } from 'vue-formless'
+
+export const FormView = createFormView({ Row: ElRow, Col: ElCol })
+```
+
 | 能力 | 归属 | 说明 |
 |------|------|------|
 | **span**（相对 total 的占位） | 外部 Col（必须） | 内核认 `span / total`；适配器常见 `total = 24`，亦可为 12 等 |
 | **Row 容器** | 外部（实际上必须） | 经典栅格下 Col 的 span 依赖行容器 |
 | **gutter** | `FormView` → Row **可选透传** | Row 有则生效；无则间距能力不可用（或将来 CSS 降级），**不影响**排版算法 |
 | **换行 / 类 offset / 行末补齐** | `FormView` 算法 | 一律渲染**空白 `Col(span=n)`**，不调用外部 `offset` / `push` / `pull` |
-| **Item 级 `xs/sm/md`、任意 Col 透传** | 不做默认能力 | 超出公约数时**退出托管**，手写外部栅格 |
+| **Item 级 `xs/sm/md`、任意 Col 透传** | 不做默认能力 | 超出公约数时**退出托管**，手写外部栅格（`layout=false` 或字段 `bare`） |
 
 最小接入条件：
 
 ```text
 能渲染「占 total 中 span 份」的列格子 + 行容器
+→ createFormView({ Row, Col })
 ```
 
 `gutter` 不是接入门槛；空白 Col 是托管布局的统一占位手段。

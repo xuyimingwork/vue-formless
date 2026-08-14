@@ -8,7 +8,7 @@
 |-----|------|------|
 | [001](./001-three-layer-concerns.md) | 三层关注点隔离（模型 / 布局 / 流程） | Accepted |
 | [002](./002-schema-vs-template.md) | Schema 只管模型，布局权力交还 Template | Accepted |
-| [003](./003-namespaced-field-components.md) | 命名空间字段组件（`<User.Name />`） | Accepted |
+| [003](./003-namespaced-field-components.md) | 命名空间字段组件（`<User.Name />`） | Accepted（修订） |
 | [004](./004-form-layout-and-context.md) | FormContext + 静态 Fields（原 FormLayout） | Accepted（修订） |
 | [005](./005-view-model-as-unit.md) | 配置最小单元是 View-Model 控件 | Accepted |
 | [006](./006-build-time-over-runtime-json.md) | 编译时低代码优先于运行时 JSON 下发 | Accepted |

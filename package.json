@@ -1,59 +1,16 @@
 {
-  "name": "vue-formless",
-  "version": "0.0.1",
-  "description": "Vue 3 表单组合式 hooks",
+  "name": "vue-formless-monorepo",
+  "private": true,
   "type": "module",
-  "sideEffects": false,
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    }
-  },
-  "files": [
-    "dist"
-  ],
   "scripts": {
-    "build": "vite build",
-    "dev": "vite build --watch",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
-    "prepublishOnly": "pnpm typecheck && pnpm test && pnpm build"
+    "dev": "pnpm --filter playground dev",
+    "build": "pnpm --filter vue-formless build",
+    "test": "pnpm --filter vue-formless test",
+    "test:watch": "pnpm --filter vue-formless test:watch",
+    "typecheck": "pnpm --filter vue-formless typecheck && pnpm --filter playground typecheck",
+    "playground": "pnpm --filter playground dev"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/xuyimingwork/vue-formless.git"
-  },
-  "homepage": "https://github.com/xuyimingwork/vue-formless#readme",
-  "bugs": {
-    "url": "https://github.com/xuyimingwork/vue-formless/issues"
-  },
-  "keywords": [
-    "vue",
-    "vue3",
-    "form",
-    "composable",
-    "hooks"
-  ],
-  "author": "Xu Yiming",
-  "license": "MIT",
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/",
-    "provenance": true
-  },
-  "peerDependencies": {
-    "vue": "^3.3.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.8.3",
-    "vite": "^6.3.5",
-    "vite-plugin-dts": "^4.5.4",
-    "vitest": "^3.2.4",
-    "vue": "^3.5.16"
+  "engines": {
+    "node": ">=18"
   }
 }
