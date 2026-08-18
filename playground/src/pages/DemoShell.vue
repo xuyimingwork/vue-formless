@@ -38,22 +38,22 @@ const notes: Record<DemoId, { baseline: string; formless: string; compare: strin
   basic: {
     baseline: 'ElForm + Row/Col + FormItem，每个字段自己写 v-model。',
     formless:
-      '本页 createFormControls；模板只摆控件。:layout="{ column: 2 }"，备注 :formless="{ span: 24 }"，必填 :formless="{ validate: \'required\' }"。',
+      '共用 User 控件表；模板只摆控件。:layout="{ column: 2 }"，备注 :formless="{ span: 24 }"，必填 :formless="{ validate: \'required\' }"。',
     compare: '同一套字段与校验，对照模板密度。',
   },
   filter: {
     baseline: '四格筛选，手写 Col span=6。',
-    formless: '本页声明四个控件；:layout="{ column: 4, gutter: 12 }"。',
+    formless: '同一套 User.*，只点四个；placeholder / clearable 写在标签上。:layout="{ column: 4, gutter: 12 }"。',
     compare: '同一套查询字段，对照栅格样板。',
   },
   readonly: {
     baseline: '与编辑同布局，逐项 disabled。',
-    formless: '本页声明控件；FormView readonly + column: 2。',
+    formless: '同一套 User.*；FormView readonly + column: 2。',
     compare: '同一份详情数据，对照只读写法。',
   },
   mixed: {
     baseline: '分组 + 三列 / 24+16+8 / 整行，手写 Col。',
-    formless: '托管 column:3 与 column:1；中间段不写 layout，手写 Row/Col。',
+    formless: '同一套 User.*；托管 column:3 与 column:1；中间段不写 layout，手写 Row/Col。',
     compare: '同一套分组布局，对照托管与逃逸。',
   },
 }

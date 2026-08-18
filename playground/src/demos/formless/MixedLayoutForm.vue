@@ -2,8 +2,8 @@
 import { ref } from 'vue'
 import type { FormInstance } from 'element-plus'
 import { ElMessage } from 'element-plus'
-import { createFormControls } from 'vue-formless'
-import { EpInput, EpSelect, FormView } from '@vue-formless/element-plus'
+import { FormView } from '../../ep'
+import { User } from './user'
 
 const formRef = ref<FormInstance>()
 const form = ref({
@@ -14,30 +14,6 @@ const form = ref({
   idCard: '',
   address: '',
   remark: '',
-})
-
-const genderOptions = [
-  { label: '男', value: 'male' },
-  { label: '女', value: 'female' },
-  { label: '其他', value: 'other' },
-]
-
-const User = createFormControls({
-  name: {
-    label: '姓名',
-    component: EpInput,
-    validation: { empty: { message: '必填' } },
-  },
-  gender: { label: '性别', component: EpSelect, props: { options: genderOptions } },
-  mobile: { label: '手机', component: EpInput },
-  idCard: { label: '证件号', component: EpInput },
-  email: { label: '邮箱', component: EpInput },
-  address: { label: '地址', component: EpInput },
-  remark: {
-    label: '备注',
-    component: EpInput,
-    props: { type: 'textarea', rows: 3 },
-  },
 })
 
 async function onSubmit() {

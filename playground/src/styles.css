@@ -224,6 +224,12 @@ button {
   padding-top: 0;
 }
 
+.pg-panel .el-input,
+.pg-panel .el-select,
+.pg-panel .el-textarea {
+  width: 100%;
+}
+
 @media (max-width: 900px) {
   .pg-shell {
     grid-template-columns: 1fr;

@@ -72,7 +72,7 @@ FormView v-model 把当前对象接到这些控件上
 
 | 该共享 | 不该默认共享 |
 |--------|----------------|
-| `AgencySelect` / `EpInput`（实现） | `User = { Agency, Name, ... }` 整张表 |
+| `AgencySelect` / `ElInput`（实现） | `User = { Agency, Name, ... }` 整张表 |
 | FormView、栅格适配 | 把 component 当领域规范强行扩散 |
 
 真要「所有用户表单统一换树选」：改共享的 `AgencySelect`，或**显式**抽出一份共享控件表 / `user/` 输入模块。那是有意识的**前端输入域**，不是后端领域模型单例。扩散必须是有意识的。

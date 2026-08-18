@@ -8,7 +8,6 @@ English | [简体中文](./README.md)
 
 ```text
 packages/vue-formless              # kernel
-packages/element-plus              # @vue-formless/element-plus
 playground                         # Element Plus baseline vs Formless preview
 docs/adr                           # architecture decisions
 ```

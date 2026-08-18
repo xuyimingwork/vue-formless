@@ -85,7 +85,7 @@ layout?: boolean | {
 
 接外部栅格等于只吃**能力公约数**。策略层（密度、补白、换行）由 `FormView` 主控；若把底层 Row/Col 原生 props 全量透传，会与托管算法抢方向盘（两套响应式、`offset` 与空白补齐冲突等）。FormItem：内核 **不**写死 `label` / `prop` / `rules`；适配用 `toItemProps` 投影成宿主 Item 原生 props。
 
-**挂载方式**：项目级一次 `createFormView({ Row, Col, Item?, toItemProps?, total? })`，得到绑定了外部栅格（及可选表单项）的 `FormView`；不在内核写死某一组件库。Element Plus 可直接使用 `@vue-formless/element-plus` 已绑定的 `FormView`。
+**挂载方式**：项目级一次 `createFormView({ Row, Col, Item?, toItemProps?, total? })`，得到绑定了外部栅格（及可选表单项）的 `FormView`；不在内核写死某一组件库。不提供官方 Element 适配包；playground 展示这一次绑定。
 
 ```ts
 import { ElRow, ElCol, ElFormItem } from 'element-plus'

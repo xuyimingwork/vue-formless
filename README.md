@@ -8,7 +8,6 @@
 
 ```text
 packages/vue-formless              # 内核
-packages/element-plus              # @vue-formless/element-plus
 playground                         # Element Plus 基线 vs Formless 预演
 docs/adr                           # 架构决策
 ```

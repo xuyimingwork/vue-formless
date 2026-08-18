@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { toEpItemProps, toEpRules } from './toEpRules'
+import { toEpItemProps, toEpRules } from './toItemProps'
 
 function run(
   rules: ReturnType<typeof toEpRules>,

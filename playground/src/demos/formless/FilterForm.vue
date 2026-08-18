@@ -1,43 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { createFormControls } from 'vue-formless'
-import { EpInput, EpSelect, FormView } from '@vue-formless/element-plus'
+import { FormView } from '../../ep'
+import { User } from './user'
 
 const query = ref({
   name: '',
   gender: '',
   mobile: '',
   email: '',
-})
-
-const genderOptions = [
-  { label: '男', value: 'male' },
-  { label: '女', value: 'female' },
-  { label: '其他', value: 'other' },
-]
-
-const User = createFormControls({
-  name: {
-    label: '姓名',
-    component: EpInput,
-    props: { placeholder: '姓名', clearable: true },
-  },
-  gender: {
-    label: '性别',
-    component: EpSelect,
-    props: { options: genderOptions, placeholder: '全部', clearable: true },
-  },
-  mobile: {
-    label: '手机',
-    component: EpInput,
-    props: { placeholder: '手机', clearable: true },
-  },
-  email: {
-    label: '邮箱',
-    component: EpInput,
-    props: { placeholder: '邮箱', clearable: true },
-  },
 })
 
 function onSearch() {
@@ -57,10 +28,10 @@ function onReset() {
 <template>
   <el-form :model="query" label-width="72px" @submit.prevent>
     <FormView v-model="query" :layout="{ column: 4, gutter: 12 }">
-      <User.Name />
-      <User.Gender />
-      <User.Mobile />
-      <User.Email />
+      <User.Name placeholder="姓名" clearable />
+      <User.Gender placeholder="全部" clearable />
+      <User.Mobile placeholder="手机" clearable />
+      <User.Email placeholder="邮箱" clearable />
     </FormView>
   </el-form>
 
