@@ -1,5 +1,5 @@
 /**
- * Control identity rules (ADR-010 / ADR-012).
+ * Data validation on a control (ADR-010 / ADR-012).
  * Not host FormItem RuleItem[] — no `required: true`, no `trigger`.
  */
 
@@ -13,21 +13,17 @@ export interface IdentityRule {
   message?: string
 }
 
-export interface IdentityRules {
+/** How this value is checked. Lives on ControlSchema, not the tag. */
+export interface ControlValidation {
   empty?: IdentityRule
   format?: IdentityRule
 }
 
-/** How this render uses identity rules (tag `:formless`). */
+/** How this render uses `validation` (`:formless.validate`). */
 export type ValidatePolicy = 'optional' | 'required' | 'none'
 
-export function resolveValidatePolicy(formless: {
-  required?: boolean
-  novalidate?: boolean
-} = {}): ValidatePolicy {
-  if (formless.novalidate) return 'none'
-  if (formless.required) return 'required'
-  return 'optional'
+export function resolveValidatePolicy(validate?: ValidatePolicy): ValidatePolicy {
+  return validate ?? 'optional'
 }
 
 export function isEmptyValue(value: unknown, empty?: IdentityRule): boolean {
@@ -37,8 +33,3 @@ export function isEmptyValue(value: unknown, empty?: IdentityRule): boolean {
   if (Array.isArray(value)) return value.length === 0
   return false
 }
-
-export type ToRules = (
-  identity: IdentityRules | undefined,
-  policy: ValidatePolicy,
-) => unknown

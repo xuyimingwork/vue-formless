@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { isEmptyValue, resolveValidatePolicy } from './identityRules'
+import { resolveValidatePolicy, isEmptyValue } from './identityRules'
 import { splitFallthrough, splitSlots } from './splitFallthrough'
 import type { Slot, Slots } from 'vue'
 
 describe('resolveValidatePolicy', () => {
   it('defaults to optional', () => {
     expect(resolveValidatePolicy()).toBe('optional')
-    expect(resolveValidatePolicy({})).toBe('optional')
+    expect(resolveValidatePolicy(undefined)).toBe('optional')
   })
 
-  it('required wins unless novalidate', () => {
-    expect(resolveValidatePolicy({ required: true })).toBe('required')
-    expect(resolveValidatePolicy({ required: true, novalidate: true })).toBe('none')
-    expect(resolveValidatePolicy({ novalidate: true })).toBe('none')
+  it('passes through validate', () => {
+    expect(resolveValidatePolicy('required')).toBe('required')
+    expect(resolveValidatePolicy('none')).toBe('none')
+    expect(resolveValidatePolicy('optional')).toBe('optional')
   })
 })
 
@@ -49,6 +49,17 @@ describe('splitFallthrough', () => {
     const fn = () => {}
     const { itemOn } = splitFallthrough({ 'onItem:update:modelValue': fn })
     expect(itemOn).toEqual({ 'onUpdate:modelValue': fn })
+  })
+
+  it('strips item: prefix for Item props', () => {
+    const { itemAttrs, inputAttrs } = splitFallthrough({
+      placeholder: 'x',
+      'item:label-width': 123,
+      'item:labelWidth': 96,
+      item: 'keep-on-input',
+    })
+    expect(inputAttrs).toEqual({ placeholder: 'x', item: 'keep-on-input' })
+    expect(itemAttrs).toEqual({ 'label-width': 123, labelWidth: 96 })
   })
 })
 

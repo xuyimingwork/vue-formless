@@ -6,7 +6,7 @@
   - 2026-08-13 — 适配挂载、`v-model`、公约数与空白 Col；见正文。
   - 2026-08-14 — 页级密度收拢为 `layout: boolean | { column, gutter }`，默认 `false`。
   - 2026-08-18 — 控件不就地改对象；FormView 是唯一写入点，同 tick 合并 patch 后 `emit` 新对象。
-  - 2026-08-18 — 适配公约数补上 Item + `toRules`；`component` 不含 FormItem。见 [ADR-012](./012-input-item-and-rule-compile.md)。
+  - 2026-08-18 — 适配公约数补上 Item + `toItemProps`；`component` 不含 FormItem。见 [ADR-012](./012-input-item-and-rule-compile.md)。
 - **来源**：相对 [ADR-004](./004-form-layout-and-context.md) / [ADR-007](./007-layout-adapter-and-span-priority.md) 的后续澄清（命名、数据口、适配面与占位策略）
 
 ## 背景
@@ -79,13 +79,13 @@ layout?: boolean | {
 | `layout` / `:layout="true"` | 托管；密度用默认（当前 `column: 2`, `gutter: 16`；后续可按容器宽度推断） |
 | `:layout="{ column: 4, gutter: 12 }"` | 托管；显式页级密度 |
 
-字段上的 `:formless.span` 仍是例外覆盖（如整行 24），不是页级配置。超出公约数时退出托管：不写 `layout` 或 `:formless="{ bare: true }"`。
+字段上的 `:formless.span` 仍是例外覆盖（如整行 24），不是页级配置。超出公约数时退出托管：该 `FormView` 不写 `layout`，手写外部栅格。单格 `bare` 暂不开放。
 
 ### 3. 适配公约数：`Row` + `Col(span)` + `Item`；不开放自由配
 
-接外部栅格等于只吃**能力公约数**。策略层（密度、补白、换行）由 `FormView` 主控；若把底层 Row/Col 原生 props 全量透传，会与托管算法抢方向盘（两套响应式、`offset` 与空白补齐冲突等）。FormItem 同理：只吃 label / 路径 / 合成 rules，不透传各家 Item 长尾。
+接外部栅格等于只吃**能力公约数**。策略层（密度、补白、换行）由 `FormView` 主控；若把底层 Row/Col 原生 props 全量透传，会与托管算法抢方向盘（两套响应式、`offset` 与空白补齐冲突等）。FormItem：内核 **不**写死 `label` / `prop` / `rules`；适配用 `toItemProps` 投影成宿主 Item 原生 props。
 
-**挂载方式**：项目级一次 `createFormView({ Row, Col, Item?, toRules?, total? })`，得到绑定了外部栅格（及可选表单项）的 `FormView`；不在内核写死某一组件库。Element Plus 可直接使用 `@vue-formless/element-plus` 已绑定的 `FormView`。
+**挂载方式**：项目级一次 `createFormView({ Row, Col, Item?, toItemProps?, total? })`，得到绑定了外部栅格（及可选表单项）的 `FormView`；不在内核写死某一组件库。Element Plus 可直接使用 `@vue-formless/element-plus` 已绑定的 `FormView`。
 
 ```ts
 import { ElRow, ElCol, ElFormItem } from 'element-plus'
@@ -95,7 +95,7 @@ export const FormView = createFormView({
   Row: ElRow,
   Col: ElCol,
   Item: ElFormItem,
-  toRules: (identity, policy) => /* ElFormItem rules */,
+  toItemProps: (ctx) => /* ElFormItem 原生 props */,
 })
 ```
 
@@ -103,10 +103,10 @@ export const FormView = createFormView({
 |------|------|------|
 | **span**（相对 total 的占位） | 外部 Col（托管时必须） | 内核认 `span / total`；适配器常见 `total = 24`，亦可为 12 等 |
 | **Row 容器** | 外部（托管时必须） | 经典栅格下 Col 的 span 依赖行容器 |
-| **Item**（label / 错误） | 外部（校验呈现时必须） | 内核认公约数；`toRules` 把身份规则 + 标签策略编成宿主 `rules`，见 [ADR-012](./012-input-item-and-rule-compile.md) |
+| **Item**（label / 错误） | 外部（校验呈现时必须） | 内核只调 `toItemProps`；宿主 `rules` / `label` / `prop` 是适配产出，见 [ADR-012](./012-input-item-and-rule-compile.md) |
 | **gutter** | `FormView` → Row **可选透传** | Row 有则生效；无则间距能力不可用（或将来 CSS 降级），**不影响**排版算法 |
 | **换行 / 类 offset / 行末补齐** | `FormView` 算法 | 一律渲染**空白 `Col(span=n)`**，不调用外部 `offset` / `push` / `pull` |
-| **字段级 `xs/sm/md`、任意 Col / FormItem 透传** | 不做默认能力 | 超出公约数时**退出托管**，手写外部栅格（不写 `layout` 或 `:formless.bare`） |
+| **字段级 `xs/sm/md`、任意 Col / FormItem 透传** | 不做默认能力 | 超出公约数时**退出托管**，手写外部栅格（不写 `layout`） |
 
 最小接入条件：
 
@@ -115,10 +115,10 @@ export const FormView = createFormView({
 → createFormView({ Row, Col })
 
 另需表单项（label / 校验）
-→ 再加上 Item + toRules
+→ 再加上 Item + toItemProps
 ```
 
-`gutter` 不是接入门槛；空白 Col 是托管布局的统一占位手段。无 Item 则不套表单项，身份 `rules` 无处呈现。`component` 始终是输入，不含 FormItem（ADR-012）。
+`gutter` 不是接入门槛；空白 Col 是托管布局的统一占位手段。无 Item 则不套表单项。`component` 始终是输入，不含 FormItem（ADR-012）。
 
 ### 4. 主路径一层嵌套；拆原语仅用于逃逸
 
@@ -145,10 +145,10 @@ export const FormView = createFormView({
 5. **自研 Row/Col 或默认 CSS Grid**：扩大库内能力、减少适配，但与周边中后台页面栅格心智分裂；ADR-007 已否决，本文不翻案。
 6. **开放 Col `offset` / 断点 props**：表达力强，易与页级密度、空白补齐算法打架；改为空白 Col，超出则退出托管。
 7. **对外强制 Provider + Grid 两层**：职责最干净，主路径样板重；仅作内部拆分或进阶 API，不作默认用法。
-8. **把 FormItem 焊进 `component`（`epField`）**：接入税高，与「只吃公约数」一致地否决；Item + `toRules` 挂在 `createFormView`，见 ADR-012。
+8. **把 FormItem 焊进 `component`（`epField`）**：接入税高，与「只吃公约数」一致地否决；Item + `toItemProps` 挂在 `createFormView`，见 ADR-012。
 
 ## 后果
 
 - **正向**：根命名与「可纯 Context」一致；`v-model` 是真实写口（emit 新对象）；同 tick 多口写入不丢键；适配面锁在 span + Item 公约数，策略不外泄；奇怪布局有退出通道且主路径仍一层。
-- **代价**：各 UI 库只能映射公约数能力；无 Row/Col（或等价 span）则无法启用托管布局；无 Item / `toRules` 则无表单项与校验呈现；`gutter` 等为尽力透传；`v-model` 侧必须用 `ref` 而非不可替换的 `reactive`。
-- **关联**：静态 Fields 与 Context 职责见 [ADR-004](./004-form-layout-and-context.md)；外部栅格与 span 优先级、Layout 级响应式见 [ADR-007](./007-layout-adapter-and-span-priority.md)（文中「Layout」在实现与文档中对应 `FormView` 的托管模式 / 页级默认）；Item / `toRules` / 标签分流见 [ADR-012](./012-input-item-and-rule-compile.md)。
+- **代价**：各 UI 库只能映射公约数能力；无 Row/Col（或等价 span）则无法启用托管布局；无 Item / `toItemProps` 则无表单项与校验呈现；`gutter` 等为尽力透传；`v-model` 侧必须用 `ref` 而非不可替换的 `reactive`。
+- **关联**：静态 Fields 与 Context 职责见 [ADR-004](./004-form-layout-and-context.md)；外部栅格与 span 优先级、Layout 级响应式见 [ADR-007](./007-layout-adapter-and-span-priority.md)（文中「Layout」在实现与文档中对应 `FormView` 的托管模式 / 页级默认）；Item / `toItemProps` / 标签分流见 [ADR-012](./012-input-item-and-rule-compile.md)。

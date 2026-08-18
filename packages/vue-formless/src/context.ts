@@ -1,5 +1,5 @@
 import { inject, type Component, type InjectionKey, type Ref } from 'vue'
-import type { ToRules } from './identityRules'
+import type { FormItemAdapter } from './itemAdapter'
 
 /** External grid primitives bound by `createFormView` (ADR-007 / ADR-008). */
 export interface FormGridAdapter {
@@ -7,12 +7,6 @@ export interface FormGridAdapter {
   Col: Component
   /** Total column units (Element / Ant Design default 24). */
   total: number
-}
-
-/** FormItem + rule compile bound by `createFormView` (ADR-012). */
-export interface FormItemAdapter {
-  Item: Component
-  toRules?: ToRules
 }
 
 export interface FormContext {
@@ -28,7 +22,7 @@ export interface FormContext {
   gutter?: number
   /**
    * Present when FormView was created with Row/Col.
-   * `layout: true` means hosting is on — fields wrap with Col; escape with `formless.bare`.
+   * `layout: true` means hosting is on — fields wrap with Col.
    */
   grid?: FormGridAdapter & { layout: boolean }
   /** Present when FormView was created with Item. Independent of grid hosting. */

@@ -44,13 +44,12 @@ export {
   formContextKey,
   type FormContext,
   type FormGridAdapter,
-  type FormItemAdapter,
 } from './context'
+export type { FormItemAdapter, ItemRenderInput, ToItemProps } from './itemAdapter'
 export {
   resolveValidatePolicy,
   isEmptyValue,
   type IdentityRule,
-  type IdentityRules,
+  type ControlValidation,
   type ValidatePolicy,
-  type ToRules,
 } from './identityRules'

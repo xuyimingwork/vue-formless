@@ -26,7 +26,7 @@ const User = createFormControls({
   name: {
     label: '姓名',
     component: EpInput,
-    rules: { empty: { message: '必填' } },
+    validation: { empty: { message: '必填' } },
   },
   gender: { label: '性别', component: EpSelect, props: { options: genderOptions } },
   mobile: { label: '手机', component: EpInput },
@@ -50,7 +50,7 @@ async function onSubmit() {
   <el-form ref="formRef" :model="form" label-width="96px">
     <p class="pg-section-title">基本信息</p>
     <FormView v-model="form" :layout="{ column: 3, gutter: 16 }">
-      <User.Name :formless="{ required: true }" />
+      <User.Name :formless="{ validate: 'required' }" />
       <User.Gender />
       <User.Mobile />
     </FormView>
@@ -59,13 +59,13 @@ async function onSubmit() {
     <FormView v-model="form">
       <el-row :gutter="16">
         <el-col :span="24">
-          <User.IdCard :formless="{ bare: true }" />
+          <User.IdCard />
         </el-col>
         <el-col :span="16">
-          <User.Email :formless="{ bare: true }" />
+          <User.Email />
         </el-col>
         <el-col :span="8">
-          <User.Address :formless="{ bare: true }" />
+          <User.Address />
         </el-col>
       </el-row>
     </FormView>

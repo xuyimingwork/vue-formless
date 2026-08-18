@@ -3,7 +3,7 @@
 - **状态**：Accepted（修订）
 - **日期**：2026-08-17
 - **修订**：
-  - 2026-08-18 — 工厂定位见 [ADR-010](./010-controls-as-semantic-cluster.md)：身份 `rules` 写在 control 上，本场策略在标签。合成见 [ADR-012](./012-input-item-and-rule-compile.md)。
+  - 2026-08-18 — 工厂定位见 [ADR-010](./010-controls-as-semantic-cluster.md)：`validation` 写在 control 上，本场策略在 `:formless.validate`。见 [ADR-012](./012-input-item-and-rule-compile.md)。
   - 2026-08-18 — 同一概念的筛选/详情形态是簇里两项（`CreateTime` / `CreateTimeRange`），不是越界。
   - 2026-08-18 — 绑定拆成 `model`（控件口）、`prop`（叶子）、`path`（导航串）。见 [ADR-011](./011-model-and-path.md)。
   - 2026-08-18 — 表格一层 FormView + `:path="\`buyers[${$index}]\`"`。
@@ -40,7 +40,7 @@ schema 键跟随控件（`agency`），不跟随 DTO（`agencyId`）。控件通
 ```ts
 const User = createFormControls({
   agency: { label: '机构', component: AgencySelect },
-  name: { label: '姓名', component: ElInput, rules: [/* 空：trim */] },
+  name: { label: '姓名', component: ElInput, validation: { empty: { /* trim */ } } },
   timeRange: {
     label: '时间',
     component: TimeRange,
@@ -60,7 +60,7 @@ setup（或本页旁文件）声明本页控件表
 FormView v-model 把当前对象接到这些控件上
 ```
 
-库保证的是：不必每个控件手写 `v-model="form.xxx"`，以及控件身份（输入 component / 默认绑定 / label / 身份 `rules`）不跟 Row/Col / FormItem 缠在同一套标签里。联动、本场策略、布局不写进控件表，见 [ADR-010](./010-controls-as-semantic-cluster.md) / [ADR-012](./012-input-item-and-rule-compile.md)。
+库保证的是：不必每个控件手写 `v-model="form.xxx"`，以及控件身份（输入 component / 默认绑定 / label / `validation`）不跟 Row/Col / FormItem 缠在同一套标签里。联动、本场策略、布局不写进控件表，见 [ADR-010](./010-controls-as-semantic-cluster.md) / [ADR-012](./012-input-item-and-rule-compile.md)。
 
 跨页默认复用的是 **控件实现**（`AgencySelect`、`ElInput`）和 **绑定通道**（FormView / Context），不是整张 `User` 控件表。
 
@@ -86,7 +86,7 @@ FormView v-model 把当前对象接到这些控件上
 | 同一概念，详情单点、筛选用区间（或单选 vs 多选） | 簇里两项，都归属该输入域：`<User.CreateTime />` 与 `<User.CreateTimeRange />`，或 `Agency` 与 `AgencyList`。形态不同仍是 User 的格 |
 | 这一页根本不是这个控件 | 本页声明里直接写目标 component，或手写这一格 |
 
-`<User.Agency :formless="{ component: AgencyTreeSelect }" />` 降为 **escape**。数据用 `prop` / `path`，不要在标签上改 `model`（控件口）。
+**不要**在标签上覆盖 `component`（先点名再整颗替换，语义拧，已否）。数据用 `prop` / `path`，不要在标签上改 `model`（控件口）。
 
 ### 5. 列表 / 表格：一层 FormView + `:path`
 
@@ -136,7 +136,7 @@ xxx: {
 ## 备选方案
 
 1. **继续领域级 `createFormFields` + `User.AgencyId`**：和接口 1:1，跨页改一处全跟着动；换组件意图不可控；已否决为默认。
-2. **渲染期 `:component` / `:name` 作为一等换绑**：灵活，但把控件标签变成可任意顶替的壳，冲淡 `<User.Agency />`；仅作逃逸。
+2. **渲染期 `:component` / `:formless.component` 作为一等换绑**：灵活，但把控件标签变成可任意顶替的壳，冲淡 `<User.Agency />`；已否决。
 3. **控件上的数组下标表达 `users[i].name`**：表格会把绑定语言铺进每一格；已否决（见 ADR-011 对 `path` 的限定）。
 4. **`useFormControls` 暗示必须在 setup 调、且每次重建**：集合仍应是静态组件表，只是所有权跟页；不宜用 `use*` 误导生命周期。
 

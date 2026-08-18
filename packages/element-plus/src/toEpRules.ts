@@ -1,8 +1,9 @@
 import type { FormItemRule } from 'element-plus'
 import {
   isEmptyValue,
+  type ControlValidation,
   type IdentityRule,
-  type IdentityRules,
+  type ItemRenderInput,
   type ValidatePolicy,
 } from 'vue-formless'
 
@@ -14,17 +15,17 @@ function pass(rule: IdentityRule, value: unknown): boolean {
   return true
 }
 
-/** Compile identity rules + policy into ElFormItem rules (ADR-012). */
+/** Compile schema `validation` + policy into ElFormItem `rules`. */
 export function toEpRules(
-  identity: IdentityRules | undefined,
+  validation: ControlValidation | undefined,
   policy: ValidatePolicy,
 ): FormItemRule[] | undefined {
-  if (policy === 'none' || !identity) return undefined
+  if (policy === 'none' || !validation) return undefined
 
   const rules: FormItemRule[] = []
 
-  if (policy === 'required' && identity.empty) {
-    const empty = identity.empty
+  if (policy === 'required' && validation.empty) {
+    const empty = validation.empty
     rules.push({
       trigger: TRIGGER,
       validator: (_rule, value, callback) => {
@@ -37,12 +38,12 @@ export function toEpRules(
     })
   }
 
-  if (identity.format) {
-    const format = identity.format
+  if (validation.format) {
+    const format = validation.format
     rules.push({
       trigger: TRIGGER,
       validator: (_rule, value, callback) => {
-        if (isEmptyValue(value, identity.empty)) {
+        if (isEmptyValue(value, validation.empty)) {
           callback()
           return
         }
@@ -56,4 +57,13 @@ export function toEpRules(
   }
 
   return rules.length ? rules : undefined
+}
+
+export function toEpItemProps(input: ItemRenderInput): Record<string, unknown> {
+  return {
+    label: input.label,
+    prop: input.formItemProp,
+    rules: toEpRules(input.validation, input.validate),
+    required: input.validate === 'required',
+  }
 }

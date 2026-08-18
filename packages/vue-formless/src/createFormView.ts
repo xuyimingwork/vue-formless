@@ -8,13 +8,13 @@ import {
   type PropType,
   type VNodeChild,
 } from 'vue'
-import { formContextKey, type FormContext, type FormGridAdapter, type FormItemAdapter } from './context'
+import { formContextKey, type FormContext, type FormGridAdapter } from './context'
 import { createFormModelWriter } from './formModelWriter'
 import {
   resolveLayout,
   type FormLayoutProp,
 } from './layout'
-import type { ToRules } from './identityRules'
+import type { FormItemAdapter, ToItemProps } from './itemAdapter'
 
 export interface CreateFormViewOptions {
   /** Row container (e.g. ElRow). Required together with Col for hosted layout. */
@@ -25,8 +25,8 @@ export interface CreateFormViewOptions {
   total?: number
   /** Form item shell (e.g. ElFormItem). Independent of grid hosting. */
   Item?: Component
-  /** Compile identity rules + policy into host Item `rules`. */
-  toRules?: ToRules
+  /** Map Formless control + runtime formless config → host Item props. */
+  toItemProps?: ToItemProps
 }
 
 export type { FormLayoutProp, FormLayoutOptions } from './layout'
@@ -120,7 +120,7 @@ function provideFormViewContext(options: {
  *   Row: ElRow,
  *   Col: ElCol,
  *   Item: ElFormItem,
- *   toRules,
+ *   toItemProps,
  * })
  * ```
  */
@@ -130,9 +130,10 @@ export function createFormView(options: CreateFormViewOptions): Component {
     Col: options.Col,
     total: options.total ?? 24,
   }
-  const item: FormItemAdapter | undefined = options.Item
-    ? { Item: options.Item, toRules: options.toRules }
-    : undefined
+  const item: FormItemAdapter | undefined =
+    options.Item && options.toItemProps
+      ? { Item: options.Item, toItemProps: options.toItemProps }
+      : undefined
 
   return defineComponent({
     name: 'FormView',

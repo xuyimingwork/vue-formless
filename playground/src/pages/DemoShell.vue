@@ -38,7 +38,7 @@ const notes: Record<DemoId, { baseline: string; formless: string; compare: strin
   basic: {
     baseline: 'ElForm + Row/Col + FormItem，每个字段自己写 v-model。',
     formless:
-      '本页 createFormControls；模板只摆控件。:layout="{ column: 2 }"，备注 :formless="{ span: 24 }"，必填 :formless="{ required: true }"。',
+      '本页 createFormControls；模板只摆控件。:layout="{ column: 2 }"，备注 :formless="{ span: 24 }"，必填 :formless="{ validate: \'required\' }"。',
     compare: '同一套字段与校验，对照模板密度。',
   },
   filter: {
@@ -53,7 +53,7 @@ const notes: Record<DemoId, { baseline: string; formless: string; compare: strin
   },
   mixed: {
     baseline: '分组 + 三列 / 24+16+8 / 整行，手写 Col。',
-    formless: '托管 column:3 与 column:1；中间段不写 layout，手写 Row + :formless="{ bare: true }"。',
+    formless: '托管 column:3 与 column:1；中间段不写 layout，手写 Row/Col。',
     compare: '同一套分组布局，对照托管与逃逸。',
   },
 }

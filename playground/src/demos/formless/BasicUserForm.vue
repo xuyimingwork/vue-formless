@@ -20,7 +20,7 @@ const User = createFormControls({
   name: {
     label: '姓名',
     component: EpInput,
-    rules: { empty: { message: '请输入姓名' } },
+    validation: { empty: { message: '请输入姓名' } },
   },
   gender: {
     label: '性别',
@@ -32,13 +32,13 @@ const User = createFormControls({
         { label: '其他', value: 'other' },
       ],
     },
-    rules: { empty: { message: '请选择性别' } },
+    validation: { empty: { message: '请选择性别' } },
   },
   mobile: {
     label: '手机',
     component: EpInput,
     props: { placeholder: '11 位手机号' },
-    rules: {
+    validation: {
       empty: { message: '请输入手机号' },
       format: { pattern: /^1\d{10}$/, message: '手机号格式不正确' },
     },
@@ -65,7 +65,7 @@ const User = createFormControls({
   },
 })
 
-const required = { required: true }
+const required = { validate: 'required' as const }
 
 async function onSubmit() {
   await formRef.value?.validate()

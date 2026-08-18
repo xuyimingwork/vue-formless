@@ -38,7 +38,7 @@ FormView + User.Xxx  ≈  （可选）行容器 + 列格子 + 表单项 + 控件
 2. **`FormView`（原推演名 FormLayout）**  
    - 提供 **FormContext**（以 `v-model` 接入的可写状态、只读/禁用、以及布局相关的页级默认等）  
    - **可选**作为字段的布局宿主（外部 Row/Col）  
-   - 适配层同时可挂 **Item** 与 `toRules`（label / 校验合成），见 ADR-008 / ADR-012
+   - 适配层同时可挂 **Item** 与 `toItemProps`（投影宿主 Item props），见 ADR-008 / ADR-012
 
 3. **`User.Xxx`**  
    - 从 FormContext 取得运行时数据与布局默认  
@@ -46,7 +46,7 @@ FormView + User.Xxx  ≈  （可选）行容器 + 列格子 + 表单项 + 控件
    - 负责字段级绑定；无前缀插槽透传给输入；列宽以「可被字段覆盖的布局语义」表达
 
 4. **校验 / 表单宿主**  
-   外层仍用业务侧已有表单容器（如 `el-form`），**不由** `createFormControls` 生成。单格 rules 由适配合成到 Item，见 ADR-012。
+   外层仍用业务侧已有表单容器（如 `el-form`），**不由** `createFormControls` 生成。单格 Item props 由适配 `toItemProps` 投影，见 ADR-012。
 
 表单级 `readonly` / `disabled` 经 FormContext 广播。
 

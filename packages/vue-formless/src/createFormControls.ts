@@ -18,14 +18,17 @@ import {
 } from './controlModel'
 import { getIn } from './modelPath'
 import { useFormContext } from './context'
-import {
-  resolveValidatePolicy,
-  type IdentityRules,
-} from './identityRules'
+import { resolveValidatePolicy, type ControlValidation } from './identityRules'
+import type { FormlessAttr } from './itemAdapter'
 import { splitFallthrough, splitSlots } from './splitFallthrough'
 
 export type { ControlNavPath, ControlProp, ControlVModel }
-export type { IdentityRule, IdentityRules, ValidatePolicy, ToRules } from './identityRules'
+export type { FormlessAttr, ItemRenderInput, ToItemProps } from './itemAdapter'
+export type {
+  IdentityRule,
+  ControlValidation,
+  ValidatePolicy,
+} from './identityRules'
 
 export interface ControlSchema {
   label?: string
@@ -33,8 +36,8 @@ export interface ControlSchema {
   component?: Component
   /** Default props merged into the input (not v-model). */
   props?: Record<string, unknown>
-  /** Identity rules: empty / format. Not host RuleItem[]. */
-  rules?: IdentityRules
+  /** How this value is checked. Not host FormItem rules. Not overridable on the tag. */
+  validation?: ControlValidation
   /**
    * v-model names on the widget (ADR-011). Default `'modelValue'`.
    * Not overridable on the tag.
@@ -50,20 +53,6 @@ export interface ControlSchema {
    * Overridable via `:formless.path`.
    */
   path?: ControlNavPath
-}
-
-/** Tag-side Formless config (ADR-012). Extensible; does not steal input prop names. */
-export interface FormlessAttr {
-  span?: number
-  bare?: boolean
-  label?: string
-  required?: boolean
-  novalidate?: boolean
-  prop?: ControlProp
-  path?: ControlNavPath
-  component?: Component
-  /** Escape: replace identity rules for this render. */
-  rules?: IdentityRules
 }
 
 /** Loose schema bag. Prefer inferring `S` from an object literal via `createFormControls`. */
@@ -124,15 +113,15 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
           { model: control.model, prop: control.prop, path: control.path },
           { prop: fl.prop, path: fl.path },
         )
-        const itemProp = resolveFormItemProp(binding, controlKey)
+        const formItemProp = resolveFormItemProp(binding, controlKey)
         const label = fl.label !== undefined ? fl.label : control.label
-        const identityRules = fl.rules !== undefined ? fl.rules : control.rules
-        const policy = resolveValidatePolicy(fl)
-        const widget =
-          (fl.component ? markRaw(fl.component) : undefined) ?? control.component
+        const validate = resolveValidatePolicy(fl.validate)
+        const widget = control.component
 
         const { itemSlots, inputSlots } = splitSlots(slots)
-        const { itemOn, inputAttrs } = splitFallthrough(attrs as Record<string, unknown>)
+        const { itemAttrs, itemOn, inputAttrs } = splitFallthrough(
+          attrs as Record<string, unknown>,
+        )
 
         const mergedProps = {
           ...control.props,
@@ -165,14 +154,19 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
 
         const item = ctx.item
         if (item?.Item) {
-          const compiledRules = item.toRules?.(identityRules, policy)
+          const itemProps = item.toItemProps({
+            controlKey,
+            label,
+            validation: control.validation,
+            validate,
+            formItemProp,
+            formless: fl,
+          })
           body = h(
             item.Item,
             {
-              label,
-              prop: itemProp,
-              rules: compiledRules,
-              required: policy === 'required',
+              ...itemProps,
+              ...itemAttrs,
               ...itemOn,
             },
             {
@@ -183,7 +177,7 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
         }
 
         const grid = ctx.grid
-        if (fl.bare || !grid?.layout || !grid.Col) return body
+        if (!grid?.layout || !grid.Col) return body
 
         const span = fl.span ?? ctx.defaultSpan ?? Math.floor(grid.total / 2)
         return h(grid.Col, { span }, () => body)

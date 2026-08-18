@@ -1,6 +1,6 @@
 import type { Slot, Slots } from 'vue'
 
-const ITEM_SLOT_PREFIX = 'item:'
+const ITEM_PREFIX = 'item:'
 const ITEM_ON_PREFIX = 'onItem:'
 
 export function splitSlots(slots: Slots): {
@@ -12,8 +12,8 @@ export function splitSlots(slots: Slots): {
   for (const name of Object.keys(slots)) {
     const slot = slots[name]
     if (!slot) continue
-    if (name.startsWith(ITEM_SLOT_PREFIX) && name.length > ITEM_SLOT_PREFIX.length) {
-      itemSlots[name.slice(ITEM_SLOT_PREFIX.length)] = slot
+    if (name.startsWith(ITEM_PREFIX) && name.length > ITEM_PREFIX.length) {
+      itemSlots[name.slice(ITEM_PREFIX.length)] = slot
     } else {
       inputSlots[name] = slot
     }
@@ -21,21 +21,28 @@ export function splitSlots(slots: Slots): {
   return { itemSlots, inputSlots }
 }
 
-/** `@item:validate` → attrs `onItem:validate` → Item `onValidate`. */
+/**
+ * `:item:label-width` → attrs `item:label-width` → Item `label-width`.
+ * `@item:validate` → attrs `onItem:validate` → Item `onValidate`.
+ */
 export function splitFallthrough(attrs: Record<string, unknown>): {
+  itemAttrs: Record<string, unknown>
   itemOn: Record<string, unknown>
   inputAttrs: Record<string, unknown>
 } {
+  const itemAttrs: Record<string, unknown> = {}
   const itemOn: Record<string, unknown> = {}
   const inputAttrs: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(attrs)) {
     if (key.startsWith(ITEM_ON_PREFIX) && key.length > ITEM_ON_PREFIX.length) {
       itemOn[toOnKey(key.slice(ITEM_ON_PREFIX.length))] = value
+    } else if (key.startsWith(ITEM_PREFIX) && key.length > ITEM_PREFIX.length) {
+      itemAttrs[key.slice(ITEM_PREFIX.length)] = value
     } else {
       inputAttrs[key] = value
     }
   }
-  return { itemOn, inputAttrs }
+  return { itemAttrs, itemOn, inputAttrs }
 }
 
 function toOnKey(event: string): string {

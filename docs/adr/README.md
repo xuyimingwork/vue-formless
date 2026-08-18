@@ -2,7 +2,7 @@
 
 本目录记录 vue-formless 的重要设计决策。每篇 ADR 自洽，包含背景、备选方案、取舍与结论（或待定项）。
 
-观点提炼自《动态表单架构设计推演》：在 Schema 复用与 Template 定制之间，用「页级控件表 + 命名空间控件 + FormView/Context」取得平衡，而不是全量 JSON 布局引擎。`createFormControls` 声明的是语义输入簇（身份 `rules` + `:formless` 策略，适配层合成到 Item），不是表单 schema；`component` 只接输入；布局栅格与 FormItem 消费外部 Row/Col/Item，不自研；根组件以 `v-model` 接入可写状态。
+观点提炼自《动态表单架构设计推演》：在 Schema 复用与 Template 定制之间，用「页级控件表 + 命名空间控件 + FormView/Context」取得平衡，而不是全量 JSON 布局引擎。`createFormControls` 声明的是语义输入簇（`validation` + `:formless.validate`，适配层 `toItemProps` 投影到 Item），不是表单 schema；`component` 只接输入；布局栅格与 FormItem 消费外部 Row/Col/Item，不自研；根组件以 `v-model` 接入可写状态。
 
 | ADR | 标题 | 状态 |
 |-----|------|------|
@@ -26,9 +26,9 @@
  ├── 002 模型进 Schema，布局留 Template
  ├── 005 配置单元 = 控件（View-Model）
  │    └── 009 控件主角；createFormControls；页级声明；列表一层 FormView + :path
- │         └── 010 工厂 = 语义输入簇；身份 rules + 标签策略；不配联动 / 布局
+ │         └── 010 工厂 = 语义输入簇；validation + 标签策略；不配联动 / 布局
  │              ├── 011 model = v-model 口；prop = 叶子键；path = 导航（buyers[0]）
- │              └── 012 component = 输入；Item + toRules；配置走 :formless；槽/事件 item: 给 Item
+ │              └── 012 component = 输入；Item + toItemProps；配置走 :formless；item: 给 Item 的 props/槽/事件
  ├── 003 模板表达 = <User.Agency /> / <User.Name />
  ├── 004 运行时粘合 = Context + 控件表（内核 UI 无关）
  │    ├── 007 外部 Row/Col 适配；字段 span > 页级默认；响应式只在页级
