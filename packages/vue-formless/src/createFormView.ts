@@ -9,6 +9,7 @@ import {
   type VNodeChild,
 } from 'vue'
 import { formContextKey, type FormContext, type FormGridAdapter } from './context'
+import { createFormModelWriter } from './formModelWriter'
 import {
   resolveLayout,
   type FormLayoutProp,
@@ -37,6 +38,69 @@ export interface FormViewProps {
   layout?: FormLayoutProp
 }
 
+const formViewProps = {
+  modelValue: {
+    type: Object as PropType<Record<string, unknown>>,
+    required: true,
+  },
+  readonly: { type: Boolean, default: false },
+  disabled: { type: Boolean, default: false },
+  layout: {
+    type: [Boolean, Object] as PropType<FormLayoutProp>,
+    default: false,
+  },
+}
+
+const formViewEmits = {
+  'update:modelValue': (_value: Record<string, unknown>) => true,
+}
+
+function provideFormViewContext(options: {
+  getModel: () => Record<string, unknown>
+  emitUpdate: (next: Record<string, unknown>) => void
+  getReadonly: () => boolean
+  getDisabled: () => boolean
+  getLayout?: () => FormLayoutProp
+  adapter?: FormGridAdapter
+}) {
+  const writer = createFormModelWriter(options.getModel, options.emitUpdate)
+  const resolved = options.adapter
+    ? computed(() => resolveLayout(options.getLayout?.(), options.adapter!.total))
+    : undefined
+
+  const ctx = reactive({
+    get model() {
+      return options.getModel()
+    },
+    update: writer.update,
+    get readonly() {
+      return options.getReadonly()
+    },
+    get disabled() {
+      return options.getDisabled()
+    },
+    get column() {
+      return resolved?.value.column
+    },
+    get gutter() {
+      return resolved?.value.gutter
+    },
+    get defaultSpan() {
+      return resolved?.value.enabled ? resolved.value.defaultSpan : undefined
+    },
+    get grid() {
+      if (!options.adapter || !resolved) return undefined
+      return {
+        ...options.adapter,
+        layout: resolved.value.enabled,
+      }
+    },
+  }) as FormContext
+
+  provide(formContextKey, ctx)
+  return resolved
+}
+
 /**
  * Bind external Row/Col once; returns a FormView component (ADR-008).
  *
@@ -55,52 +119,17 @@ export function createFormView(options: CreateFormViewOptions): Component {
 
   return defineComponent({
     name: 'FormView',
-    props: {
-      modelValue: {
-        type: Object as PropType<Record<string, unknown>>,
-        required: true,
-      },
-      readonly: { type: Boolean, default: false },
-      disabled: { type: Boolean, default: false },
-      layout: {
-        type: [Boolean, Object] as PropType<FormLayoutProp>,
-        default: false,
-      },
-    },
-    emits: {
-      'update:modelValue': (_value: Record<string, unknown>) => true,
-    },
-    setup(props, { slots }) {
-      const resolved = computed(() => resolveLayout(props.layout, adapter.total))
-
-      const ctx = reactive({
-        get model() {
-          return props.modelValue
-        },
-        get readonly() {
-          return props.readonly
-        },
-        get disabled() {
-          return props.disabled
-        },
-        get column() {
-          return resolved.value.column
-        },
-        get gutter() {
-          return resolved.value.gutter
-        },
-        get defaultSpan() {
-          return resolved.value.enabled ? resolved.value.defaultSpan : undefined
-        },
-        get grid() {
-          return {
-            ...adapter,
-            layout: resolved.value.enabled,
-          }
-        },
-      }) as FormContext
-
-      provide(formContextKey, ctx)
+    props: formViewProps,
+    emits: formViewEmits,
+    setup(props, { slots, emit }) {
+      const resolved = provideFormViewContext({
+        getModel: () => props.modelValue as Record<string, unknown>,
+        emitUpdate: (next) => emit('update:modelValue', next),
+        getReadonly: () => props.readonly,
+        getDisabled: () => props.disabled,
+        getLayout: () => props.layout as FormLayoutProp,
+        adapter,
+      })!
 
       return (): VNodeChild => {
         const children = slots.default?.() ?? null
@@ -118,36 +147,16 @@ export function createFormView(options: CreateFormViewOptions): Component {
  */
 export const FormView = defineComponent({
   name: 'FormView',
-  props: {
-    modelValue: {
-      type: Object as PropType<Record<string, unknown>>,
-      required: true,
-    },
-    readonly: { type: Boolean, default: false },
-    disabled: { type: Boolean, default: false },
-    layout: {
-      type: [Boolean, Object] as PropType<FormLayoutProp>,
-      default: false,
-    },
-  },
-  emits: {
-    'update:modelValue': (_value: Record<string, unknown>) => true,
-  },
-  setup(props, { slots }) {
-    const ctx = reactive({
-      get model() {
-        return props.modelValue
-      },
-      get readonly() {
-        return props.readonly
-      },
-      get disabled() {
-        return props.disabled
-      },
-    }) as FormContext
-
-    provide(formContextKey, ctx)
-
+  props: formViewProps,
+  emits: formViewEmits,
+  setup(props, { slots, emit }) {
+    provideFormViewContext({
+      getModel: () => props.modelValue as Record<string, unknown>,
+      emitUpdate: (next) => emit('update:modelValue', next),
+      getReadonly: () => props.readonly,
+      getDisabled: () => props.disabled,
+      getLayout: () => props.layout as FormLayoutProp,
+    })
     return (): VNodeChild => slots.default?.() ?? null
   },
 })

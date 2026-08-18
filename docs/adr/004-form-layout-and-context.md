@@ -6,6 +6,7 @@
   - 2026-08-12 — 布局栅格策略改由 [ADR-007](./007-layout-adapter-and-span-priority.md) 约定；本文不再主张内置 CSS Grid。
   - 2026-08-13 — 对外根组件改称 `FormView`，数据口为 `v-model`；见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。本文保留 Context / 静态 Fields 职责划分；文中历史名 `FormLayout` 均指后来的 `FormView`。
   - 2026-08-17 — 控件表默认页级；跨页单例降为 opt-in；列表用嵌套 FormView。见 [ADR-009](./009-controls-as-protagonist.md)。
+  - 2026-08-18 — 控件不就地改 model；写入经 FormView `v-model` emit。见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。
 - **来源**：动态表单架构设计推演
 
 ## 背景
@@ -38,6 +39,7 @@ FormView + User.Xxx  ≈  （可选）行容器 + 列格子 + 表单项 + 控件
 
 3. **`User.Xxx`**  
    - 从 FormContext 取得运行时数据与布局默认  
+   - 读 `model[path]`，写走 `update(path, value)`，由 FormView emit；不就地改对象  
    - 负责字段级绑定与插槽透传；列宽等以「可被 Item 覆盖的布局语义」表达
 
 4. **校验 / 表单宿主**  

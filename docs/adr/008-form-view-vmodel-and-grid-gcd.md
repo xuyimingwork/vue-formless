@@ -5,6 +5,7 @@
 - **修订**：
   - 2026-08-13 — 适配挂载、`v-model`、公约数与空白 Col；见正文。
   - 2026-08-14 — 页级密度收拢为 `layout: boolean | { column, gutter }`，默认 `false`。
+  - 2026-08-18 — 控件不就地改对象；FormView 是唯一写入点，同 tick 合并 patch 后 `emit` 新对象。
 - **来源**：相对 [ADR-004](./004-form-layout-and-context.md) / [ADR-007](./007-layout-adapter-and-span-priority.md) 的后续澄清（命名、数据口、适配面与占位策略）
 
 ## 背景
@@ -48,14 +49,16 @@ ADR-004 中的 `FormLayout` 名称由本文废止为推荐对外名；文档与�
 
 理由：
 
-- `<User.Name />` **不**接收、**不**绑定具体 model，却会改动 model；写入经 FormContext，对外唯一数据接口是 `FormView`
-- 若根上使用单向 `:model`，读起来像只读入参，与「子树会改这份数据」矛盾
-- 这与 Element 等的 `:model` **不同层**：彼处写入点在业务模板的 `v-model="form.xxx"`，容器的 `:model` 并不接管更改；此处字段组件隐藏了绑定，根组件必须表达可写
+- `<User.Name />` **不**在页面模板上绑 `v-model`。ElForm 的 `:model` 只给校验/重置用，真正写入在每个输入的 `v-model="form.xxx"`。Formless 收掉这些口之后，作者能指认的写入点只剩 `FormView` 的 `v-model`。
+- 因此 **FormView 必须是改动真实发生的位置**：控件经 Context `update(path, value)` 上报，FormView `emit('update:modelValue', next)`，由父级 `v-model` 赋值。禁止控件（或 Context）就地改 `modelValue.xxx`——那会让改动不出现在任何 v-model 上。
+- 根上单向 `:model` 对齐的是 Element 的校验袋，不是本库的写口；已否。
 
 实现约定：
 
-- `modelValue`（`v-model`）放入 Context；字段就地改 `modelValue.xxx`（共享引用）
-- **不**要求每改一字段就 `emit` 整包新对象（除非将来明确做不可变表单）
+- `modelValue` 放入 Context **只读**（父级快照）；写入只走 `update`
+- **禁止**就地改共享引用；每次提交一份浅拷贝新对象 `{ ...modelValue, ...patch }`
+- 同一 tick 内多次 `update`（双口控件同时改 `start`/`end`，或联动导致多个控件一起写）必须先合并 patch，在 `nextTick` **只 emit 一次**。Vue 的 props 更新是异步批处理、事件处理是同步的：若每次 `update` 都按当前 `props.modelValue` spread 后立刻 emit，第二次仍看到旧对象，先写的键会丢
+- 父级绑定必须可赋值（`ref` / 可写属性）。`reactive` 对象无法被 `v-model` 整包替换
 - 页级密度收在 **`layout`**（见下），不再散落 `default-span` / `gutter` / `columns`
 
 ### 2.1 `layout`：`boolean | { column, gutter }`，默认 `false`
@@ -126,13 +129,15 @@ export const FormView = createFormView({ Row: ElRow, Col: ElCol })
 ## 备选方案
 
 1. **继续叫 `FormLayout` + `pure`**：能表达逃逸，但「Layout 却 pure」语义拧；已否决为推荐名。
-2. **根上 `:model` 对齐 Element**：与「字段经 Context 写入、根是唯一数据口」的心智不符；已否决。
-3. **自研 Row/Col 或默认 CSS Grid**：扩大库内能力、减少适配，但与周边中后台页面栅格心智分裂；ADR-007 已否决，本文不翻案。
-4. **开放 Col `offset` / 断点 props**：表达力强，易与页级密度、空白补齐算法打架；改为空白 Col，超出则退出托管。
-5. **对外强制 Provider + Grid 两层**：职责最干净，主路径样板重；仅作内部拆分或进阶 API，不作默认用法。
+2. **根上 `:model` 对齐 Element**：ElForm 的 `:model` 是校验用只读入口，不是写口；本库控件已不绑 v-model，根必须是真 `v-model`。已否决。
+3. **就地改 `modelValue.xxx`、不 emit**：实现简单，但改动不经过 v-model，与「FormView 是唯一写入点」矛盾；双口同时更新也无法在聚合层合并。已否决。
+4. **每次 `update` 立刻 `{ ...props.modelValue, [k]: v }` 并 emit**：单次写入可用；同一 tick 两次 emit 时 props 仍是旧对象，后一次覆盖前一次。必须 tick 内合并 patch。
+5. **自研 Row/Col 或默认 CSS Grid**：扩大库内能力、减少适配，但与周边中后台页面栅格心智分裂；ADR-007 已否决，本文不翻案。
+6. **开放 Col `offset` / 断点 props**：表达力强，易与页级密度、空白补齐算法打架；改为空白 Col，超出则退出托管。
+7. **对外强制 Provider + Grid 两层**：职责最干净，主路径样板重；仅作内部拆分或进阶 API，不作默认用法。
 
 ## 后果
 
-- **正向**：根命名与「可纯 Context」一致；`v-model` 诚实表达可写状态；适配面锁在 span，策略不外泄；奇怪布局有退出通道且主路径仍一层。
-- **代价**：各 UI 库只能映射公约数能力；无 Row/Col（或等价 span）则无法启用托管布局；`gutter` 等为尽力透传。
+- **正向**：根命名与「可纯 Context」一致；`v-model` 是真实写口（emit 新对象）；同 tick 多口写入不丢键；适配面锁在 span，策略不外泄；奇怪布局有退出通道且主路径仍一层。
+- **代价**：各 UI 库只能映射公约数能力；无 Row/Col（或等价 span）则无法启用托管布局；`gutter` 等为尽力透传；`v-model` 侧必须用 `ref` 而非不可替换的 `reactive`。
 - **关联**：静态 Fields 与 Context 职责见 [ADR-004](./004-form-layout-and-context.md)；外部栅格与 span 优先级、Layout 级响应式见 [ADR-007](./007-layout-adapter-and-span-priority.md)（文中「Layout」在实现与文档中对应 `FormView` 的托管模式 / 页级默认）。

@@ -43,6 +43,7 @@ export function primaryPath(binding: ResolvedControlBinding, controlKey: string)
 export function applyControlBinding(
   formModel: Record<string, unknown>,
   binding: ResolvedControlBinding,
+  update: (path: string, value: unknown) => void,
 ): Record<string, unknown> {
   const bindings: Record<string, unknown> = {}
   for (let i = 0; i < binding.paths.length; i++) {
@@ -50,7 +51,7 @@ export function applyControlBinding(
     const modelKey = binding.paths[i]!
     bindings[vModelName] = formModel[modelKey]
     bindings[`onUpdate:${vModelName}`] = (next: unknown) => {
-      formModel[modelKey] = next
+      update(modelKey, next)
     }
   }
   return bindings

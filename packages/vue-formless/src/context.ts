@@ -9,7 +9,10 @@ export interface FormGridAdapter {
 }
 
 export interface FormContext<T extends Record<string, unknown> = Record<string, unknown>> {
+  /** Current FormView `modelValue` (parent snapshot; do not mutate). */
   model: T
+  /** Report a field write; FormView patches and emits `update:modelValue`. */
+  update: (path: string, value: unknown) => void
   readonly: boolean
   disabled: boolean
   /** Page-level default span when layout hosting is on (`total / column`). */

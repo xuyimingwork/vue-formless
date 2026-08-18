@@ -121,7 +121,7 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
           ...controlProps.props,
           ...attrs,
         }
-        const modelBindings = applyControlBinding(ctx.model, binding)
+        const modelBindings = applyControlBinding(ctx.model, binding, ctx.update)
 
         const body = widget
           ? h(

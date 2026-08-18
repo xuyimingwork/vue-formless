@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { ref } from 'vue'
 import type { FormInstance } from 'element-plus'
 import { ElMessage } from 'element-plus'
 import { createFormControls } from 'vue-formless'
 import { EpInput, EpSelect, FormView } from '@vue-formless/element-plus'
 
 const formRef = ref<FormInstance>()
-const form = reactive({
+const form = ref({
   name: '',
   gender: '',
   mobile: '',

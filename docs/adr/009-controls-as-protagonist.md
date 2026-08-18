@@ -7,6 +7,7 @@
   - 2026-08-18 — 同一概念的筛选/详情形态是簇里两项（`CreateTime` / `CreateTimeRange`），不是越界。
   - 2026-08-18 — 绑定拆成 `model`（控件口）与 `path`（数据键）。见 [ADR-011](./011-model-and-path.md)。
   - 2026-08-18 — `path` 可短于 `model`（前缀接线）。
+  - 2026-08-18 — 列表行用 `v-model="users[$index]"`；写入经 FormView emit，不就地改。
 - **来源**：相对 [ADR-003](./003-namespaced-field-components.md) / [ADR-004](./004-form-layout-and-context.md) / [ADR-005](./005-view-model-as-unit.md) 的后续澄清（命名、共享边界、换绑、数组行）
 
 ## 背景
@@ -90,16 +91,18 @@ FormView v-model 把当前对象接到这些控件上
 
 ### 5. 列表 / 表格：换 Form 上下文，不换控件 API
 
-控件始终按该项的 `path` 读写**当前 Context 那份对象**上的键（省略时即控件键，如 `name`）。`model` 只描述组件 v-model 口。
+控件按该项的 `path` 读 **当前 FormView 的 `modelValue`** 上的键（省略时即控件键，如 `name`）。写入经该层 FormView 的 `v-model` emit，不就地改对象。`model` 只描述组件 v-model 口。
 
-- 整表：`FormView v-model="user"` → `user.name`
-- 行内：每行 `FormView v-model="row"`（`row === users[i]`）→ `users[i].name`
+- 整表：`FormView v-model="user"` → path `name` → emit `{ ...user, name }`
+- 行内：每行 `FormView v-model="users[$index]"` → path `name` → emit 新的 user，由该 v-model 写回 `users[i]`
+
+不要绑 slot 的 `row`：`row` 是只读参数，`update:modelValue` 赋不回数组项。不要给控件加 `path-prefix` / 下标 path。
 
 ```vue
 <el-table :data="users">
   <el-table-column label="姓名">
-    <template #default="{ row }">
-      <FormView v-model="row">
+    <template #default="{ $index }">
+      <FormView v-model="users[$index]">
         <User.Name />
       </FormView>
     </template>
@@ -107,7 +110,9 @@ FormView v-model 把当前对象接到这些控件上
 </el-table>
 ```
 
-单元格通常不开启 `layout`。若需整表广播 `readonly` / `disabled`，根上可再套一层只负责 Context 的 FormView（或将来更轻的 Scope）；**不要**让控件吃 `users[i]` 这种下标 path。当前对象上的键用控件的 `path`（[ADR-011](./011-model-and-path.md)）。
+`UserList` 自己的 v-model 是 array；`User.*` 的 FormView 永远是单个 User。筛选/排序时不要用展示用 `$index` 当源下标（可用 `users.indexOf(row)` 或行 id）。
+
+单元格通常不开启 `layout`。若需整表广播 `readonly` / `disabled`，根上可再套一层只负责 Context 的 FormView（或将来更轻的 Scope）。当前对象上的键用控件的 `path`（[ADR-011](./011-model-and-path.md)）。写入语义见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。
 
 ### 6. 控件项 API：`model` + `path`
 
@@ -138,6 +143,6 @@ xxx: {
 
 ## 后果
 
-- **正向**：命名与 ADR-005 对齐；页级声明让换控件影响面局部；筛选/编辑本就可以是不同控件表；表格只需嵌套 FormView；主故事更好讲。
+- **正向**：命名与 ADR-005 对齐；页级声明让换控件影响面局部；筛选/编辑本就可以是不同控件表；表格嵌套 `FormView v-model="users[$index]"`；主故事更好讲。
 - **代价**：不再默认「一份 User 打编辑+筛选+详情」；重复的声明若出现，需有意识抽取。ADR-001「模型放静态 TS 单例」、ADR-004「Fields 跨页单例」降为进阶，不再是主路径。
 - **关联**：工厂是语义输入簇、controls 非目标见 [ADR-010](./010-controls-as-semantic-cluster.md)；`model` / `path` 见 [ADR-011](./011-model-and-path.md)；控件单元见 [ADR-005](./005-view-model-as-unit.md)；命名空间标签见 [ADR-003](./003-namespaced-field-components.md)；Context / FormView 见 [ADR-004](./004-form-layout-and-context.md)、[ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。工厂以 `createFormControls` 为准。

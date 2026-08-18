@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { createFormControls } from 'vue-formless'
 import { EpInput, EpSelect, FormView } from '@vue-formless/element-plus'
 
-const query = reactive({
+const query = ref({
   name: '',
   gender: '',
   mobile: '',
@@ -45,10 +45,12 @@ function onSearch() {
 }
 
 function onReset() {
-  query.name = ''
-  query.gender = ''
-  query.mobile = ''
-  query.email = ''
+  query.value = {
+    name: '',
+    gender: '',
+    mobile: '',
+    email: '',
+  }
 }
 </script>
 

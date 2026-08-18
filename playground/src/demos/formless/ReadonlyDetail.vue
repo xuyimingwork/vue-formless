@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { ref } from 'vue'
 import { createFormControls } from 'vue-formless'
 import { EpInput, EpSelect, FormView } from '@vue-formless/element-plus'
 
-const form = reactive({
+const form = ref({
   name: '陈青禾',
   gender: 'female',
   mobile: '13800138000',

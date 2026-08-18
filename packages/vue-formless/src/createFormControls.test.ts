@@ -1,4 +1,4 @@
-import { describe, expect, expectTypeOf, it } from 'vitest'
+import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { camelToPascal, pascalToCamel } from './case'
 import {
   applyControlBinding,
@@ -99,24 +99,34 @@ describe('resolveControlBinding', () => {
 })
 
 describe('applyControlBinding', () => {
-  it('reads and writes mapped keys', () => {
+  it('reads mapped keys and reports writes', () => {
     const form = { startTime: 'a', endTime: 'b' }
-    const bindings = applyControlBinding(form, {
-      models: ['start', 'end'],
-      paths: ['startTime', 'endTime'],
-    })
+    const update = vi.fn()
+    const bindings = applyControlBinding(
+      form,
+      {
+        models: ['start', 'end'],
+        paths: ['startTime', 'endTime'],
+      },
+      update,
+    )
     expect(bindings.start).toBe('a')
     expect(bindings.end).toBe('b')
     ;(bindings['onUpdate:start'] as (v: string) => void)('x')
-    expect(form.startTime).toBe('x')
+    expect(form.startTime).toBe('a')
+    expect(update).toHaveBeenCalledWith('startTime', 'x')
   })
 
   it('does not bind extra model ports', () => {
     const form = { name: 'Ada' }
-    const bindings = applyControlBinding(form, {
-      models: ['modelValue', 'option'],
-      paths: ['name'],
-    })
+    const bindings = applyControlBinding(
+      form,
+      {
+        models: ['modelValue', 'option'],
+        paths: ['name'],
+      },
+      vi.fn(),
+    )
     expect(bindings.modelValue).toBe('Ada')
     expect(bindings.option).toBeUndefined()
     expect(bindings['onUpdate:option']).toBeUndefined()

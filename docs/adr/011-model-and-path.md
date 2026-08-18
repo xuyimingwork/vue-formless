@@ -2,7 +2,7 @@
 
 - **状态**：Accepted
 - **日期**：2026-08-18
-- **修订**：2026-08-18 — `path` 可以短于 `model`（前缀接线）；更长才是配置错误。
+- **修订**：2026-08-18 — `path` 可以短于 `model`（前缀接线）；更长才是配置错误。列表行 FormView 绑 `users[$index]`。
 - **来源**：相对 [ADR-009](./009-controls-as-protagonist.md) §6 的修订（换绑时不必重写控件 v-model 名）
 
 ## 背景
@@ -11,7 +11,7 @@
 
 覆盖的通常是 **数据在哪**，不是 **控件有几个口**。两者不应焊在一个对象里。
 
-009 §5 否决的「控件上的 `path` / `index`」指的是 `users[i].name` 这种数组下标； nested `FormView v-model="row"` 已经解决。本文的 `path` 是 **当前 Context 那份对象上的键**，不是列表下标。
+009 §5 否决的「控件上的 `path` / `index`」指的是 `users[i].name` 这种数组下标；嵌套 `FormView v-model="users[$index]"` 已经解决。本文的 `path` 是 **当前 FormView 对象上的键**，不是列表下标。
 
 ## 决策
 
@@ -71,7 +71,7 @@ agency: {
 
 ### 4. 与列表行的关系
 
-`users[i].name` 仍用嵌套 `FormView v-model="row"`，控件 `path` 仍是 `'name'`。`path` **不是** `'users.0.name'`，也不吃 `index`。
+`users[i].name` 仍用嵌套 `FormView v-model="users[$index]"`，控件 `path` 仍是 `'name'`。`path` **不是** `'users.0.name'`，也不吃 `index`。写入经该层 FormView emit，见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。
 
 ## 备选方案
 

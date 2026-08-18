@@ -30,6 +30,6 @@
  ├── 003 模板表达 = <User.Agency /> / <User.Name />
  ├── 004 运行时粘合 = Context + 控件表（内核 UI 无关）
  │    ├── 007 外部 Row/Col 适配；Item > 页级默认；响应式只在页级
- │    └── 008 FormView 命名与 v-model；适配公约数 = span；空白 Col 占位
+ │    └── 008 FormView 命名与真 v-model（tick 内合并 patch 再 emit）；适配公约数 = span；空白 Col 占位
  └── 006 动态性默认走生成/CI，而非运行时全量 JSON
 ```
