@@ -15,8 +15,8 @@ const form = ref({
 </script>
 
 <template>
-  <el-form :model="form" label-width="96px">
-    <FormView v-model="form" readonly :layout="{ column: 2, gutter: 16 }">
+  <el-form :model="form" disabled label-width="96px">
+    <FormView v-model="form" :layout="{ column: 2, gutter: 16 }">
       <User.Name />
       <User.Gender />
       <User.Mobile />

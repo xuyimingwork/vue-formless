@@ -1,0 +1,110 @@
+import { describe, expect, it } from 'vitest'
+import { defineComponent, h, isReactive, reactive, type VNode } from 'vue'
+import { createControlWrap } from './wrapControl'
+
+const Item = defineComponent({
+  name: 'DummyItem',
+  props: { label: { type: String, default: '' } },
+  setup: () => () => null,
+})
+
+const Col = defineComponent({
+  name: 'DummyCol',
+  props: { span: { type: Number, default: 12 } },
+  setup: () => () => null,
+})
+
+const snapshot = {
+  controlKey: 'name',
+  label: '姓名',
+  validate: 'optional' as const,
+  formItemProp: 'name',
+  formless: {},
+}
+
+const emptyMeta = {
+  snapshot,
+  itemAttrs: {},
+  itemOn: {},
+  itemSlots: {},
+}
+
+function slotDefault(vnode: VNode): VNode {
+  const children = vnode.children as { default?: () => VNode }
+  const inner = children.default?.()
+  if (!inner) throw new Error('expected default slot')
+  return inner
+}
+
+describe('createControlWrap', () => {
+  it('returns body when Item and layout are off', () => {
+    const wrap = createControlWrap({
+      isLayoutEnabled: () => false,
+      getDefaultSpan: () => undefined,
+    })
+    const body = h('input')
+    expect(wrap(body, emptyMeta)).toBe(body)
+  })
+
+  it('wraps Item without capturing the Item vnode in default', () => {
+    const wrap = createControlWrap({
+      Item,
+      toItemProps: ({ label }) => ({ label }),
+      isLayoutEnabled: () => false,
+      getDefaultSpan: () => undefined,
+    })
+    const input = h('input')
+    const out = wrap(input, emptyMeta) as VNode
+    expect(out.type).toBe(Item)
+    expect(slotDefault(out)).toBe(input)
+  })
+
+  it('wraps Col → Item → input when layout is on', () => {
+    const wrap = createControlWrap({
+      Col,
+      Item,
+      toItemProps: ({ label }) => ({ label }),
+      isLayoutEnabled: () => true,
+      getDefaultSpan: () => 12,
+    })
+    const input = h('input')
+    const col = wrap(input, { ...emptyMeta, span: 8 }) as VNode
+    expect(col.type).toBe(Col)
+    expect(col.props?.span).toBe(8)
+    const item = slotDefault(col)
+    expect(item.type).toBe(Item)
+    expect(slotDefault(item)).toBe(input)
+  })
+
+  it('falls back to defaultSpan then half row (12)', () => {
+    const wrap = createControlWrap({
+      Col,
+      isLayoutEnabled: () => true,
+      getDefaultSpan: () => 12,
+    })
+    const withDefault = wrap(h('input'), emptyMeta) as VNode
+    expect(withDefault.props?.span).toBe(12)
+
+    const wrapNoDefault = createControlWrap({
+      Col,
+      isLayoutEnabled: () => true,
+      getDefaultSpan: () => undefined,
+    })
+    const half = wrapNoDefault(h('input'), emptyMeta) as VNode
+    expect(half.props?.span).toBe(12)
+  })
+
+  it('keeps host components non-reactive even on a reactive ctx', () => {
+    const wrap = createControlWrap({
+      Col,
+      Item,
+      toItemProps: () => ({}),
+      isLayoutEnabled: () => true,
+      getDefaultSpan: () => 12,
+    })
+    const ctx = reactive({ wrap })
+    const col = ctx.wrap(h('input'), emptyMeta) as VNode
+    expect(isReactive(col.type)).toBe(false)
+    expect(isReactive(slotDefault(col).type)).toBe(false)
+  })
+})

@@ -1,12 +1,10 @@
 import { inject, type Component, type InjectionKey, type Ref } from 'vue'
-import type { FormItemAdapter } from './itemAdapter'
+import type { WrapControl } from './wrapControl'
 
 /** External grid primitives bound by `createFormView` (ADR-007 / ADR-008). */
 export interface FormGridAdapter {
   Row: Component
   Col: Component
-  /** Total column units (Element / Ant Design default 24). */
-  total: number
 }
 
 export interface FormContext {
@@ -14,19 +12,11 @@ export interface FormContext {
   model: unknown
   /** Report a field write; FormView patches and emits `update:modelValue`. */
   update: (prop: string, value: unknown, path?: string) => void
-  readonly: boolean
-  disabled: boolean
-  /** Page-level default span when layout hosting is on (`total / column`). */
-  defaultSpan?: number
-  column?: number
-  gutter?: number
   /**
-   * Present when FormView was created with Row/Col.
-   * `layout: true` means hosting is on — fields wrap with Col.
+   * FormView-owned shell: Col? → Item? → body.
+   * Layout density stays in the FormView closure. Form-level disabled stays on the host form.
    */
-  grid?: FormGridAdapter & { layout: boolean }
-  /** Present when FormView was created with Item. Independent of grid hosting. */
-  item?: FormItemAdapter
+  wrap: WrapControl
 }
 
 export const formContextKey: InjectionKey<FormContext> = Symbol('vue-formless.formContext')

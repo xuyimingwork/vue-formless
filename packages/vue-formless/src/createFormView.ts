@@ -2,6 +2,7 @@ import {
   computed,
   defineComponent,
   h,
+  markRaw,
   provide,
   reactive,
   type Component,
@@ -15,14 +16,13 @@ import {
   type FormLayoutProp,
 } from './layout'
 import type { FormItemAdapter, ToItemProps } from './itemAdapter'
+import { createControlWrap } from './wrapControl'
 
 export interface CreateFormViewOptions {
   /** Row container (e.g. ElRow). Required together with Col for hosted layout. */
   Row: Component
-  /** Column cell (e.g. ElCol). Must accept a numeric `span` prop. */
+  /** Column cell (e.g. ElCol). Must accept a numeric `span` prop (24-grid). */
   Col: Component
-  /** Grid total units. @default 24 */
-  total?: number
   /** Form item shell (e.g. ElFormItem). Independent of grid hosting. */
   Item?: Component
   /** Map Formless control + runtime formless config → host Item props. */
@@ -33,12 +33,10 @@ export type { FormLayoutProp, FormLayoutOptions } from './layout'
 
 export interface FormViewProps {
   modelValue: unknown
-  readonly?: boolean
-  disabled?: boolean
   /**
    * Grid hosting. Default `false` (omit = Context only, matches HTML boolean attrs).
    * - `true` / `layout`: hosted with defaults (`column: 2`, `gutter: 16`)
-   * - `{ column, gutter }`: hosted with explicit density (`defaultSpan = total / column`)
+   * - `{ column, gutter }`: hosted with explicit density (`defaultSpan = 24 / column`)
    */
   layout?: FormLayoutProp
 }
@@ -48,8 +46,6 @@ const formViewProps = {
     type: [Object, Array] as PropType<unknown>,
     required: true,
   },
-  readonly: { type: Boolean, default: false },
-  disabled: { type: Boolean, default: false },
   layout: {
     type: [Boolean, Object] as PropType<FormLayoutProp>,
     default: false,
@@ -63,47 +59,29 @@ const formViewEmits = {
 function provideFormViewContext(options: {
   getModel: () => unknown
   emitUpdate: (next: unknown) => void
-  getReadonly: () => boolean
-  getDisabled: () => boolean
   getLayout?: () => FormLayoutProp
   adapter?: FormGridAdapter
   item?: FormItemAdapter
 }) {
   const writer = createFormModelWriter(options.getModel, options.emitUpdate)
   const resolved = options.adapter
-    ? computed(() => resolveLayout(options.getLayout?.(), options.adapter!.total))
+    ? computed(() => resolveLayout(options.getLayout?.()))
     : undefined
+
+  const wrap = createControlWrap({
+    Col: options.adapter?.Col,
+    Item: options.item?.Item,
+    toItemProps: options.item?.toItemProps,
+    isLayoutEnabled: () => resolved?.value.enabled ?? false,
+    getDefaultSpan: () => (resolved?.value.enabled ? resolved.value.defaultSpan : undefined),
+  })
 
   const ctx = reactive({
     get model() {
       return options.getModel()
     },
     update: writer.update,
-    get readonly() {
-      return options.getReadonly()
-    },
-    get disabled() {
-      return options.getDisabled()
-    },
-    get column() {
-      return resolved?.value.column
-    },
-    get gutter() {
-      return resolved?.value.gutter
-    },
-    get defaultSpan() {
-      return resolved?.value.enabled ? resolved.value.defaultSpan : undefined
-    },
-    get grid() {
-      if (!options.adapter || !resolved) return undefined
-      return {
-        ...options.adapter,
-        layout: resolved.value.enabled,
-      }
-    },
-    get item() {
-      return options.item
-    },
+    wrap,
   }) as FormContext
 
   provide(formContextKey, ctx)
@@ -112,6 +90,8 @@ function provideFormViewContext(options: {
 
 /**
  * Bind external Row/Col (and optional Item) once; returns a FormView (ADR-008 / ADR-012).
+ *
+ * Host shells stay in this closure. Controls call `ctx.wrap(body, meta)` and never `h()` Item/Col.
  *
  * @example
  * ```ts
@@ -126,13 +106,12 @@ function provideFormViewContext(options: {
  */
 export function createFormView(options: CreateFormViewOptions): Component {
   const adapter: FormGridAdapter = {
-    Row: options.Row,
-    Col: options.Col,
-    total: options.total ?? 24,
+    Row: markRaw(options.Row),
+    Col: markRaw(options.Col),
   }
   const item: FormItemAdapter | undefined =
     options.Item && options.toItemProps
-      ? { Item: options.Item, toItemProps: options.toItemProps }
+      ? { Item: markRaw(options.Item), toItemProps: options.toItemProps }
       : undefined
 
   return defineComponent({
@@ -143,8 +122,6 @@ export function createFormView(options: CreateFormViewOptions): Component {
       const resolved = provideFormViewContext({
         getModel: () => props.modelValue,
         emitUpdate: (next) => emit('update:modelValue', next),
-        getReadonly: () => props.readonly,
-        getDisabled: () => props.disabled,
         getLayout: () => props.layout as FormLayoutProp,
         adapter,
         item,
@@ -172,8 +149,6 @@ export const FormView = defineComponent({
     provideFormViewContext({
       getModel: () => props.modelValue,
       emitUpdate: (next) => emit('update:modelValue', next),
-      getReadonly: () => props.readonly,
-      getDisabled: () => props.disabled,
       getLayout: () => props.layout as FormLayoutProp,
     })
     return (): VNodeChild => slots.default?.() ?? null

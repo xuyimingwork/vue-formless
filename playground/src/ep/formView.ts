@@ -8,5 +8,4 @@ export const FormView = createFormView({
   Col: ElCol,
   Item: ElFormItem,
   toItemProps: toEpItemProps,
-  total: 24,
 })

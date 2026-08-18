@@ -6,6 +6,8 @@
   - 2026-08-18 — 标签配置收进 `:formless`；顶层 attrs / 事件 / 无前缀槽给输入；Item 事件 `@item:xxx`。
   - 2026-08-18 — Schema `validation`；`:formless.validate`；`toItemProps`；去掉标签换 `component`、去掉 `bare`。
   - 2026-08-18 — Item 原生 props 走 `:item:xxx`，盖在 `toItemProps` 上。
+  - 2026-08-18 — Control 只渲染输入，壳由 FormView 注入的 `wrap` 包；Item/Col 不进 FormContext。
+  - 2026-08-18 — 整表 `disabled` 走宿主表单；FormView 不再广播 `readonly` / `disabled`。
 - **来源**：相对 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md) / [ADR-010](./010-controls-as-semantic-cluster.md) 的后续收口（`component` 接什么、Item 挂在哪、规则与策略如何变成宿主 `rules`、一颗标签如何分流）
 
 ## 背景
@@ -52,7 +54,7 @@ createFormView({
 })
 ```
 
-渲染顺序：`Col?` → `Item(toItemProps(…))` → `component(v-model, …)`。
+渲染顺序：`Col?` → `Item(toItemProps(…))` → `component(v-model, …)`。Control **不** `h(Item)` / `h(Col)`：FormView 把宿主组件闭包进 `wrap`，控件只交 body 与 `:formless` / `:item:` 快照。Item/Col 不得放进深 `reactive` 的 FormContext（会把组件做成 Proxy，渲染栈溢出）。
 
 - **Col**：仅当 `layout` 托管时包。整段退出托管：该 `FormView` 不写 `layout`，手写 Row/Col。单格 `bare` **暂不开放**。
 - **Item**：同时提供 `Item` + `toItemProps` 则包（**与是否托管栅格无关**）。内核 **不**写死 `label` / `prop` / `rules` / `required`。无 Item 时不套表单项。
@@ -120,7 +122,7 @@ mobile: {
 
 不可在标签覆盖：`component`、`model`、`validation`。
 
-簇里的 `props` 与顶层 attrs 合并后给输入。`FormView` 的 `disabled` / `readonly` 广播到输入，只许收紧。
+簇里的 `props` 与顶层 attrs 合并后给输入。整表禁用走宿主表单（如 `el-form disabled`）；单格 `disabled` / `readonly` 是输入自己的 attrs，不经 FormContext 广播。
 
 `:item:xxx` 是宿主 Item 原生 props（如 `label-width`），**不是** Formless 语义。默认 Item 形状仍由 `toItemProps` 投影；`:item:` 盖在投影结果上（可盖掉 `label` 等）。不要把各家 Item 长尾塞进 `:formless`。
 

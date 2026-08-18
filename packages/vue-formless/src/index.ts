@@ -36,6 +36,7 @@ export {
 export {
   resolveLayout,
   DEFAULT_LAYOUT,
+  GRID_TOTAL,
   type ResolvedFormLayout,
 } from './layout'
 export { camelToPascal, pascalToCamel, type CamelToPascal } from './case'
@@ -46,6 +47,7 @@ export {
   type FormGridAdapter,
 } from './context'
 export type { FormItemAdapter, ItemRenderInput, ToItemProps } from './itemAdapter'
+export type { WrapControl, WrapControlMeta } from './wrapControl'
 export {
   resolveValidatePolicy,
   isEmptyValue,

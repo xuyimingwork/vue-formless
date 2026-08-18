@@ -48,7 +48,7 @@ const notes: Record<DemoId, { baseline: string; formless: string; compare: strin
   },
   readonly: {
     baseline: '与编辑同布局，逐项 disabled。',
-    formless: '同一套 User.*；FormView readonly + column: 2。',
+    formless: '同一套 User.*；el-form disabled + column: 2。',
     compare: '同一份详情数据，对照只读写法。',
   },
   mixed: {

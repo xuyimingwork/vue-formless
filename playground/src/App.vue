@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
-import { demos, type DemoId } from './router'
+import { demos, parseDemoMode, type DemoId } from './router'
 
 const route = useRoute()
+const mode = computed(() => parseDemoMode(String(route.params.mode ?? '')))
 
 function isActive(id: DemoId) {
   return route.params.id === id
@@ -19,7 +21,7 @@ function isActive(id: DemoId) {
           <RouterLink
             class="pg-nav-link"
             :class="{ 'is-active': isActive(demo.id) }"
-            :to="`/demo/${demo.id}/baseline`"
+            :to="`/demo/${demo.id}/${mode}`"
           >
             <strong>{{ demo.title }}</strong>
             <span>{{ demo.desc }}</span>

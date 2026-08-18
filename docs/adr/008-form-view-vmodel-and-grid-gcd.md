@@ -7,6 +7,9 @@
   - 2026-08-14 — 页级密度收拢为 `layout: boolean | { column, gutter }`，默认 `false`。
   - 2026-08-18 — 控件不就地改对象；FormView 是唯一写入点，同 tick 合并 patch 后 `emit` 新对象。
   - 2026-08-18 — 适配公约数补上 Item + `toItemProps`；`component` 不含 FormItem。见 [ADR-012](./012-input-item-and-rule-compile.md)。
+  - 2026-08-18 — FormContext 不再下传 `column` / `gutter` / `defaultSpan`；密度由 FormView `wrap` 与 Row 自己用。
+  - 2026-08-18 — FormView 不再广播 `readonly` / `disabled`；整表禁用留给宿主表单。
+  - 2026-08-18 — 栅格模量钉死 24；`:formless.span` 即宿主 Col span。不再配置 `total`。
 - **来源**：相对 [ADR-004](./004-form-layout-and-context.md) / [ADR-007](./007-layout-adapter-and-span-priority.md) 的后续澄清（命名、数据口、适配面与占位策略）
 
 ## 背景
@@ -25,8 +28,8 @@ ADR-004 将运行时粘合命名为 `FormLayout`，并同时承担 FormContext �
 ### 1. 根组件命名为 `FormView`
 
 - **`FormView`**：对外主入口；名称中性，不预设「一定在管栅格」
-- 第一职责是提供 **FormContext**（可写表单状态、只读/禁用、页级布局默认等）
-- 第二职责（可选）是托管栅格：按 span 编排外部 Row/Col、插入空白占位列
+- 第一职责是提供 **FormContext**（可写表单状态、`wrap`）
+- 第二职责（可选）是托管栅格：按 span 编排外部 Row/Col、插入空白占位列；`column` / `gutter` / 缺省 span 留在 FormView，不进 Context
 
 奇怪布局时可不启用托管，仅作 Context 根，业务手写外部栅格：
 
@@ -68,7 +71,7 @@ ADR-004 中的 `FormLayout` 名称由本文废止为推荐对外名；文档与�
 
 ```ts
 layout?: boolean | {
-  column?: number  // 一行几列；defaultSpan = total / column（total 默认 24）
+  column?: number  // 一行几列；defaultSpan = 24 / column
   gutter?: number
 }
 ```
@@ -79,13 +82,13 @@ layout?: boolean | {
 | `layout` / `:layout="true"` | 托管；密度用默认（当前 `column: 2`, `gutter: 16`；后续可按容器宽度推断） |
 | `:layout="{ column: 4, gutter: 12 }"` | 托管；显式页级密度 |
 
-字段上的 `:formless.span` 仍是例外覆盖（如整行 24），不是页级配置。超出公约数时退出托管：该 `FormView` 不写 `layout`，手写外部栅格。单格 `bare` 暂不开放。
+字段上的 `:formless.span` 是宿主 Col 的 span（24 格，如整行 24、半行 12），不是「占几个 column 槽」。超出公约数时退出托管：该 `FormView` 不写 `layout`，手写外部栅格。单格 `bare` 暂不开放。
 
 ### 3. 适配公约数：`Row` + `Col(span)` + `Item`；不开放自由配
 
 接外部栅格等于只吃**能力公约数**。策略层（密度、补白、换行）由 `FormView` 主控；若把底层 Row/Col 原生 props 全量透传，会与托管算法抢方向盘（两套响应式、`offset` 与空白补齐冲突等）。FormItem：内核 **不**写死 `label` / `prop` / `rules`；适配用 `toItemProps` 投影成宿主 Item 原生 props。
 
-**挂载方式**：项目级一次 `createFormView({ Row, Col, Item?, toItemProps?, total? })`，得到绑定了外部栅格（及可选表单项）的 `FormView`；不在内核写死某一组件库。不提供官方 Element 适配包；playground 展示这一次绑定。
+**挂载方式**：项目级一次 `createFormView({ Row, Col, Item?, toItemProps? })`，得到绑定了外部栅格（及可选表单项）的 `FormView`；不在内核写死某一组件库。栅格模量固定 24（Element / Ant Design），不是适配旋钮。不提供官方 Element 适配包；playground 展示这一次绑定。
 
 ```ts
 import { ElRow, ElCol, ElFormItem } from 'element-plus'
@@ -101,7 +104,7 @@ export const FormView = createFormView({
 
 | 能力 | 归属 | 说明 |
 |------|------|------|
-| **span**（相对 total 的占位） | 外部 Col（托管时必须） | 内核认 `span / total`；适配器常见 `total = 24`，亦可为 12 等 |
+| **span**（24 格占位） | 外部 Col（托管时必须） | `:formless.span` 即 Col 的 `span`；缺省为 `24 / column`。模量钉死 24，不配置 `total` |
 | **Row 容器** | 外部（托管时必须） | 经典栅格下 Col 的 span 依赖行容器 |
 | **Item**（label / 错误） | 外部（校验呈现时必须） | 内核只调 `toItemProps`；宿主 `rules` / `label` / `prop` 是适配产出，见 [ADR-012](./012-input-item-and-rule-compile.md) |
 | **gutter** | `FormView` → Row **可选透传** | Row 有则生效；无则间距能力不可用（或将来 CSS 降级），**不影响**排版算法 |
@@ -111,7 +114,7 @@ export const FormView = createFormView({
 最小接入条件：
 
 ```text
-能渲染「占 total 中 span 份」的列格子 + 行容器
+能渲染「24 格上 span 份」的列格子 + 行容器
 → createFormView({ Row, Col })
 
 另需表单项（label / 校验）

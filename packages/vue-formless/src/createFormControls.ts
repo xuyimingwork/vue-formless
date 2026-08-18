@@ -24,6 +24,7 @@ import { splitFallthrough, splitSlots } from './splitFallthrough'
 
 export type { ControlNavPath, ControlProp, ControlVModel }
 export type { FormlessAttr, ItemRenderInput, ToItemProps } from './itemAdapter'
+export type { WrapControl, WrapControlMeta } from './wrapControl'
 export type {
   IdentityRule,
   ControlValidation,
@@ -129,17 +130,13 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
         }
         const modelBindings = applyControlBinding(ctx.model, binding, ctx.update)
         const displayProp = binding.props[0] ?? controlKey
-        const disabled = Boolean(ctx.disabled || ctx.readonly || mergedProps.disabled)
-        const readonly = Boolean(ctx.readonly || mergedProps.readonly)
 
-        let body: VNodeChild = widget
+        const body: VNodeChild = widget
           ? h(
               widget,
               {
                 ...mergedProps,
                 ...modelBindings,
-                disabled,
-                readonly,
               },
               inputSlots,
             )
@@ -152,35 +149,20 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
               ],
             )
 
-        const item = ctx.item
-        if (item?.Item) {
-          const itemProps = item.toItemProps({
+        return ctx.wrap(body, {
+          span: fl.span,
+          snapshot: {
             controlKey,
             label,
             validation: control.validation,
             validate,
             formItemProp,
             formless: fl,
-          })
-          body = h(
-            item.Item,
-            {
-              ...itemProps,
-              ...itemAttrs,
-              ...itemOn,
-            },
-            {
-              ...itemSlots,
-              default: () => body,
-            },
-          )
-        }
-
-        const grid = ctx.grid
-        if (!grid?.layout || !grid.Col) return body
-
-        const span = fl.span ?? ctx.defaultSpan ?? Math.floor(grid.total / 2)
-        return h(grid.Col, { span }, () => body)
+          },
+          itemAttrs,
+          itemOn,
+          itemSlots,
+        })
       }
     },
   }) as FormControlComponent

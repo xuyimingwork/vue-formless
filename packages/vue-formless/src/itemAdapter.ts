@@ -12,7 +12,7 @@ export interface FormlessAttr {
   path?: ControlNavPath
   /** This-render policy for schema `validation`. Default `'optional'`. */
   validate?: ValidatePolicy
-  /** Col span when FormView layout hosting is on. */
+  /** Host Col span on the 24-grid when FormView layout hosting is on. */
   span?: number
 }
 

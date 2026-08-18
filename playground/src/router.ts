@@ -15,7 +15,7 @@ export const demos = [
   {
     id: 'readonly',
     title: '只读详情',
-    desc: '同一套字段，整表 readonly',
+    desc: '同一套字段，宿主表单 disabled',
   },
   {
     id: 'mixed',

@@ -1,5 +1,5 @@
 export interface FormLayoutOptions {
-  /** Columns per row → defaultSpan = total / column. @default 2 when layout is on */
+  /** Columns per row → defaultSpan = GRID_TOTAL / column. @default 2 when layout is on */
   column?: number
   /** Passed through to Row when supported. @default 16 when layout is on */
   gutter?: number
@@ -12,9 +12,12 @@ export interface ResolvedFormLayout {
   enabled: boolean
   column: number
   gutter: number
-  /** Derived: total / column (integer division). */
+  /** Derived: GRID_TOTAL / column (integer division). */
   defaultSpan: number
 }
+
+/** Host Col span modulus (Element / Ant Design 24-grid). Not a bind-time option. */
+export const GRID_TOTAL = 24
 
 /** Defaults used when `layout` is `true` or when object omits fields. */
 export const DEFAULT_LAYOUT: Required<FormLayoutOptions> = {
@@ -22,16 +25,13 @@ export const DEFAULT_LAYOUT: Required<FormLayoutOptions> = {
   gutter: 16,
 }
 
-export function resolveLayout(
-  layout: FormLayoutProp | undefined,
-  total: number,
-): ResolvedFormLayout {
+export function resolveLayout(layout: FormLayoutProp | undefined): ResolvedFormLayout {
   if (layout === false || layout == null) {
     return {
       enabled: false,
       column: DEFAULT_LAYOUT.column,
       gutter: DEFAULT_LAYOUT.gutter,
-      defaultSpan: Math.floor(total / DEFAULT_LAYOUT.column),
+      defaultSpan: Math.floor(GRID_TOTAL / DEFAULT_LAYOUT.column),
     }
   }
 
@@ -44,6 +44,6 @@ export function resolveLayout(
     enabled: true,
     column: safeColumn,
     gutter,
-    defaultSpan: Math.max(1, Math.floor(total / safeColumn)),
+    defaultSpan: Math.max(1, Math.floor(GRID_TOTAL / safeColumn)),
   }
 }
