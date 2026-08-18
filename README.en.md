@@ -7,9 +7,10 @@ English | [简体中文](./README.md)
 ## Layout
 
 ```text
-packages/vue-formless   # library
-playground              # Element Plus baseline vs Formless preview
-docs/adr                # architecture decisions
+packages/vue-formless              # kernel
+packages/element-plus              # @vue-formless/element-plus
+playground                         # Element Plus baseline vs Formless preview
+docs/adr                           # architecture decisions
 ```
 
 ## Development

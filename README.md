@@ -7,9 +7,10 @@
 ## 仓库结构
 
 ```text
-packages/vue-formless   # 库本体
-playground              # Element Plus 基线 vs Formless 预演
-docs/adr                # 架构决策
+packages/vue-formless              # 内核
+packages/element-plus              # @vue-formless/element-plus
+playground                         # Element Plus 基线 vs Formless 预演
+docs/adr                           # 架构决策
 ```
 
 ## 开发

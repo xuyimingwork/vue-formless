@@ -1,7 +1,8 @@
 # ADR-005：配置最小单元是 View-Model 控件，而非数据库字段
 
-- **状态**：Accepted
+- **状态**：Accepted（修订）
 - **日期**：2026-08-12
+- **修订**：2026-08-17 — 控件键用 `agency` 而非 `agencyId`；默认绑定的载体是页级控件表，不是领域字段单例。见 [ADR-009](./009-controls-as-protagonist.md)。
 - **来源**：动态表单架构设计推演
 
 ## 背景
@@ -19,7 +20,7 @@
 1. **Schema 描述的是 View-Model（控件集合）**，不是纯 Database Model。  
    例：`CreateTimeRange` → DateRangePicker；模板写 `<User.CreateTimeRange />`。
 
-2. **默认控件绑定落在模型层**（字段 → 组件 + 基础 props/options），布局层只覆盖 span、显隐、插槽等。
+2. **默认控件绑定落在控件表**（控件键 → 组件 + 基础 props/options），布局层只覆盖 span、显隐、插槽等。控件表默认跟页走（ADR-009）。
 
 3. **流程层用 Adapter** 在拉取/提交边界做拆装（`[start, end]` ↔ `startTime`/`endTime`），模板不感知多字段落库细节。
 

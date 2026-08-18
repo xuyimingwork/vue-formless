@@ -36,25 +36,25 @@ const formlessMap: Record<DemoId, Component> = {
 
 const notes: Record<DemoId, { baseline: string; formless: string; compare: string }> = {
   basic: {
-    baseline: '经典写法：ElForm + ElRow/ElCol + ElFormItem，字段 v-model 写在模板里。',
+    baseline: 'ElForm + Row/Col + FormItem，每个字段自己写 v-model。',
     formless:
-      'FormView :layout="{ column, gutter }" 管页级密度（defaultSpan = 24/column）；不写 layout = 纯 Context。空白 Col 补齐尚未实现。',
-    compare: '左侧 Element 基线，右侧 Formless 预演；各自独立一份表单状态，便于对照样板量与写法。',
+      '本页 createFormControls；模板只摆控件。:layout="{ column: 2, gutter: 16 }"，备注 :span="24"。',
+    compare: '同一套字段与校验，对照模板密度。',
   },
   filter: {
-    baseline: '筛选区同样手写栅格与绑定，和编辑表单样板几乎同构。',
-    formless: '同一份 User；:layout="{ column: 4, gutter: 12 }" 更密。',
-    compare: '左右对照筛选条：基线手写四格 vs Formless 复用 User.*。',
+    baseline: '四格筛选，手写 Col span=6。',
+    formless: '本页声明四个控件；:layout="{ column: 4, gutter: 12 }"。',
+    compare: '同一套查询字段，对照栅格样板。',
   },
   readonly: {
-    baseline: '详情页再抄一套，或给每个控件绑 :disabled。',
-    formless: '同一套 User.*；`layout` 开默认两列 + readonly。',
-    compare: '左右对照只读：基线逐项 disabled vs FormView readonly。',
+    baseline: '与编辑同布局，逐项 disabled。',
+    formless: '本页声明控件；FormView readonly + column: 2。',
+    compare: '同一份详情数据，对照只读写法。',
   },
   mixed: {
-    baseline: '分组标题、整行、offset 全靠手写 Col。',
-    formless: '托管段写 :layout="{ column }"；逃逸段不写 layout，手写 ElRow + bare。',
-    compare: '左右对照混合布局：手写分组 vs 托管 + 逃逸分段。',
+    baseline: '分组 + 三列 / 24+16+8 / 整行，手写 Col。',
+    formless: '托管 column:3 与 column:1；中间段不写 layout，手写 Row + bare。',
+    compare: '同一套分组布局，对照托管与逃逸。',
   },
 }
 </script>

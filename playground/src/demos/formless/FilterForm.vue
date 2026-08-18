@@ -1,22 +1,54 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { reactive } from 'vue'
 import { ElMessage } from 'element-plus'
-import { FormView } from '../../bridge/ep'
-import { User } from '../../models/user'
+import { createFormControls } from 'vue-formless'
+import { EpInput, EpSelect, FormView } from '@vue-formless/element-plus'
 
-const query = ref({
+const query = reactive({
   name: '',
   gender: '',
   mobile: '',
   email: '',
 })
 
+const genderOptions = [
+  { label: '男', value: 'male' },
+  { label: '女', value: 'female' },
+  { label: '其他', value: 'other' },
+]
+
+const User = createFormControls({
+  name: {
+    label: '姓名',
+    component: EpInput,
+    props: { placeholder: '姓名', clearable: true },
+  },
+  gender: {
+    label: '性别',
+    component: EpSelect,
+    props: { options: genderOptions, placeholder: '全部', clearable: true },
+  },
+  mobile: {
+    label: '手机',
+    component: EpInput,
+    props: { placeholder: '手机', clearable: true },
+  },
+  email: {
+    label: '邮箱',
+    component: EpInput,
+    props: { placeholder: '邮箱', clearable: true },
+  },
+})
+
 function onSearch() {
-  ElMessage.success('查询（formless 预演）')
+  ElMessage.success('查询（formless）')
 }
 
 function onReset() {
-  query.value = { name: '', gender: '', mobile: '', email: '' }
+  query.name = ''
+  query.gender = ''
+  query.mobile = ''
+  query.email = ''
 }
 </script>
 

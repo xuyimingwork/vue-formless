@@ -2,7 +2,9 @@
 
 - **状态**：Accepted（修订）
 - **日期**：2026-08-12
-- **修订**：2026-08-14 — schema 键小驼峰，命名空间组件自动大驼峰；默认绑定可被渲染期覆盖；label/rules 由 formless 注入 component。
+- **修订**：
+  - 2026-08-14 — schema 键小驼峰，命名空间组件自动大驼峰；默认绑定可被渲染期覆盖；label/rules 由 formless 注入 component。
+  - 2026-08-17 — 标签按控件命名（`Agency` 而非 `AgencyId`）；工厂推荐名 `createFormControls`；`:component` 整颗替换降为逃逸。见 [ADR-009](./009-controls-as-protagonist.md)。
 - **来源**：动态表单架构设计推演
 
 ## 背景
@@ -24,9 +26,13 @@ Vue 3 模板编译器原生支持带 `.` 的标签（Namespaced Components），
 采用 **Proxy 工厂生成的命名空间组件**，按领域实体重命名导出：
 
 ```ts
-export const User = createFormFields({
+export const User = createFormControls({
   name: { label: '姓名', component: EpInput, rules: [...] },
-  idCard: { label: '证件号', component: EpInput },
+  timeRange: {
+    label: '时间',
+    component: TimeRange,
+    model: { start: 'startTime', end: 'endTime' },
+  },
 })
 ```
 
@@ -40,8 +46,9 @@ export const User = createFormFields({
 要点：
 
 - Schema / model 键为**小驼峰**；暴露给模板的组件名为**大驼峰**（`name` → `Name`，`idCard` → `IdCard`），由工厂自动转换
-- `createFormFields` 建立字段 → 默认 component / props / label / rules 的绑定；`markRaw` 在工厂内处理
-- 渲染期可用绑定 **完全覆盖**默认（换 component、改 label、清 rules、覆盖 props 等）
+- `createFormControls` 建立控件 → component / props / label / rules / `model` 绑定；`markRaw` 在工厂内处理
+- `model`：省略 = `{ modelValue: 控件键 }`；字符串 = `{ modelValue: 该键 }`；对象 = 具名 v-model → 表单键
+- 渲染期可用 label / rules / props 覆盖默认；`:component` 整颗替换仅为逃逸（ADR-009）
 - label / rules / prop 由 formless **传给** `field.component`；FormItem 若需要，属于该 component 的实现，而非全局再注册一层 ElFormItem
 - 按需 `defineComponent`（访问时才创建，可缓存）；泛型把 schema 键映射为 PascalCase 组件类型
 

@@ -15,7 +15,7 @@
 
 另一条路：**可视化配置 → 生成代码 → Git Commit → CI/CD 构建部署**（Build-time Low-Code / GitOps）。
 
-与本库目标形态（静态 `createFormFields` + Template 布局）天然契合：生成物是普通的 `userModel.ts` / `UserForm.vue`，AST 友好、可手工接管。
+与本库目标形态（静态 `createFormControls` + Template 布局）天然契合：生成物是普通的控件表 / `UserForm.vue`，AST 友好、可手工接管。
 
 ## 决策
 

@@ -4,10 +4,10 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm --filter playground dev",
-    "build": "pnpm --filter vue-formless build",
-    "test": "pnpm --filter vue-formless test",
+    "build": "pnpm --filter vue-formless build && pnpm --filter @vue-formless/element-plus build",
+    "test": "pnpm --filter vue-formless test && pnpm --filter @vue-formless/element-plus test",
     "test:watch": "pnpm --filter vue-formless test:watch",
-    "typecheck": "pnpm --filter vue-formless typecheck && pnpm --filter playground typecheck",
+    "typecheck": "pnpm --filter vue-formless typecheck && pnpm --filter @vue-formless/element-plus typecheck && pnpm --filter playground typecheck",
     "playground": "pnpm --filter playground dev"
   },
   "engines": {

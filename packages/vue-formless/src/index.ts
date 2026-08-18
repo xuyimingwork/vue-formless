@@ -7,11 +7,17 @@ export {
   type FormLayoutOptions,
 } from './createFormView'
 export {
-  createFormFields,
-  type FieldSchema,
-  type FormFieldsSchema,
-  type NamespacedFields,
-} from './createFormFields'
+  createFormControls,
+  type ControlSchema,
+  type ControlModel,
+  type FormControlsSchema,
+  type NamespacedControls,
+} from './createFormControls'
+export {
+  resolveControlModel,
+  applyControlModel,
+  primaryModelKey,
+} from './controlModel'
 export {
   resolveLayout,
   DEFAULT_LAYOUT,

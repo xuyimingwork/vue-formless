@@ -10,8 +10,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(root, 'src'),
-      // Dev against source so FormView / createFormFields iterate without rebuild.
       'vue-formless': path.resolve(root, '../packages/vue-formless/src/index.ts'),
+      '@vue-formless/element-plus': path.resolve(root, '../packages/element-plus/src/index.ts'),
     },
   },
   server: {
