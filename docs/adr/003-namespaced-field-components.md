@@ -5,6 +5,7 @@
 - **修订**：
   - 2026-08-14 — schema 键小驼峰，命名空间组件自动大驼峰；默认绑定可被渲染期覆盖；label/rules 由 formless 注入 component。
   - 2026-08-17 — 标签按控件命名（`Agency` 而非 `AgencyId`）；工厂推荐名 `createFormControls`；`:component` 整颗替换降为逃逸。见 [ADR-009](./009-controls-as-protagonist.md)。
+  - 2026-08-18 — 工厂是语义输入簇；`rules` 写在 control 上，本场用不用由场景决定；不配联动。见 [ADR-010](./010-controls-as-semantic-cluster.md)。
 - **来源**：动态表单架构设计推演
 
 ## 背景
@@ -27,7 +28,7 @@ Vue 3 模板编译器原生支持带 `.` 的标签（Namespaced Components），
 
 ```ts
 export const User = createFormControls({
-  name: { label: '姓名', component: EpInput, rules: [...] },
+  name: { label: '姓名', component: ElInput },
   timeRange: {
     label: '时间',
     component: TimeRange,
@@ -37,7 +38,7 @@ export const User = createFormControls({
 ```
 
 ```vue
-<User.Name :span="12" />
+<User.Name required />
 <User.IdCard :span="24">
   <template #append>...</template>
 </User.IdCard>
@@ -46,10 +47,10 @@ export const User = createFormControls({
 要点：
 
 - Schema / model 键为**小驼峰**；暴露给模板的组件名为**大驼峰**（`name` → `Name`，`idCard` → `IdCard`），由工厂自动转换
-- `createFormControls` 建立控件 → component / props / label / rules / `model` 绑定；`markRaw` 在工厂内处理
+- `createFormControls` 建立控件 → component / 默认 props / 默认 label / `model` / `rules`（规则体）；`markRaw` 在工厂内处理。联动、本场是否启用、布局不进这张表（[ADR-010](./010-controls-as-semantic-cluster.md)）
 - `model`：省略 = `{ modelValue: 控件键 }`；字符串 = `{ modelValue: 该键 }`；对象 = 具名 v-model → 表单键
-- 渲染期可用 label / rules / props 覆盖默认；`:component` 整颗替换仅为逃逸（ADR-009）
-- label / rules / prop 由 formless **传给** `field.component`；FormItem 若需要，属于该 component 的实现，而非全局再注册一层 ElFormItem
+- 渲染期可用 label / props 覆盖默认；`:component` 整颗替换仅为逃逸（ADR-009）；场景开关如 `required` 打在标签上，不把规则体写进模板
+- 默认 label 由 formless **传给** 控件（或适配层 Item）；FormItem 壳属于适配，不在内核登记一套控件目录
 - 按需 `defineComponent`（访问时才创建，可缓存）；泛型把 schema 键映射为 PascalCase 组件类型
 
 推荐命名空间：
@@ -72,4 +73,4 @@ export const User = createFormControls({
 
 - **正向**：模板语义化、可混排多模型（`User.*` + `Order.*`）；临场定制不退回整页手写；schema 与 model 键对齐。
 - **代价**：依赖 Vue 3 命名空间组件 + 良好的类型体操；调试栈会出现工厂生成的组件名，需约定 `name: Field_${PascalKey}`。
-- **关联**：数据如何注入见 ADR-004（FormContext，而非闭包绑死 model）；栅格见 ADR-007 / ADR-008。
+- **关联**：数据如何注入见 ADR-004（FormContext，而非闭包绑死 model）；栅格见 ADR-007 / ADR-008；工厂定位与非目标见 [ADR-010](./010-controls-as-semantic-cluster.md)。

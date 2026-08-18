@@ -11,6 +11,8 @@ export {
   type ControlSchema,
   type ControlModel,
   type FormControlsSchema,
+  type FormControlProps,
+  type FormControlComponent,
   type NamespacedControls,
 } from './createFormControls'
 export {

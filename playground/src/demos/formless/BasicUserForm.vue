@@ -16,12 +16,6 @@ const form = reactive({
   remark: '',
 })
 
-const genderOptions = [
-  { label: '男', value: 'male' },
-  { label: '女', value: 'female' },
-  { label: '其他', value: 'other' },
-]
-
 const User = createFormControls({
   name: {
     label: '姓名',
@@ -31,7 +25,13 @@ const User = createFormControls({
   gender: {
     label: '性别',
     component: EpSelect,
-    props: { options: genderOptions },
+    props: {
+      options: [
+        { label: '男', value: 'male' },
+        { label: '女', value: 'female' },
+        { label: '其他', value: 'other' },
+      ]
+    },
     rules: [{ required: true, message: '请选择性别', trigger: 'change' }],
   },
   mobile: {

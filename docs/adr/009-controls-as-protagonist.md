@@ -1,7 +1,10 @@
 # ADR-009：控件主角、页级控件表与列表上下文
 
-- **状态**：Accepted
+- **状态**：Accepted（修订）
 - **日期**：2026-08-17
+- **修订**：
+  - 2026-08-18 — 工厂定位见 [ADR-010](./010-controls-as-semantic-cluster.md)：`rules` 写在 control 上，本场用不用由场景决定。
+  - 2026-08-18 — 同一概念的筛选/详情形态是簇里两项（`CreateTime` / `CreateTimeRange`），不是越界。
 - **来源**：相对 [ADR-003](./003-namespaced-field-components.md) / [ADR-004](./004-form-layout-and-context.md) / [ADR-005](./005-view-model-as-unit.md) 的后续澄清（命名、共享边界、换绑、数组行）
 
 ## 背景
@@ -35,7 +38,7 @@ schema 键跟随控件（`agency`），不跟随 DTO（`agencyId`）。控件通
 ```ts
 const User = createFormControls({
   agency: { label: '机构', component: AgencySelect },
-  name: { label: '姓名', component: EpInput, rules: [...] },
+  name: { label: '姓名', component: ElInput, rules: [/* 空：trim */] },
   timeRange: {
     label: '时间',
     component: TimeRange,
@@ -54,7 +57,7 @@ setup（或本页旁文件）声明本页控件表
 FormView v-model 把当前对象接到这些控件上
 ```
 
-库保证的是：不必每个控件手写 `v-model="form.xxx"`，以及 label/component/rules 不跟 Row/Col 缠在同一套标签里。
+库保证的是：不必每个控件手写 `v-model="form.xxx"`，以及控件身份（component / 默认绑定 / label / `rules`）不跟 Row/Col 缠在同一套标签里。联动、本场是否启用 rules、布局不写进控件表，见 [ADR-010](./010-controls-as-semantic-cluster.md)。
 
 跨页默认复用的是 **控件实现**（`AgencySelect`、`EpInput`）和 **绑定通道**（FormView / Context），不是整张 `User` 控件表。
 
@@ -62,14 +65,14 @@ FormView v-model 把当前对象接到这些控件上
 
 控件集合所有权默认在**页面**（`setup` 或与 SFC 成对的 `*.controls.ts`）。工厂仍可静态、不闭包绑 model；变的是不要默认放进领域 `models/user.ts`。
 
-理由是改动的 blast radius：共享 `User.Agency` 的 `component` 一旦改掉，无法从意图上区分「全领域都换树选」还是「只有这一处展示要换」。高频变化（换组件、改文案、改本页 rules）塞进领域单例，会让领域模型改动变得过慎。
+理由是改动的 blast radius：共享 `User.Agency` 的 `component` 一旦改掉，无法从意图上区分「全领域都换树选」还是「只有这一处展示要换」。高频变化（换组件、改文案、这场必填）塞进领域单例，会让领域模型改动变得过慎。
 
 | 该共享 | 不该默认共享 |
 |--------|----------------|
 | `AgencySelect` / `EpInput`（实现） | `User = { Agency, Name, ... }` 整张表 |
 | FormView、栅格适配 | 把 component 当领域规范强行扩散 |
 
-真要「所有用户表单统一换树选」：改共享的 `AgencySelect`，或**显式**抽出一份共享控件表。扩散必须是有意识的。
+真要「所有用户表单统一换树选」：改共享的 `AgencySelect`，或**显式**抽出一份共享控件表 / `user/` 输入模块。那是有意识的**前端输入域**，不是后端领域模型单例。扩散必须是有意识的。
 
 ### 4. 换控件位，不要在标签上换绑
 
@@ -77,6 +80,7 @@ FormView v-model 把当前对象接到这些控件上
 |------|------|
 | 同一种控件，不同数据位 | 集合里两项，各自写 `model`（或省略默认绑控件键） |
 | 同一控件位，换画法 | 控件自己的 `props` / `mode` / 插槽 |
+| 同一概念，详情单点、筛选用区间（或单选 vs 多选） | 簇里两项，都归属该输入域：`<User.CreateTime />` 与 `<User.CreateTimeRange />`，或 `Agency` 与 `AgencyList`。形态不同仍是 User 的格 |
 | 这一页根本不是这个控件 | 本页声明里直接写目标 component，或手写这一格 |
 
 `<User.Agency :component="AgencyTreeSelect" />` 降为 **escape**。不做整表 `bindControls`，也不在标签上用 `:path` 改键。
@@ -134,4 +138,4 @@ xxx: {
 
 - **正向**：命名与 ADR-005 对齐；页级声明让换控件影响面局部；筛选/编辑本就可以是不同控件表；表格只需嵌套 FormView；主故事更好讲。
 - **代价**：不再默认「一份 User 打编辑+筛选+详情」；重复的声明若出现，需有意识抽取。ADR-001「模型放静态 TS 单例」、ADR-004「Fields 跨页单例」降为进阶，不再是主路径。
-- **关联**：控件单元见 [ADR-005](./005-view-model-as-unit.md)；命名空间标签见 [ADR-003](./003-namespaced-field-components.md)；Context / FormView 见 [ADR-004](./004-form-layout-and-context.md)、[ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。工厂以 `createFormControls` 为准。
+- **关联**：工厂是语义输入簇、controls 非目标见 [ADR-010](./010-controls-as-semantic-cluster.md)；控件单元见 [ADR-005](./005-view-model-as-unit.md)；命名空间标签见 [ADR-003](./003-namespaced-field-components.md)；Context / FormView 见 [ADR-004](./004-form-layout-and-context.md)、[ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。工厂以 `createFormControls` 为准。

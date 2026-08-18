@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, expectTypeOf, it } from 'vitest'
 import { camelToPascal, pascalToCamel } from './case'
 import { applyControlModel, resolveControlModel } from './controlModel'
 import { createFormControls } from './createFormControls'
@@ -50,6 +50,16 @@ describe('createFormControls', () => {
 
     expect(User.Name).toBeTruthy()
     expect(User.TimeRange).toBeTruthy()
+    expect(Object.keys(User).sort()).toEqual(['Name', 'TimeRange'])
     expect((User as { name?: unknown }).name).toBeUndefined()
+  })
+
+  it('types PascalCase keys without a string index', () => {
+    const User = createFormControls({
+      name: { label: '姓名' },
+      idCard: { label: '证件号' },
+    })
+    expectTypeOf(User).toHaveProperty('Name')
+    expectTypeOf(User).toHaveProperty('IdCard')
   })
 })
