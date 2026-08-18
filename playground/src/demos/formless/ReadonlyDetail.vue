@@ -43,7 +43,7 @@ const User = createFormControls({
       <User.Email />
       <User.IdCard />
       <User.Address />
-      <User.Remark :span="24" />
+      <User.Remark :formless="{ span: 24 }" />
     </FormView>
   </el-form>
   <pre class="pg-preview">{{ form }}</pre>

@@ -20,7 +20,7 @@ const User = createFormControls({
   name: {
     label: '姓名',
     component: EpInput,
-    rules: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
+    rules: { empty: { message: '请输入姓名' } },
   },
   gender: {
     label: '性别',
@@ -30,18 +30,18 @@ const User = createFormControls({
         { label: '男', value: 'male' },
         { label: '女', value: 'female' },
         { label: '其他', value: 'other' },
-      ]
+      ],
     },
-    rules: [{ required: true, message: '请选择性别', trigger: 'change' }],
+    rules: { empty: { message: '请选择性别' } },
   },
   mobile: {
     label: '手机',
     component: EpInput,
     props: { placeholder: '11 位手机号' },
-    rules: [
-      { required: true, message: '请输入手机号', trigger: 'blur' },
-      { pattern: /^1\d{10}$/, message: '手机号格式不正确', trigger: 'blur' },
-    ],
+    rules: {
+      empty: { message: '请输入手机号' },
+      format: { pattern: /^1\d{10}$/, message: '手机号格式不正确' },
+    },
   },
   email: {
     label: '邮箱',
@@ -65,6 +65,8 @@ const User = createFormControls({
   },
 })
 
+const required = { required: true }
+
 async function onSubmit() {
   await formRef.value?.validate()
   ElMessage.success('校验通过（formless）')
@@ -78,13 +80,13 @@ function onReset() {
 <template>
   <el-form ref="formRef" :model="form" label-width="96px">
     <FormView v-model="form" :layout="{ column: 2, gutter: 16 }">
-      <User.Name />
-      <User.Gender />
-      <User.Mobile />
+      <User.Name :formless="required" />
+      <User.Gender :formless="required" />
+      <User.Mobile :formless="required" />
       <User.Email />
       <User.IdCard />
       <User.Address />
-      <User.Remark :span="24" />
+      <User.Remark :formless="{ span: 24 }" />
     </FormView>
   </el-form>
 

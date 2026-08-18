@@ -18,16 +18,23 @@ import {
 } from './controlModel'
 import { getIn } from './modelPath'
 import { useFormContext } from './context'
+import {
+  resolveValidatePolicy,
+  type IdentityRules,
+} from './identityRules'
+import { splitFallthrough, splitSlots } from './splitFallthrough'
 
 export type { ControlNavPath, ControlProp, ControlVModel }
+export type { IdentityRule, IdentityRules, ValidatePolicy, ToRules } from './identityRules'
 
 export interface ControlSchema {
   label?: string
-  /** Control UI (may include FormItem). Receives label/rules/prop and v-model bindings from formless. */
+  /** Input widget only (no FormItem). Receives v-model bindings from formless. */
   component?: Component
-  /** Default props merged into the control (not v-model). */
+  /** Default props merged into the input (not v-model). */
   props?: Record<string, unknown>
-  rules?: unknown
+  /** Identity rules: empty / format. Not host RuleItem[]. */
+  rules?: IdentityRules
   /**
    * v-model names on the widget (ADR-011). Default `'modelValue'`.
    * Not overridable on the tag.
@@ -35,28 +42,35 @@ export interface ControlSchema {
   model?: ControlVModel
   /**
    * Leaf key(s) on the node reached by `path` (ADR-011). Default: control key.
-   * Overridable on the tag via `prop`. May be shorter than `model`.
+   * Overridable via `:formless.prop`.
    */
   prop?: ControlProp
   /**
    * Navigation path from FormView root (ADR-011). Scalar string, e.g. `buyers[0]`, `[2]`.
-   * Overridable on the tag via `path`.
+   * Overridable via `:formless.path`.
    */
   path?: ControlNavPath
+}
+
+/** Tag-side Formless config (ADR-012). Extensible; does not steal input prop names. */
+export interface FormlessAttr {
+  span?: number
+  bare?: boolean
+  label?: string
+  required?: boolean
+  novalidate?: boolean
+  prop?: ControlProp
+  path?: ControlNavPath
+  component?: Component
+  /** Escape: replace identity rules for this render. */
+  rules?: IdentityRules
 }
 
 /** Loose schema bag. Prefer inferring `S` from an object literal via `createFormControls`. */
 export type FormControlsSchema = Record<string, ControlSchema>
 
 export interface FormControlProps {
-  span?: number
-  bare?: boolean
-  label?: string
-  rules?: unknown
-  prop?: ControlProp
-  path?: ControlNavPath
-  component?: Component
-  props?: Record<string, unknown>
+  formless?: FormlessAttr
 }
 
 export type FormControlComponent = DefineComponent<FormControlProps>
@@ -95,18 +109,8 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
     name: `Control_${camelToPascal(controlKey)}`,
     inheritAttrs: false,
     props: {
-      span: { type: Number as PropType<number>, default: undefined },
-      bare: { type: Boolean, default: false },
-      label: { type: String as PropType<string>, default: undefined },
-      rules: { type: [Array, Object] as PropType<unknown>, default: undefined },
-      prop: { type: [String, Array] as PropType<ControlProp>, default: undefined },
-      path: { type: String as PropType<ControlNavPath>, default: undefined },
-      component: {
-        type: [Object, Function] as PropType<Component>,
-        default: undefined,
-      },
-      props: {
-        type: Object as PropType<Record<string, unknown>>,
+      formless: {
+        type: Object as PropType<FormlessAttr>,
         default: undefined,
       },
     },
@@ -114,39 +118,41 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
       const ctx = useFormContext()
 
       return (): VNodeChild => {
+        const fl = controlProps.formless ?? {}
         const binding = resolveControlBinding(
           controlKey,
           { model: control.model, prop: control.prop, path: control.path },
-          { prop: controlProps.prop, path: controlProps.path },
+          { prop: fl.prop, path: fl.path },
         )
         const itemProp = resolveFormItemProp(binding, controlKey)
-        const label = controlProps.label !== undefined ? controlProps.label : control.label
-        const rules = controlProps.rules !== undefined ? controlProps.rules : control.rules
+        const label = fl.label !== undefined ? fl.label : control.label
+        const identityRules = fl.rules !== undefined ? fl.rules : control.rules
+        const policy = resolveValidatePolicy(fl)
         const widget =
-          (controlProps.component ? markRaw(controlProps.component) : undefined) ??
-          control.component
+          (fl.component ? markRaw(fl.component) : undefined) ?? control.component
+
+        const { itemSlots, inputSlots } = splitSlots(slots)
+        const { itemOn, inputAttrs } = splitFallthrough(attrs as Record<string, unknown>)
+
         const mergedProps = {
           ...control.props,
-          ...controlProps.props,
-          ...attrs,
+          ...inputAttrs,
         }
         const modelBindings = applyControlBinding(ctx.model, binding, ctx.update)
         const displayProp = binding.props[0] ?? controlKey
+        const disabled = Boolean(ctx.disabled || ctx.readonly || mergedProps.disabled)
+        const readonly = Boolean(ctx.readonly || mergedProps.readonly)
 
-        const body = widget
+        let body: VNodeChild = widget
           ? h(
               widget,
               {
                 ...mergedProps,
                 ...modelBindings,
-                label,
-                rules,
-                prop: itemProp,
-                name: itemProp,
-                disabled: ctx.disabled || ctx.readonly,
-                readonly: ctx.readonly,
+                disabled,
+                readonly,
               },
-              slots,
+              inputSlots,
             )
           : h(
               'div',
@@ -157,10 +163,29 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
               ],
             )
 
-        const grid = ctx.grid
-        if (controlProps.bare || !grid?.layout || !grid.Col) return body
+        const item = ctx.item
+        if (item?.Item) {
+          const compiledRules = item.toRules?.(identityRules, policy)
+          body = h(
+            item.Item,
+            {
+              label,
+              prop: itemProp,
+              rules: compiledRules,
+              required: policy === 'required',
+              ...itemOn,
+            },
+            {
+              ...itemSlots,
+              default: () => body,
+            },
+          )
+        }
 
-        const span = controlProps.span ?? ctx.defaultSpan ?? Math.floor(grid.total / 2)
+        const grid = ctx.grid
+        if (fl.bare || !grid?.layout || !grid.Col) return body
+
+        const span = fl.span ?? ctx.defaultSpan ?? Math.floor(grid.total / 2)
         return h(grid.Col, { span }, () => body)
       }
     },

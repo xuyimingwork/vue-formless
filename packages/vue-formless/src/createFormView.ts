@@ -8,12 +8,13 @@ import {
   type PropType,
   type VNodeChild,
 } from 'vue'
-import { formContextKey, type FormContext, type FormGridAdapter } from './context'
+import { formContextKey, type FormContext, type FormGridAdapter, type FormItemAdapter } from './context'
 import { createFormModelWriter } from './formModelWriter'
 import {
   resolveLayout,
   type FormLayoutProp,
 } from './layout'
+import type { ToRules } from './identityRules'
 
 export interface CreateFormViewOptions {
   /** Row container (e.g. ElRow). Required together with Col for hosted layout. */
@@ -22,6 +23,10 @@ export interface CreateFormViewOptions {
   Col: Component
   /** Grid total units. @default 24 */
   total?: number
+  /** Form item shell (e.g. ElFormItem). Independent of grid hosting. */
+  Item?: Component
+  /** Compile identity rules + policy into host Item `rules`. */
+  toRules?: ToRules
 }
 
 export type { FormLayoutProp, FormLayoutOptions } from './layout'
@@ -62,6 +67,7 @@ function provideFormViewContext(options: {
   getDisabled: () => boolean
   getLayout?: () => FormLayoutProp
   adapter?: FormGridAdapter
+  item?: FormItemAdapter
 }) {
   const writer = createFormModelWriter(options.getModel, options.emitUpdate)
   const resolved = options.adapter
@@ -95,6 +101,9 @@ function provideFormViewContext(options: {
         layout: resolved.value.enabled,
       }
     },
+    get item() {
+      return options.item
+    },
   }) as FormContext
 
   provide(formContextKey, ctx)
@@ -102,12 +111,17 @@ function provideFormViewContext(options: {
 }
 
 /**
- * Bind external Row/Col once; returns a FormView component (ADR-008).
+ * Bind external Row/Col (and optional Item) once; returns a FormView (ADR-008 / ADR-012).
  *
  * @example
  * ```ts
- * import { ElRow, ElCol } from 'element-plus'
- * export const FormView = createFormView({ Row: ElRow, Col: ElCol })
+ * import { ElRow, ElCol, ElFormItem } from 'element-plus'
+ * export const FormView = createFormView({
+ *   Row: ElRow,
+ *   Col: ElCol,
+ *   Item: ElFormItem,
+ *   toRules,
+ * })
  * ```
  */
 export function createFormView(options: CreateFormViewOptions): Component {
@@ -116,6 +130,9 @@ export function createFormView(options: CreateFormViewOptions): Component {
     Col: options.Col,
     total: options.total ?? 24,
   }
+  const item: FormItemAdapter | undefined = options.Item
+    ? { Item: options.Item, toRules: options.toRules }
+    : undefined
 
   return defineComponent({
     name: 'FormView',
@@ -129,6 +146,7 @@ export function createFormView(options: CreateFormViewOptions): Component {
         getDisabled: () => props.disabled,
         getLayout: () => props.layout as FormLayoutProp,
         adapter,
+        item,
       })!
 
       return (): VNodeChild => {

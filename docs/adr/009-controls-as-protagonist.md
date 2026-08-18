@@ -3,7 +3,7 @@
 - **状态**：Accepted（修订）
 - **日期**：2026-08-17
 - **修订**：
-  - 2026-08-18 — 工厂定位见 [ADR-010](./010-controls-as-semantic-cluster.md)：`rules` 写在 control 上，本场用不用由场景决定。
+  - 2026-08-18 — 工厂定位见 [ADR-010](./010-controls-as-semantic-cluster.md)：身份 `rules` 写在 control 上，本场策略在标签。合成见 [ADR-012](./012-input-item-and-rule-compile.md)。
   - 2026-08-18 — 同一概念的筛选/详情形态是簇里两项（`CreateTime` / `CreateTimeRange`），不是越界。
   - 2026-08-18 — 绑定拆成 `model`（控件口）、`prop`（叶子）、`path`（导航串）。见 [ADR-011](./011-model-and-path.md)。
   - 2026-08-18 — 表格一层 FormView + `:path="\`buyers[${$index}]\`"`。
@@ -60,9 +60,9 @@ setup（或本页旁文件）声明本页控件表
 FormView v-model 把当前对象接到这些控件上
 ```
 
-库保证的是：不必每个控件手写 `v-model="form.xxx"`，以及控件身份（component / 默认绑定 / label / `rules`）不跟 Row/Col 缠在同一套标签里。联动、本场是否启用 rules、布局不写进控件表，见 [ADR-010](./010-controls-as-semantic-cluster.md)。
+库保证的是：不必每个控件手写 `v-model="form.xxx"`，以及控件身份（输入 component / 默认绑定 / label / 身份 `rules`）不跟 Row/Col / FormItem 缠在同一套标签里。联动、本场策略、布局不写进控件表，见 [ADR-010](./010-controls-as-semantic-cluster.md) / [ADR-012](./012-input-item-and-rule-compile.md)。
 
-跨页默认复用的是 **控件实现**（`AgencySelect`、`EpInput`）和 **绑定通道**（FormView / Context），不是整张 `User` 控件表。
+跨页默认复用的是 **控件实现**（`AgencySelect`、`ElInput`）和 **绑定通道**（FormView / Context），不是整张 `User` 控件表。
 
 ### 3. 控件表默认跟页走；领域单例改为 opt-in
 
@@ -86,14 +86,14 @@ FormView v-model 把当前对象接到这些控件上
 | 同一概念，详情单点、筛选用区间（或单选 vs 多选） | 簇里两项，都归属该输入域：`<User.CreateTime />` 与 `<User.CreateTimeRange />`，或 `Agency` 与 `AgencyList`。形态不同仍是 User 的格 |
 | 这一页根本不是这个控件 | 本页声明里直接写目标 component，或手写这一格 |
 
-`<User.Agency :component="AgencyTreeSelect" />` 降为 **escape**。数据用 `prop` / `path`，不要在标签上改 `model`（控件口）。
+`<User.Agency :formless="{ component: AgencyTreeSelect }" />` 降为 **escape**。数据用 `prop` / `path`，不要在标签上改 `model`（控件口）。
 
 ### 5. 列表 / 表格：一层 FormView + `:path`
 
 控件读 `getIn(modelValue, path, prop)`，写 `update(prop, value, path)`，经 FormView emit。`model` 只描述组件 v-model 口。
 
 - 整表：`FormView v-model="order"` + `<User.Name />` → `prop: name` → emit `{ ...order, name }`
-- 表格：同一 FormView，单元格 `` :path="`buyers[${$index}]`" `` → `order.buyers[i].name`，emit 含新 `buyers` array
+- 表格：同一 FormView，单元格 `` :formless="{ path: `buyers[${$index}]` }" `` → `order.buyers[i].name`，emit 含新 `buyers` array
 
 不要 `v-model="users[i]"`（绕过数组入口）；不要绑 slot 的 `row`（只读，赋不回）。
 
@@ -102,14 +102,14 @@ FormView v-model 把当前对象接到这些控件上
   <el-table :data="order.buyers">
     <el-table-column label="姓名">
       <template #default="{ $index }">
-        <User.Name :path="`buyers[${$index}]`" />
+        <User.Name :formless="{ path: `buyers[${$index}]` }" />
       </template>
     </el-table-column>
   </el-table>
 </FormView>
 ```
 
-根为 array：`FormView v-model="users"` + `` :path="`[${$index}]`" ``。写入见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)、[ADR-011](./011-model-and-path.md)。
+根为 array：`FormView v-model="users"` + `` :formless="{ path: `[${$index}]` }" ``。写入见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)、[ADR-011](./011-model-and-path.md)。
 
 ### 6. 控件项 API：`model` + `prop` + `path`
 
@@ -129,9 +129,9 @@ xxx: {
 | 都省略 | `modelValue` ↔ 控件键 | `name: { component: ElInput }` |
 | 只写 `prop` | `modelValue` ↔ 该键 | `prop: 'title'` |
 | 多绑定 | `prop` 可短于 `model` | `prop: ['startTime', 'endTime']` |
-| 表格 | `:path` 导航 | `` :path="`buyers[${$index}]`" `` |
+| 表格 | `:formless.path` 导航 | `` :formless="{ path: `buyers[${$index}]` }" `` |
 
-标签可覆盖 `prop` / `path`，不可覆盖 `model`。
+标签用 `:formless` 覆盖 `prop` / `path`，不可覆盖 `model`。
 
 ## 备选方案
 
@@ -144,4 +144,4 @@ xxx: {
 
 - **正向**：命名与 ADR-005 对齐；页级声明让换控件影响面局部；表格一层 FormView + `:path`；主故事更好讲。
 - **代价**：不再默认「一份 User 打编辑+筛选+详情」；重复的声明若出现，需有意识抽取。ADR-001「模型放静态 TS 单例」、ADR-004「Fields 跨页单例」降为进阶，不再是主路径。
-- **关联**：工厂是语义输入簇、controls 非目标见 [ADR-010](./010-controls-as-semantic-cluster.md)；`model` / `path` 见 [ADR-011](./011-model-and-path.md)；控件单元见 [ADR-005](./005-view-model-as-unit.md)；命名空间标签见 [ADR-003](./003-namespaced-field-components.md)；Context / FormView 见 [ADR-004](./004-form-layout-and-context.md)、[ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。工厂以 `createFormControls` 为准。
+- **关联**：工厂是语义输入簇、controls 非目标见 [ADR-010](./010-controls-as-semantic-cluster.md)；`model` / `path` 见 [ADR-011](./011-model-and-path.md)；输入 / Item / 校验合成见 [ADR-012](./012-input-item-and-rule-compile.md)；控件单元见 [ADR-005](./005-view-model-as-unit.md)；命名空间标签见 [ADR-003](./003-namespaced-field-components.md)；Context / FormView 见 [ADR-004](./004-form-layout-and-context.md)、[ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。工厂以 `createFormControls` 为准。

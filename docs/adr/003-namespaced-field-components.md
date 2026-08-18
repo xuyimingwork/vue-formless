@@ -3,9 +3,10 @@
 - **状态**：Accepted（修订）
 - **日期**：2026-08-12
 - **修订**：
-  - 2026-08-14 — schema 键小驼峰，命名空间组件自动大驼峰；默认绑定可被渲染期覆盖；label/rules 由 formless 注入 component。
+  - 2026-08-14 — schema 键小驼峰，命名空间组件自动大驼峰；默认绑定可被渲染期覆盖。label/rules 注入目标后改为适配层 Item（2026-08-18，ADR-012）。
   - 2026-08-17 — 标签按控件命名（`Agency` 而非 `AgencyId`）；工厂推荐名 `createFormControls`；`:component` 整颗替换降为逃逸。见 [ADR-009](./009-controls-as-protagonist.md)。
   - 2026-08-18 — 绑定拆成 `model` + `prop` + `path`。见 [ADR-011](./011-model-and-path.md)。
+  - 2026-08-18 — `component` 只接输入；label / 合成 rules 进适配层 Item。见 [ADR-012](./012-input-item-and-rule-compile.md)。
 - **来源**：动态表单架构设计推演
 
 ## 背景
@@ -39,8 +40,8 @@ export const User = createFormControls({
 ```
 
 ```vue
-<User.Name required />
-<User.IdCard :span="24">
+<User.Name :formless="{ required: true }" />
+<User.IdCard :formless="{ span: 24 }">
   <template #append>...</template>
 </User.IdCard>
 ```
@@ -48,10 +49,11 @@ export const User = createFormControls({
 要点：
 
 - Schema / model 键为**小驼峰**；暴露给模板的组件名为**大驼峰**（`name` → `Name`，`idCard` → `IdCard`），由工厂自动转换
-- `createFormControls` 建立控件 → component / 默认 props / 默认 label / `model`（v-model 口）/ `prop`（叶子键）/ `path`（导航）/ `rules`；`markRaw` 在工厂内处理。联动、本场是否启用、布局不进这张表（[ADR-010](./010-controls-as-semantic-cluster.md)）
+- `createFormControls` 建立控件 → **输入** `component` / 默认 props / 默认 label / `model`（v-model 口）/ `prop`（叶子键）/ `path`（导航）/ 身份 `rules`；`markRaw` 在工厂内处理。联动、本场策略、布局不进这张表（[ADR-010](./010-controls-as-semantic-cluster.md)）
+- `component` 不含 FormItem；label 与合成后的 rules 进适配层 Item，见 [ADR-012](./012-input-item-and-rule-compile.md)
 - `model` / `prop` / `path` 见 [ADR-011](./011-model-and-path.md)；省略则 `modelValue` ↔ 控件键
-- 渲染期可用 label / props / `prop` / `path` 覆盖默认；`:component` 整颗替换仅为逃逸（ADR-009）；场景开关如 `required` 打在标签上，不把规则体写进模板
-- 默认 label 由 formless **传给** 控件（或适配层 Item）；FormItem 壳属于适配，不在内核登记一套控件目录
+- 渲染期用 `:formless` 覆盖簇配置（`label` / `prop` / `path` / `required` / `span` 等）；换控件位 `:formless.component` 仅为逃逸（ADR-009）；不把规则体写进模板
+- 顶层 attrs / 事件 / 无前缀插槽给 `component`；Item 用 `` #[`item:label`] `` 与 `@item:xxx`（ADR-012）
 - 按需 `defineComponent`（创建簇时生成 PascalCase 属性）；泛型把 schema 键映射为 PascalCase 组件类型
 
 推荐命名空间：
@@ -74,4 +76,4 @@ export const User = createFormControls({
 
 - **正向**：模板语义化、可混排多模型（`User.*` + `Order.*`）；临场定制不退回整页手写；schema 与 model 键对齐。
 - **代价**：依赖 Vue 3 命名空间组件 + 良好的类型体操；调试栈会出现工厂生成的组件名，需约定 `name: Field_${PascalKey}`。
-- **关联**：数据如何注入见 ADR-004（FormContext，而非闭包绑死 model）；栅格见 ADR-007 / ADR-008；工厂定位与非目标见 [ADR-010](./010-controls-as-semantic-cluster.md)。
+- **关联**：数据如何注入见 ADR-004（FormContext，而非闭包绑死 model）；栅格见 ADR-007 / ADR-008；工厂定位见 [ADR-010](./010-controls-as-semantic-cluster.md)；输入 / Item / 校验合成见 [ADR-012](./012-input-item-and-rule-compile.md)。
