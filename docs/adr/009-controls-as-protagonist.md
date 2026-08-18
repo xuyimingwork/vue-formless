@@ -5,9 +5,8 @@
 - **修订**：
   - 2026-08-18 — 工厂定位见 [ADR-010](./010-controls-as-semantic-cluster.md)：`rules` 写在 control 上，本场用不用由场景决定。
   - 2026-08-18 — 同一概念的筛选/详情形态是簇里两项（`CreateTime` / `CreateTimeRange`），不是越界。
-  - 2026-08-18 — 绑定拆成 `model`（控件口）与 `path`（数据键）。见 [ADR-011](./011-model-and-path.md)。
-  - 2026-08-18 — `path` 可短于 `model`（前缀接线）。
-  - 2026-08-18 — 列表行用 `v-model="users[$index]"`；写入经 FormView emit，不就地改。
+  - 2026-08-18 — 绑定拆成 `model`（控件口）、`prop`（叶子）、`path`（导航串）。见 [ADR-011](./011-model-and-path.md)。
+  - 2026-08-18 — 表格一层 FormView + `:path="\`buyers[${$index}]\`"`。
 - **来源**：相对 [ADR-003](./003-namespaced-field-components.md) / [ADR-004](./004-form-layout-and-context.md) / [ADR-005](./005-view-model-as-unit.md) 的后续澄清（命名、共享边界、换绑、数组行）
 
 ## 背景
@@ -34,7 +33,7 @@ ADR-005 已规定配置最小单元是控件，不是 DB 列。实现与文档�
 <User.AgencyId />   ❌ 用户身上的 agencyId 字段控件
 ```
 
-schema 键跟随控件（`agency`），不跟随 DTO（`agencyId`）。控件通过 `path` 接到 FormView 上的表单键，`model` 声明组件 v-model 口（见 [ADR-011](./011-model-and-path.md)）；`agencyName` 等附属数据写进 `path` + `model` 多绑定，或由控件内部处理，**不**再单独占一项控件。
+schema 键跟随控件（`agency`），不跟随 DTO（`agencyId`）。控件通过 `prop` / `path` 接到 FormView 模型（见 [ADR-011](./011-model-and-path.md)）；`model` 声明组件 v-model 口。
 
 工厂名：**`createFormControls`**。
 
@@ -46,7 +45,7 @@ const User = createFormControls({
     label: '时间',
     component: TimeRange,
     model: ['start', 'end'],
-    path: ['startTime', 'endTime'],
+    prop: ['startTime', 'endTime'],
   },
 })
 ```
@@ -82,57 +81,57 @@ FormView v-model 把当前对象接到这些控件上
 
 | 意图 | 做法 |
 |------|------|
-| 同一种控件，不同数据位 | 集合里两项，各自写 `path`（正路）；标签 `:path` 仅为逃逸，见 [ADR-011](./011-model-and-path.md) |
+| 同一种控件，不同数据位 | 集合里两项，各自写 `prop`（正路）；标签 `:prop` 仅为逃逸，见 [ADR-011](./011-model-and-path.md) |
 | 同一控件位，换画法 | 控件自己的 `props` / `mode` / 插槽 |
 | 同一概念，详情单点、筛选用区间（或单选 vs 多选） | 簇里两项，都归属该输入域：`<User.CreateTime />` 与 `<User.CreateTimeRange />`，或 `Agency` 与 `AgencyList`。形态不同仍是 User 的格 |
 | 这一页根本不是这个控件 | 本页声明里直接写目标 component，或手写这一格 |
 
-`<User.Agency :component="AgencyTreeSelect" />` 降为 **escape**。不做整表 `bindControls`。数据键用 `path`，不要在标签上改 `model`（控件口）。
+`<User.Agency :component="AgencyTreeSelect" />` 降为 **escape**。数据用 `prop` / `path`，不要在标签上改 `model`（控件口）。
 
-### 5. 列表 / 表格：换 Form 上下文，不换控件 API
+### 5. 列表 / 表格：一层 FormView + `:path`
 
-控件按该项的 `path` 读 **当前 FormView 的 `modelValue`** 上的键（省略时即控件键，如 `name`）。写入经该层 FormView 的 `v-model` emit，不就地改对象。`model` 只描述组件 v-model 口。
+控件读 `getIn(modelValue, path, prop)`，写 `update(prop, value, path)`，经 FormView emit。`model` 只描述组件 v-model 口。
 
-- 整表：`FormView v-model="user"` → path `name` → emit `{ ...user, name }`
-- 行内：每行 `FormView v-model="users[$index]"` → path `name` → emit 新的 user，由该 v-model 写回 `users[i]`
+- 整表：`FormView v-model="order"` + `<User.Name />` → `prop: name` → emit `{ ...order, name }`
+- 表格：同一 FormView，单元格 `` :path="`buyers[${$index}]`" `` → `order.buyers[i].name`，emit 含新 `buyers` array
 
-不要绑 slot 的 `row`：`row` 是只读参数，`update:modelValue` 赋不回数组项。不要给控件加 `path-prefix` / 下标 path。
+不要 `v-model="users[i]"`（绕过数组入口）；不要绑 slot 的 `row`（只读，赋不回）。
 
 ```vue
-<el-table :data="users">
-  <el-table-column label="姓名">
-    <template #default="{ $index }">
-      <FormView v-model="users[$index]">
-        <User.Name />
-      </FormView>
-    </template>
-  </el-table-column>
-</el-table>
+<FormView v-model="order">
+  <el-table :data="order.buyers">
+    <el-table-column label="姓名">
+      <template #default="{ $index }">
+        <User.Name :path="`buyers[${$index}]`" />
+      </template>
+    </el-table-column>
+  </el-table>
+</FormView>
 ```
 
-`UserList` 自己的 v-model 是 array；`User.*` 的 FormView 永远是单个 User。筛选/排序时不要用展示用 `$index` 当源下标（可用 `users.indexOf(row)` 或行 id）。
+根为 array：`FormView v-model="users"` + `` :path="`[${$index}]`" ``。写入见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)、[ADR-011](./011-model-and-path.md)。
 
-单元格通常不开启 `layout`。若需整表广播 `readonly` / `disabled`，根上可再套一层只负责 Context 的 FormView（或将来更轻的 Scope）。当前对象上的键用控件的 `path`（[ADR-011](./011-model-and-path.md)）。写入语义见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。
+### 6. 控件项 API：`model` + `prop` + `path`
 
-### 6. 控件项 API：`model` + `path`
-
-绑定拆成控件口与数据位，见 [ADR-011](./011-model-and-path.md)。009 原文的「一份 `model` 对象映射」作废。
+见 [ADR-011](./011-model-and-path.md)。009 原文的「一份 `model` 对象映射」作废。
 
 ```ts
 xxx: {
   component: Xxx,
   model?: string | string[]  // 组件 v-model 名，默认 'modelValue'
-  path?: string | string[]   // 当前 FormView 对象上的键，默认控件键
+  prop?: string | string[]   // 叶子键，默认控件键
+  path?: string              // 导航串，如 buyers[0]、[2]
 }
 ```
 
 | | 展开 | 例子 |
 |--|------|------|
-| 都省略 | `modelValue` ↔ 控件键 | `name: { component: ElInput }` → `v-model` ↔ `form.name` |
-| 只写 `path` | `modelValue` ↔ 该键 | `path: 'title'` |
-| 多绑定 | 下标前缀对齐；`path` 可短于 `model` | `model: ['start', 'end']`，`path: ['startTime', 'endTime']`；`model: ['modelValue', 'option']`，`path: 'name'` 只接第一个口 |
+| 都省略 | `modelValue` ↔ 控件键 | `name: { component: ElInput }` |
+| 只写 `prop` | `modelValue` ↔ 该键 | `prop: 'title'` |
+| 多绑定 | `prop` 可短于 `model` | `prop: ['startTime', 'endTime']` |
+| 表格 | `:path` 导航 | `` :path="`buyers[${$index}]`" `` |
 
-标签可覆盖 `path`（`<User.TimeRange :path="['from', 'to']" />`），不可覆盖 `model`。同一概念两个数据位，正路仍是簇里两项。
+标签可覆盖 `prop` / `path`，不可覆盖 `model`。
 
 ## 备选方案
 
@@ -143,6 +142,6 @@ xxx: {
 
 ## 后果
 
-- **正向**：命名与 ADR-005 对齐；页级声明让换控件影响面局部；筛选/编辑本就可以是不同控件表；表格嵌套 `FormView v-model="users[$index]"`；主故事更好讲。
+- **正向**：命名与 ADR-005 对齐；页级声明让换控件影响面局部；表格一层 FormView + `:path`；主故事更好讲。
 - **代价**：不再默认「一份 User 打编辑+筛选+详情」；重复的声明若出现，需有意识抽取。ADR-001「模型放静态 TS 单例」、ADR-004「Fields 跨页单例」降为进阶，不再是主路径。
 - **关联**：工厂是语义输入簇、controls 非目标见 [ADR-010](./010-controls-as-semantic-cluster.md)；`model` / `path` 见 [ADR-011](./011-model-and-path.md)；控件单元见 [ADR-005](./005-view-model-as-unit.md)；命名空间标签见 [ADR-003](./003-namespaced-field-components.md)；Context / FormView 见 [ADR-004](./004-form-layout-and-context.md)、[ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。工厂以 `createFormControls` 为准。

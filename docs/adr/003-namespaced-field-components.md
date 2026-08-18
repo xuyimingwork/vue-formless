@@ -5,7 +5,7 @@
 - **修订**：
   - 2026-08-14 — schema 键小驼峰，命名空间组件自动大驼峰；默认绑定可被渲染期覆盖；label/rules 由 formless 注入 component。
   - 2026-08-17 — 标签按控件命名（`Agency` 而非 `AgencyId`）；工厂推荐名 `createFormControls`；`:component` 整颗替换降为逃逸。见 [ADR-009](./009-controls-as-protagonist.md)。
-  - 2026-08-18 — 绑定拆成 `model` + `path`。见 [ADR-011](./011-model-and-path.md)。
+  - 2026-08-18 — 绑定拆成 `model` + `prop` + `path`。见 [ADR-011](./011-model-and-path.md)。
 - **来源**：动态表单架构设计推演
 
 ## 背景
@@ -33,7 +33,7 @@ export const User = createFormControls({
     label: '时间',
     component: TimeRange,
     model: ['start', 'end'],
-    path: ['startTime', 'endTime'],
+    prop: ['startTime', 'endTime'],
   },
 })
 ```
@@ -48,9 +48,9 @@ export const User = createFormControls({
 要点：
 
 - Schema / model 键为**小驼峰**；暴露给模板的组件名为**大驼峰**（`name` → `Name`，`idCard` → `IdCard`），由工厂自动转换
-- `createFormControls` 建立控件 → component / 默认 props / 默认 label / `model`（v-model 口）/ `path`（表单键）/ `rules`；`markRaw` 在工厂内处理。联动、本场是否启用、布局不进这张表（[ADR-010](./010-controls-as-semantic-cluster.md)）
-- `model` / `path` 见 [ADR-011](./011-model-and-path.md)；省略则 `modelValue` ↔ 控件键
-- 渲染期可用 label / props / `path` 覆盖默认；`:component` 整颗替换仅为逃逸（ADR-009）；场景开关如 `required` 打在标签上，不把规则体写进模板
+- `createFormControls` 建立控件 → component / 默认 props / 默认 label / `model`（v-model 口）/ `prop`（叶子键）/ `path`（导航）/ `rules`；`markRaw` 在工厂内处理。联动、本场是否启用、布局不进这张表（[ADR-010](./010-controls-as-semantic-cluster.md)）
+- `model` / `prop` / `path` 见 [ADR-011](./011-model-and-path.md)；省略则 `modelValue` ↔ 控件键
+- 渲染期可用 label / props / `prop` / `path` 覆盖默认；`:component` 整颗替换仅为逃逸（ADR-009）；场景开关如 `required` 打在标签上，不把规则体写进模板
 - 默认 label 由 formless **传给** 控件（或适配层 Item）；FormItem 壳属于适配，不在内核登记一套控件目录
 - 按需 `defineComponent`（创建簇时生成 PascalCase 属性）；泛型把 schema 键映射为 PascalCase 组件类型
 

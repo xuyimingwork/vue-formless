@@ -9,7 +9,8 @@ export {
 export {
   createFormControls,
   type ControlSchema,
-  type ControlPath,
+  type ControlNavPath,
+  type ControlProp,
   type ControlVModel,
   type FormControlsSchema,
   type FormControlProps,
@@ -19,9 +20,18 @@ export {
 export {
   resolveControlBinding,
   applyControlBinding,
-  primaryPath,
+  resolveFormItemProp,
   toBindingList,
+  type ControlBindingOverrides,
+  type ResolvedControlBinding,
 } from './controlModel'
+export {
+  parsePath,
+  getIn,
+  setIn,
+  formItemProp,
+  type PathSegment,
+} from './modelPath'
 export {
   resolveLayout,
   DEFAULT_LAYOUT,

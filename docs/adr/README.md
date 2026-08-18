@@ -16,7 +16,7 @@
 | [008](./008-form-view-vmodel-and-grid-gcd.md) | FormView、`v-model` 与栅格适配公约数 | Accepted（修订） |
 | [009](./009-controls-as-protagonist.md) | 控件主角、页级控件表与列表上下文 | Accepted（修订） |
 | [010](./010-controls-as-semantic-cluster.md) | `createFormControls` 是语义输入簇，不是表单 schema | Accepted |
-| [011](./011-model-and-path.md) | 控件口 `model` 与数据位 `path` 分离 | Accepted |
+| [011](./011-model-and-path.md) | `model`、`prop`（叶子）与 `path`（导航串） | Accepted |
 
 ## 决策关系（简图）
 
@@ -26,7 +26,7 @@
  ├── 005 配置单元 = 控件（View-Model）
  │    └── 009 控件主角；createFormControls；页级声明；列表用嵌套 FormView
  │         └── 010 工厂 = 语义输入簇；rules 写在 control，本场用不用由场景决定；不配联动 / 布局
- │              └── 011 model = 控件 v-model 口；path = 表单键（标签可覆盖 path）
+ │              └── 011 model = v-model 口；prop = 叶子键；path = 导航（buyers[0]）
  ├── 003 模板表达 = <User.Agency /> / <User.Name />
  ├── 004 运行时粘合 = Context + 控件表（内核 UI 无关）
  │    ├── 007 外部 Row/Col 适配；Item > 页级默认；响应式只在页级

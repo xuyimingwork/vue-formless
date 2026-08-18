@@ -1,88 +1,120 @@
-# ADR-011：控件口 `model` 与数据位 `path` 分离
+# ADR-011：`model`、`prop` 与 `path`
 
 - **状态**：Accepted
 - **日期**：2026-08-18
-- **修订**：2026-08-18 — `path` 可以短于 `model`（前缀接线）；更长才是配置错误。列表行 FormView 绑 `users[$index]`。
-- **来源**：相对 [ADR-009](./009-controls-as-protagonist.md) §6 的修订（换绑时不必重写控件 v-model 名）
+- **修订**：
+  - 2026-08-18 — 原「path = 数据键」作废；拆成 **`prop`（叶子键）+ `path`（导航串）**。
+  - 2026-08-18 — `prop` 可短于 `model`（前缀接线）。表格用 `:path="\`buyers[${$index}]\`"`，一层 FormView。
+- **来源**：相对 [ADR-009](./009-controls-as-protagonist.md) §6 的修订
 
 ## 背景
 
-009 把绑定写成一份映射：`model: { start: 'startTime', end: 'endTime' }`，左边是控件上的 v-model 名，右边是 FormView 对象上的键。换一组数据键时必须整份重写，而 `start` / `end` 属于 `DateRange` 的协议，根本不会变。
+009 早期把绑定写成 `{ start: 'startTime' }` 对象映射，或单一 `path` 兼做数据键与导航，越写越拧：
 
-覆盖的通常是 **数据在哪**，不是 **控件有几个口**。两者不应焊在一个对象里。
-
-009 §5 否决的「控件上的 `path` / `index`」指的是 `users[i].name` 这种数组下标；嵌套 `FormView v-model="users[$index]"` 已经解决。本文的 `path` 是 **当前 FormView 对象上的键**，不是列表下标。
+- **叶子键**（`name` / `startTime`）跟 **导航**（`buyers[0]`）语义不同，不应共用一个名字。
+- 模板里控件不绑 v-model，**唯一写口是 FormView**（[ADR-008](./008-form-view-vmodel-and-grid-gcd.md)）。表格不能 `v-model="users[i]"` 绕过数组入口，也不能就地改 `row`。
+- 数组段必须用 **`[index]` 语法** 解析，不能靠 `path` 是 number 推断，也不能把 `path` 做成 array type（会和 `prop` array 的多绑定语义撞车）。
 
 ## 决策
 
-### 1. 拆成两项
+### 1. 三项分工
 
-| 字段 | 含义 | 跟谁走 | 标签覆盖 |
-|------|------|--------|----------|
-| **`model`** | 组件上的 v-model 名 | 控件身份 | **否** |
-| **`path`** | 当前 FormView 对象上的键 | 数据接线 | **可以**（少见；正路是簇里另写一项） |
+| 字段 | 类型 | 含义 | 跟谁走 | 标签覆盖 |
+|------|------|------|--------|----------|
+| **`model`** | `string \| string[]` | 组件 v-model 口 | 控件身份 | **否** |
+| **`prop`** | `string \| string[]` | 导航终点对象上的**叶子键** | 数据接线 | **可以** |
+| **`path`** | **`string`（标量）** | 从 FormView 根出发的**导航串** | 场景 / 表格 | **可以** |
+
+绝对位置 = 解析 `path` 得到节点 + `prop` 叶子。
 
 ```ts
 name: { component: ElInput }
-// 省略：model = 'modelValue'，path = 'name'（控件键）
+// model = 'modelValue'，prop = 'name'（控件键），path 省略
 
-title: { component: ElInput, path: 'name', model: 'modelValue' }
+title: { component: ElInput, prop: 'name' }
 
 timeRange: {
   component: DateRange,
   model: ['start', 'end'],
-  path: ['startTime', 'endTime'],
+  prop: ['startTime', 'endTime'],
 }
 
 agency: {
   component: AgencySelect,
   model: ['modelValue', 'option'],
-  path: 'agencyId', // 只接到 modelValue；option 不绑表
+  prop: 'agencyId', // 只绑 modelValue；option 不绑表
 }
 ```
 
-单值用字符串，多绑定用数组，**按下标前缀对齐**：`path[i]` → `model[i]`。
+### 2. `path` 语法（标量 string）
 
-- `path.length <= model.length`：多出来的口不绑表（组件可以有两个 v-model，本场只用一个）。
-- `path.length > model.length`：没有对应的口，视为配置错误。
-- 新口加在 `model` **后面** 才是加法；插到中间会错位，算 breaking。组件升级多一个 v-model 时，簇更新 `model`、已有短 `path` 不必改，使用方零改动。
+- 对象键：`buyer`、`buyers`
+- 数组段：**必须**写 `[index]`，如 `[0]`、`` `[${$index}]` ``
+- 组合：`buyers[0]`、`buyers[0].addresses[1]`（实现按段解析；通常写到行节点即可，叶子交给 `prop`）
+- **不支持** `path` 的 array type API（`['users', 0]`），避免与 `prop` array 混淆
 
-### 2. 默认值
+FormView writer 解析 `[index]`，对数组段 **clone 再 emit**，禁止 `arr[i] = x` 绕过 v-model。
+
+### 3. `prop` 与 `model` 配对
+
+- `prop.length <= model.length`，按下标前缀与 `model` 对齐；多出来的口不绑表。
+- 两个 `prop` 需要**不同** `path` → 拆成两个 control，不做 `path` array 配对。
+
+### 4. 默认值
 
 | 省略 | 默认 |
 |------|------|
 | `model` | `'modelValue'` |
-| `path` | 控件键（如 `name`） |
+| `prop` | 控件键（如 `name`） |
+| `path` | 无（FormView 根对象） |
 
-只写 `model: ['modelValue', 'option']`、省略 `path` 时，默认只把第一个口接到控件键。要接满多口，显式写出等长的 `path` 数组。
-
-### 3. 标签只覆盖 `path`
+### 5. 标签覆盖
 
 ```vue
-<User.TimeRange />
-<User.TimeRange :path="['from', 'to']" />
+<User.Name :prop="'title'" />
+<User.Name :path="`buyers[${$index}]`" />
+<User.TimeRange :path="`buyers[${$index}]`" />
 ```
 
-不开放 `:model`。换 v-model 口等于换控件，应换 `component` 或换一项 control，而不是在标签上改协议。
+- 可覆盖 `prop` / `path`，不可覆盖 `model`。
+- **不需要** `Path` 包裹组件；`:path` 足够。
+- 同一概念两个数据位（行程 vs 签证时间）→ 簇里两项，各自写死 `prop`，不是标签上改两个 path。
 
-`:path` 不是主路径：同一概念的两个数据位（行程时间 vs 签证时间）应在簇里两项，各自写死 `path`。标签覆盖只用于「就是这个控件，换一列键」。
+### 6. ElFormItem `prop`
 
-不要用 `prop` 当数据位名字：`prop` 已是 ElFormItem 校验字段；多绑定时也不止一个 prop。内核校验挂载仍可用 `path` 的第一项（或单值）作为 FormItem `prop`。
+内层校验用 **派生完整路径**：`formItemProp(path, prop)` → `buyers.0.name`（点号，与 Element 一致）。  
+控件 schema 上的 **`prop` 仍是叶子**；与 FormItem 的 `prop` 撞名问题后续在 adapter 层处理。
 
-### 4. 与列表行的关系
+### 7. 列表 / 表格
 
-`users[i].name` 仍用嵌套 `FormView v-model="users[$index]"`，控件 `path` 仍是 `'name'`。`path` **不是** `'users.0.name'`，也不吃 `index`。写入经该层 FormView emit，见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。
+一层 FormView，`v-model` 绑数组或含数组的对象；单元格只改 `:path`，不改控件 API：
+
+```vue
+<FormView v-model="order">
+  <el-table :data="order.buyers">
+    <el-table-column label="姓名">
+      <template #default="{ $index }">
+        <User.Name :path="`buyers[${$index}]`" />
+      </template>
+    </el-table-column>
+  </el-table>
+</FormView>
+```
+
+根为 array 时：`<FormView v-model="users">` + `` :path="`[${$index}]`" ``。
+
+写入：`ctx.update(prop, value, path)` → FormView 同 tick 合并 patch → `emit` 新对象（含新 array）。见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。
 
 ## 备选方案
 
-1. **继续 `{ start: 'startTime' }` 对象映射**：配对显式，覆盖 path 时拆不开；已否。
-2. **用 `prop` 代替 `path`**：和 Element 的 FormItem `prop` 撞名，多绑定语义不清；已否。
-3. **标签同时覆盖 `model` 与 `path`**：控件协议被当场改掉，身份不稳；已否。
-4. **禁止一切标签覆盖，换绑必须新开一项**：最干净，略烦；作为正路保留，`:path` 仅作逃逸。
-5. **`model` 与 `path` 必须等长**：组件多一个 v-model 会迫使所有接线方补 `path`；已否。改为前缀接线。
+1. **单一 `path` 兼叶子与导航**：表格要么 path-prefix，要么完整 `users[0].name` 重写身份；已否。
+2. **`path` array type**：与 `prop` array 语义冲突；已否。
+3. **`Path` 包裹组件 provide 前缀**：`:path` 已够；已否。
+4. **嵌套 `FormView v-model="users[i]"`**：绕过数组 v-model 入口；已否。
+5. **就地改 modelValue**：与 FormView 唯一写口矛盾；已否（ADR-008）。
 
 ## 后果
 
-- **正向**：换数据位只动 `path`；`model` 留在控件身份上，和「不能在标签上换 component」一致。组件多口时 `path` 可只接前缀，升级加尾端口不强迫使用方改接线。
-- **代价**：并行数组靠下标配对，写反会绑错；只绑非第一个口时要把该口放到 `model` 前面，或 `model` 里只写要接表的口。对象映射的显式配对换掉了。
-- **关联**：控件主角见 [ADR-009](./009-controls-as-protagonist.md)；语义簇见 [ADR-010](./010-controls-as-semantic-cluster.md)。009 §6 以本文为准。
+- **正向**：叶子（`prop`）与导航（`path`）名实相符；表格一层 FormView；`[index]` 显式表达数组段；多 model 同 path 自然合并 patch。
+- **代价**：path 要写 mini DSL；`prop` 与 ElFormItem `prop` 需在 adapter 区分；父级 `v-model` 须可赋值（`ref`）。
+- **关联**：[ADR-009](./009-controls-as-protagonist.md)、[ADR-010](./010-controls-as-semantic-cluster.md)、[ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。009 §6 以本文为准。

@@ -27,7 +27,7 @@ export interface CreateFormViewOptions {
 export type { FormLayoutProp, FormLayoutOptions } from './layout'
 
 export interface FormViewProps {
-  modelValue: Record<string, unknown>
+  modelValue: unknown
   readonly?: boolean
   disabled?: boolean
   /**
@@ -40,7 +40,7 @@ export interface FormViewProps {
 
 const formViewProps = {
   modelValue: {
-    type: Object as PropType<Record<string, unknown>>,
+    type: [Object, Array] as PropType<unknown>,
     required: true,
   },
   readonly: { type: Boolean, default: false },
@@ -52,12 +52,12 @@ const formViewProps = {
 }
 
 const formViewEmits = {
-  'update:modelValue': (_value: Record<string, unknown>) => true,
+  'update:modelValue': (_value: unknown) => true,
 }
 
 function provideFormViewContext(options: {
-  getModel: () => Record<string, unknown>
-  emitUpdate: (next: Record<string, unknown>) => void
+  getModel: () => unknown
+  emitUpdate: (next: unknown) => void
   getReadonly: () => boolean
   getDisabled: () => boolean
   getLayout?: () => FormLayoutProp
@@ -123,7 +123,7 @@ export function createFormView(options: CreateFormViewOptions): Component {
     emits: formViewEmits,
     setup(props, { slots, emit }) {
       const resolved = provideFormViewContext({
-        getModel: () => props.modelValue as Record<string, unknown>,
+        getModel: () => props.modelValue,
         emitUpdate: (next) => emit('update:modelValue', next),
         getReadonly: () => props.readonly,
         getDisabled: () => props.disabled,
@@ -151,7 +151,7 @@ export const FormView = defineComponent({
   emits: formViewEmits,
   setup(props, { slots, emit }) {
     provideFormViewContext({
-      getModel: () => props.modelValue as Record<string, unknown>,
+      getModel: () => props.modelValue,
       emitUpdate: (next) => emit('update:modelValue', next),
       getReadonly: () => props.readonly,
       getDisabled: () => props.disabled,

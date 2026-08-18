@@ -17,7 +17,7 @@ describe('createFormModelWriter', () => {
     expect(emit.mock.calls[0]![0]).not.toBe(source)
   })
 
-  it('merges same-tick updates into one emit (stale props)', async () => {
+  it('merges same-tick root updates into one emit', async () => {
     const propsModel: Record<string, unknown> = {}
     const emit = vi.fn()
     const { update } = createFormModelWriter(() => propsModel, emit)
@@ -28,6 +28,22 @@ describe('createFormModelWriter', () => {
 
     expect(emit).toHaveBeenCalledTimes(1)
     expect(emit.mock.calls[0]![0]).toEqual({ start: 1, end: 2 })
+  })
+
+  it('merges same-tick nested path updates into one emit', async () => {
+    const order = { buyers: [{ name: 'Ada', gender: 'f' }] }
+    const emit = vi.fn()
+    const { update } = createFormModelWriter(() => order, emit)
+
+    update('name', 'Bob', 'buyers[0]')
+    update('gender', 'm', 'buyers[0]')
+    await nextTick()
+
+    expect(emit).toHaveBeenCalledTimes(1)
+    expect(emit.mock.calls[0]![0]).toEqual({
+      buyers: [{ name: 'Bob', gender: 'm' }],
+    })
+    expect(order.buyers[0]).toEqual({ name: 'Ada', gender: 'f' })
   })
 
   it('emits separately across ticks', async () => {

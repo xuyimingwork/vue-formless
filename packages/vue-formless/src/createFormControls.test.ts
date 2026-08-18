@@ -2,8 +2,8 @@ import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { camelToPascal, pascalToCamel } from './case'
 import {
   applyControlBinding,
-  primaryPath,
   resolveControlBinding,
+  resolveFormItemProp,
 } from './controlModel'
 import { createFormControls } from './createFormControls'
 
@@ -17,96 +17,109 @@ describe('case', () => {
 })
 
 describe('resolveControlBinding', () => {
-  it('omits to modelValue + controlKey', () => {
+  it('omits to modelValue + controlKey prop', () => {
     expect(resolveControlBinding('name')).toEqual({
       models: ['modelValue'],
-      paths: ['name'],
+      props: ['name'],
+      path: undefined,
     })
   })
 
-  it('path-only keeps default modelValue', () => {
-    expect(resolveControlBinding('title', { path: 'name' })).toEqual({
+  it('prop-only keeps default modelValue', () => {
+    expect(resolveControlBinding('title', { prop: 'name' })).toEqual({
       models: ['modelValue'],
-      paths: ['name'],
+      props: ['name'],
+      path: undefined,
     })
   })
 
-  it('pairs parallel arrays', () => {
+  it('pairs parallel prop arrays with model ports', () => {
     expect(
       resolveControlBinding('timeRange', {
         model: ['start', 'end'],
-        path: ['startTime', 'endTime'],
+        prop: ['startTime', 'endTime'],
       }),
     ).toEqual({
       models: ['start', 'end'],
-      paths: ['startTime', 'endTime'],
+      props: ['startTime', 'endTime'],
+      path: undefined,
     })
   })
 
-  it('path override does not change model ports', () => {
+  it('prop override does not change model ports', () => {
     expect(
       resolveControlBinding(
         'timeRange',
-        { model: ['start', 'end'], path: ['startTime', 'endTime'] },
-        ['from', 'to'],
+        { model: ['start', 'end'], prop: ['startTime', 'endTime'] },
+        { prop: ['from', 'to'] },
       ),
     ).toEqual({
       models: ['start', 'end'],
-      paths: ['from', 'to'],
+      props: ['from', 'to'],
+      path: undefined,
     })
   })
 
-  it('path override may bind fewer ports', () => {
+  it('path override sets navigation only', () => {
+    expect(
+      resolveControlBinding(
+        'name',
+        { prop: 'name' },
+        { path: 'buyers[0]' },
+      ),
+    ).toEqual({
+      models: ['modelValue'],
+      props: ['name'],
+      path: 'buyers[0]',
+    })
+  })
+
+  it('prop override may bind fewer ports', () => {
     expect(
       resolveControlBinding(
         'agency',
-        { model: ['modelValue', 'option'], path: ['agencyId', 'agency'] },
-        'vendorId',
+        { model: ['modelValue', 'option'], prop: ['agencyId', 'agency'] },
+        { prop: 'vendorId' },
       ),
     ).toEqual({
       models: ['modelValue', 'option'],
-      paths: ['vendorId'],
+      props: ['vendorId'],
+      path: undefined,
     })
   })
 
-  it('binds a prefix when path is shorter than model', () => {
+  it('binds a prefix when prop is shorter than model', () => {
     expect(
       resolveControlBinding('name', {
         model: ['modelValue', 'option'],
-        path: 'name',
+        prop: 'name',
       }),
     ).toEqual({
       models: ['modelValue', 'option'],
-      paths: ['name'],
+      props: ['name'],
+      path: undefined,
     })
   })
 
-  it('omitted path still binds only the first port', () => {
-    expect(resolveControlBinding('name', { model: ['modelValue', 'option'] })).toEqual({
-      models: ['modelValue', 'option'],
-      paths: ['name'],
-    })
-  })
-
-  it('throws when path is longer than model', () => {
+  it('throws when prop is longer than model', () => {
     expect(() =>
       resolveControlBinding('name', {
         model: 'modelValue',
-        path: ['name', 'option'],
+        prop: ['name', 'option'],
       }),
-    ).toThrow(/path cannot be longer than model/)
+    ).toThrow(/prop cannot be longer than model/)
   })
 })
 
 describe('applyControlBinding', () => {
-  it('reads mapped keys and reports writes', () => {
+  it('reads mapped props and reports writes', () => {
     const form = { startTime: 'a', endTime: 'b' }
     const update = vi.fn()
     const bindings = applyControlBinding(
       form,
       {
         models: ['start', 'end'],
-        paths: ['startTime', 'endTime'],
+        props: ['startTime', 'endTime'],
       },
       update,
     )
@@ -114,7 +127,21 @@ describe('applyControlBinding', () => {
     expect(bindings.end).toBe('b')
     ;(bindings['onUpdate:start'] as (v: string) => void)('x')
     expect(form.startTime).toBe('a')
-    expect(update).toHaveBeenCalledWith('startTime', 'x')
+    expect(update).toHaveBeenCalledWith('startTime', 'x', undefined)
+  })
+
+  it('reads through navigation path', () => {
+    const form = { buyers: [{ name: 'Ada' }] }
+    const bindings = applyControlBinding(
+      form,
+      {
+        models: ['modelValue'],
+        props: ['name'],
+        path: 'buyers[0]',
+      },
+      vi.fn(),
+    )
+    expect(bindings.modelValue).toBe('Ada')
   })
 
   it('does not bind extra model ports', () => {
@@ -123,7 +150,7 @@ describe('applyControlBinding', () => {
       form,
       {
         models: ['modelValue', 'option'],
-        paths: ['name'],
+        props: ['name'],
       },
       vi.fn(),
     )
@@ -133,14 +160,20 @@ describe('applyControlBinding', () => {
   })
 })
 
-describe('primaryPath', () => {
-  it('uses the sole path, otherwise the control key', () => {
+describe('resolveFormItemProp', () => {
+  it('uses navigation + sole prop, otherwise control key', () => {
     expect(
-      primaryPath({ models: ['modelValue'], paths: ['title'] }, 'name'),
+      resolveFormItemProp({ models: ['modelValue'], props: ['title'] }, 'name'),
     ).toBe('title')
     expect(
-      primaryPath(
-        { models: ['start', 'end'], paths: ['startTime', 'endTime'] },
+      resolveFormItemProp(
+        { models: ['modelValue'], props: ['name'], path: 'buyers[0]' },
+        'name',
+      ),
+    ).toBe('buyers.0.name')
+    expect(
+      resolveFormItemProp(
+        { models: ['start', 'end'], props: ['startTime', 'endTime'] },
         'timeRange',
       ),
     ).toBe('timeRange')
@@ -154,7 +187,7 @@ describe('createFormControls', () => {
       timeRange: {
         label: '时间',
         model: ['start', 'end'],
-        path: ['startTime', 'endTime'],
+        prop: ['startTime', 'endTime'],
       },
     })
 

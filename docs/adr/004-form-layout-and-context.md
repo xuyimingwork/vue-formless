@@ -39,7 +39,7 @@ FormView + User.Xxx  ≈  （可选）行容器 + 列格子 + 表单项 + 控件
 
 3. **`User.Xxx`**  
    - 从 FormContext 取得运行时数据与布局默认  
-   - 读 `model[path]`，写走 `update(path, value)`，由 FormView emit；不就地改对象  
+   - 读 `getIn(model, path, prop)`，写 `update(prop, value, path)`，由 FormView emit  
    - 负责字段级绑定与插槽透传；列宽等以「可被 Item 覆盖的布局语义」表达
 
 4. **校验 / 表单宿主**  

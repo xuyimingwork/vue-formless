@@ -10,14 +10,16 @@ import {
 import { camelToPascal, type CamelToPascal } from './case'
 import {
   applyControlBinding,
-  primaryPath,
   resolveControlBinding,
-  type ControlPath,
+  resolveFormItemProp,
+  type ControlNavPath,
+  type ControlProp,
   type ControlVModel,
 } from './controlModel'
+import { getIn } from './modelPath'
 import { useFormContext } from './context'
 
-export type { ControlPath, ControlVModel }
+export type { ControlNavPath, ControlProp, ControlVModel }
 
 export interface ControlSchema {
   label?: string
@@ -28,14 +30,19 @@ export interface ControlSchema {
   rules?: unknown
   /**
    * v-model names on the widget (ADR-011). Default `'modelValue'`.
-   * Not overridable on the tag. Path binds a prefix of these ports.
+   * Not overridable on the tag.
    */
   model?: ControlVModel
   /**
-   * Keys on the current FormView object (ADR-011). Default: control key.
-   * Overridable on the tag via `path`. May be shorter than `model`.
+   * Leaf key(s) on the node reached by `path` (ADR-011). Default: control key.
+   * Overridable on the tag via `prop`. May be shorter than `model`.
    */
-  path?: ControlPath
+  prop?: ControlProp
+  /**
+   * Navigation path from FormView root (ADR-011). Scalar string, e.g. `buyers[0]`, `[2]`.
+   * Overridable on the tag via `path`.
+   */
+  path?: ControlNavPath
 }
 
 /** Loose schema bag. Prefer inferring `S` from an object literal via `createFormControls`. */
@@ -46,7 +53,8 @@ export interface FormControlProps {
   bare?: boolean
   label?: string
   rules?: unknown
-  path?: ControlPath
+  prop?: ControlProp
+  path?: ControlNavPath
   component?: Component
   props?: Record<string, unknown>
 }
@@ -91,7 +99,8 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
       bare: { type: Boolean, default: false },
       label: { type: String as PropType<string>, default: undefined },
       rules: { type: [Array, Object] as PropType<unknown>, default: undefined },
-      path: { type: [String, Array] as PropType<ControlPath>, default: undefined },
+      prop: { type: [String, Array] as PropType<ControlProp>, default: undefined },
+      path: { type: String as PropType<ControlNavPath>, default: undefined },
       component: {
         type: [Object, Function] as PropType<Component>,
         default: undefined,
@@ -107,10 +116,10 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
       return (): VNodeChild => {
         const binding = resolveControlBinding(
           controlKey,
-          { model: control.model, path: control.path },
-          controlProps.path,
+          { model: control.model, prop: control.prop, path: control.path },
+          { prop: controlProps.prop, path: controlProps.path },
         )
-        const propKey = primaryPath(binding, controlKey)
+        const itemProp = resolveFormItemProp(binding, controlKey)
         const label = controlProps.label !== undefined ? controlProps.label : control.label
         const rules = controlProps.rules !== undefined ? controlProps.rules : control.rules
         const widget =
@@ -122,6 +131,7 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
           ...attrs,
         }
         const modelBindings = applyControlBinding(ctx.model, binding, ctx.update)
+        const displayProp = binding.props[0] ?? controlKey
 
         const body = widget
           ? h(
@@ -131,8 +141,8 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
                 ...modelBindings,
                 label,
                 rules,
-                prop: propKey,
-                name: propKey,
+                prop: itemProp,
+                name: itemProp,
                 disabled: ctx.disabled || ctx.readonly,
                 readonly: ctx.readonly,
               },
@@ -143,7 +153,7 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
               { class: 'vue-formless-control', 'data-control': controlKey },
               [
                 label ? h('label', { class: 'vue-formless-control__label' }, label) : null,
-                String(ctx.model[propKey] ?? ''),
+                String(getIn(ctx.model, binding.path, displayProp) ?? ''),
               ],
             )
 

@@ -8,11 +8,11 @@ export interface FormGridAdapter {
   total: number
 }
 
-export interface FormContext<T extends Record<string, unknown> = Record<string, unknown>> {
+export interface FormContext {
   /** Current FormView `modelValue` (parent snapshot; do not mutate). */
-  model: T
+  model: unknown
   /** Report a field write; FormView patches and emits `update:modelValue`. */
-  update: (path: string, value: unknown) => void
+  update: (prop: string, value: unknown, path?: string) => void
   readonly: boolean
   disabled: boolean
   /** Page-level default span when layout hosting is on (`total / column`). */
@@ -28,12 +28,12 @@ export interface FormContext<T extends Record<string, unknown> = Record<string, 
 
 export const formContextKey: InjectionKey<FormContext> = Symbol('vue-formless.formContext')
 
-export function useFormContext<T extends Record<string, unknown> = Record<string, unknown>>(): FormContext<T> {
+export function useFormContext(): FormContext {
   const ctx = inject(formContextKey, null)
   if (!ctx) {
     throw new Error('[vue-formless] useFormContext() must be used inside <FormView>.')
   }
-  return ctx as FormContext<T>
+  return ctx
 }
 
 export type MaybeRefModel<T> = T | Ref<T>
