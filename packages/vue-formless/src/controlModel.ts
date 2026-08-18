@@ -1,32 +1,53 @@
 /**
- * Control `model` mapping (ADR-009):
- * - omit            → { modelValue: controlKey }
- * - string "name"   → { modelValue: "name" }
- * - object          → v-model name → form key, e.g. { title: "name" }, { start: "startTime", end: "endTime" }
+ * Control binding (ADR-011):
+ * - `model` — v-model names on the widget (identity). Default `'modelValue'`.
+ * - `path`  — keys on the current FormView object. Default: control key.
+ * Path is a prefix of model (index-aligned). Extra model ports are unbound.
  */
-export type ControlModel = string | Record<string, string>
+export type ControlVModel = string | string[]
+export type ControlPath = string | string[]
 
-export function resolveControlModel(
+export interface ResolvedControlBinding {
+  models: string[]
+  paths: string[]
+}
+
+export function toBindingList(value: ControlVModel | ControlPath): string[] {
+  return Array.isArray(value) ? [...value] : [value]
+}
+
+export function resolveControlBinding(
   controlKey: string,
-  model?: ControlModel,
-): Record<string, string> {
-  if (model == null) return { modelValue: controlKey }
-  if (typeof model === 'string') return { modelValue: model }
-  return { ...model }
+  options: { model?: ControlVModel; path?: ControlPath } = {},
+  pathOverride?: ControlPath,
+): ResolvedControlBinding {
+  const models = toBindingList(options.model ?? 'modelValue')
+  const paths = toBindingList(
+    pathOverride !== undefined ? pathOverride : (options.path ?? controlKey),
+  )
+
+  if (paths.length > models.length) {
+    throw new Error(
+      `createFormControls: path cannot be longer than model (control "${controlKey}": model has ${models.length}, path has ${paths.length})`,
+    )
+  }
+
+  return { models, paths }
 }
 
 /** First form key — used as ElFormItem `prop` when there is a single binding. */
-export function primaryModelKey(mapping: Record<string, string>, controlKey: string): string {
-  const keys = Object.values(mapping)
-  return keys.length === 1 ? keys[0]! : controlKey
+export function primaryPath(binding: ResolvedControlBinding, controlKey: string): string {
+  return binding.paths.length === 1 ? binding.paths[0]! : controlKey
 }
 
-export function applyControlModel(
+export function applyControlBinding(
   formModel: Record<string, unknown>,
-  mapping: Record<string, string>,
+  binding: ResolvedControlBinding,
 ): Record<string, unknown> {
   const bindings: Record<string, unknown> = {}
-  for (const [vModelName, modelKey] of Object.entries(mapping)) {
+  for (let i = 0; i < binding.paths.length; i++) {
+    const vModelName = binding.models[i]!
+    const modelKey = binding.paths[i]!
     bindings[vModelName] = formModel[modelKey]
     bindings[`onUpdate:${vModelName}`] = (next: unknown) => {
       formModel[modelKey] = next

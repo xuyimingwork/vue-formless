@@ -5,6 +5,7 @@
 - **修订**：
   - 2026-08-18 — 补文件夹比喻与「界面领域 ≠ 后端实体」。
   - 2026-08-18 — 簇的边界是归属（是不是该域的 control），不是项数。
+  - 2026-08-18 — 绑定拆成 `model` / `path`，见 [ADR-011](./011-model-and-path.md)。
 - **来源**：相对 [ADR-009](./009-controls-as-protagonist.md) 的定位收口（工厂是什么、故意不做什么）
 
 ## 背景
@@ -46,7 +47,7 @@ User.Name / User.Agency    ← 本层：有业务名、默认绑哪、属于这�
 
 | 在 controls 里 | 不在 controls 里 |
 |----------------|------------------|
-| 谁、怎么画（`component` / 默认 `props`）、默认绑哪（`model`）、默认 `label` | 控件间联动、**本场用不用这些 rules**、跨控件规则、布局（span / Col） |
+| 谁、怎么画（`component` / 默认 `props`）、控件口（`model`）、默认数据位（`path`）、默认 `label` | 控件间联动、**本场用不用这些 rules**、跨控件规则、布局（span / Col） |
 | **`rules`：这个输入会什么**（空值怎么判、格式对不对） | |
 
 控件上**要写** `rules`，因为那是语义输入的一部分（手机号知道号段、姓名知道 trim 后才算填了）。控件表**不决定**这场要不要跑它们。
@@ -97,4 +98,4 @@ mobile: {
 
 - **正向**：有人提「在 schema 里配级联 / 把本场 `required: true` 写进控件表」时，用本文挡。`rules` 写在 control 上；用不用由场景决定。复用单元是簇里的标签，不是 Form。
 - **代价**：先声明簇再在模板点名（两处）；调试栈多一个工厂组件。校验如何接到 `el-form`、empty 的默认算法，不在本文展开。
-- **关联**：控件主角、`model`、页级所有权、列表见 [ADR-009](./009-controls-as-protagonist.md)；命名空间标签见 [ADR-003](./003-namespaced-field-components.md)；配置单元见 [ADR-005](./005-view-model-as-unit.md)；布局见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。
+- **关联**：控件主角、页级所有权、列表见 [ADR-009](./009-controls-as-protagonist.md)；`model` / `path` 见 [ADR-011](./011-model-and-path.md)；命名空间标签见 [ADR-003](./003-namespaced-field-components.md)；配置单元见 [ADR-005](./005-view-model-as-unit.md)；布局见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。

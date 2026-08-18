@@ -9,16 +9,18 @@ export {
 export {
   createFormControls,
   type ControlSchema,
-  type ControlModel,
+  type ControlPath,
+  type ControlVModel,
   type FormControlsSchema,
   type FormControlProps,
   type FormControlComponent,
   type NamespacedControls,
 } from './createFormControls'
 export {
-  resolveControlModel,
-  applyControlModel,
-  primaryModelKey,
+  resolveControlBinding,
+  applyControlBinding,
+  primaryPath,
+  toBindingList,
 } from './controlModel'
 export {
   resolveLayout,

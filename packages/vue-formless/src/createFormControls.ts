@@ -9,14 +9,15 @@ import {
 } from 'vue'
 import { camelToPascal, type CamelToPascal } from './case'
 import {
-  applyControlModel,
-  primaryModelKey,
-  resolveControlModel,
-  type ControlModel,
+  applyControlBinding,
+  primaryPath,
+  resolveControlBinding,
+  type ControlPath,
+  type ControlVModel,
 } from './controlModel'
 import { useFormContext } from './context'
 
-export type { ControlModel }
+export type { ControlPath, ControlVModel }
 
 export interface ControlSchema {
   label?: string
@@ -26,12 +27,15 @@ export interface ControlSchema {
   props?: Record<string, unknown>
   rules?: unknown
   /**
-   * How this control maps onto the FormView model.
-   * - omit: `{ modelValue: <controlKey> }`
-   * - string: `{ modelValue: thatKey }`  e.g. `model: 'name'`
-   * - object: v-model name → form key, e.g. `{ title: 'name' }` or `{ start: 'startTime', end: 'endTime' }`
+   * v-model names on the widget (ADR-011). Default `'modelValue'`.
+   * Not overridable on the tag. Path binds a prefix of these ports.
    */
-  model?: ControlModel
+  model?: ControlVModel
+  /**
+   * Keys on the current FormView object (ADR-011). Default: control key.
+   * Overridable on the tag via `path`. May be shorter than `model`.
+   */
+  path?: ControlPath
 }
 
 /** Loose schema bag. Prefer inferring `S` from an object literal via `createFormControls`. */
@@ -42,6 +46,7 @@ export interface FormControlProps {
   bare?: boolean
   label?: string
   rules?: unknown
+  path?: ControlPath
   component?: Component
   props?: Record<string, unknown>
 }
@@ -78,9 +83,6 @@ export function createFormControls<S extends { [K in keyof S]: ControlSchema }>(
 }
 
 function createNamespacedControl(controlKey: string, control: ControlSchema): FormControlComponent {
-  const mapping = resolveControlModel(controlKey, control.model)
-  const propKey = primaryModelKey(mapping, controlKey)
-
   return defineComponent({
     name: `Control_${camelToPascal(controlKey)}`,
     inheritAttrs: false,
@@ -89,6 +91,7 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
       bare: { type: Boolean, default: false },
       label: { type: String as PropType<string>, default: undefined },
       rules: { type: [Array, Object] as PropType<unknown>, default: undefined },
+      path: { type: [String, Array] as PropType<ControlPath>, default: undefined },
       component: {
         type: [Object, Function] as PropType<Component>,
         default: undefined,
@@ -102,6 +105,12 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
       const ctx = useFormContext()
 
       return (): VNodeChild => {
+        const binding = resolveControlBinding(
+          controlKey,
+          { model: control.model, path: control.path },
+          controlProps.path,
+        )
+        const propKey = primaryPath(binding, controlKey)
         const label = controlProps.label !== undefined ? controlProps.label : control.label
         const rules = controlProps.rules !== undefined ? controlProps.rules : control.rules
         const widget =
@@ -112,7 +121,7 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
           ...controlProps.props,
           ...attrs,
         }
-        const modelBindings = applyControlModel(ctx.model, mapping)
+        const modelBindings = applyControlBinding(ctx.model, binding)
 
         const body = widget
           ? h(
