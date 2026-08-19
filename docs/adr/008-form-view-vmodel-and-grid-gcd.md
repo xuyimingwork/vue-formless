@@ -12,6 +12,7 @@
   - 2026-08-18 — 栅格模量钉死 24；`:formless.span` 即宿主 Col span。不再配置 `total`。
   - 2026-08-19 — 可选 `Form` 适配（slot，内核填 default）；组树 `Form? → Row? → 字段`。栅格仍是 `:layout`，**再次否决**拆出公开的 `FormLayout`（简单表会 FormView / ElForm / FormLayout 套娃）。`toItemProps` 不再是工厂选项，见 [ADR-012](./012-input-item-and-rule-compile.md)。
   - 2026-08-19 — 实例配置：`v-model` / `layout` / `form` / `item`。工厂只绑组件。FormView `ref` expose 内层 Form。
+  - 2026-08-19 — 单格跳过壳是 schema `item` / `layout`（与实例同名），不是 `shell`。`FormView.Item` 是临场格。
 - **来源**：相对 [ADR-004](./004-form-layout-and-context.md) / [ADR-007](./007-layout-adapter-and-span-priority.md) 的后续澄清（命名、数据口、适配面与占位策略）
 
 ## 背景
@@ -107,7 +108,7 @@ layout?: boolean | {
 | 不写 / `form` / `:form="true"` | 包工厂 `Form`；`ref` 转到它 |
 | `:form="false"` | 不包 Form（表格、内层只托管 layout） |
 | 不写 / `item` / `:item="true"` | 每格包工厂 `Item`（`snapshot` + `:item:`） |
-| `:item="false"` | 这一页不包 Item；单格仍可用以后的 `shell: false` |
+| `:item="false"` | 这一页不包 Item；单格仍可用 schema `item: false` |
 
 ```vue
 <!-- 表单页 -->
@@ -157,7 +158,7 @@ export const FormView = createFormView({
 → 再加上 Form
 ```
 
-`gutter` 不是接入门槛；空白 Col 是托管布局的统一占位手段。无 Item 则不套表单项；无 Form 则不套宿主表单。`component` 始终是输入（ADR-012）。包不包 Form / Item / Col **只由 formless 决定**（工厂有没有组件、实例 `form` / `item` / `:layout`、`shell: false`），适配必须渲 `slots.default`。
+`gutter` 不是接入门槛；空白 Col 是托管布局的统一占位手段。无 Item 则不套表单项；无 Form 则不套宿主表单。`component` 始终是输入（ADR-012）。包不包 Form / Item / Col **只由 formless 决定**（工厂有没有组件、实例 `form` / `item` / `:layout`、schema `item` / `layout`），适配必须渲 `slots.default`。
 
 ### 4. 主路径一层嵌套；拆原语仅用于逃逸
 

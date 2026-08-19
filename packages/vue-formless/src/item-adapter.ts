@@ -5,7 +5,12 @@ import type {
 } from './control-model'
 import type { ControlValidation, ValidatePolicy } from './identity-rules'
 
-/** Runtime config on `<User.Xxx :formless="…" />`. Does not steal input prop names. */
+/**
+ * Per-render bag on a **control tag** (`<User.Xxx :formless="…" />`).
+ * Closed set: does not steal input prop names. Not used on FormView / FormView.Item
+ * (those take real props). Does not include `item` / `layout` — those are FormView
+ * defaults and schema overrides, not this-render strategy.
+ */
 export interface FormlessAttr {
   /** Override schema label. */
   label?: string

@@ -81,7 +81,7 @@ await formRef.value?.validate()
 
 | | OneInput（一格） | TwoInput（两格） |
 |--|------------------|------------------|
-| 壳 | 013：工厂 wrap 一次 | 013：`shell: false` + `useFormItem('start'/'end')` |
+| 壳 | 013：工厂 `useFormItem()` 一次 | 013：`item: false` + `layout: false` + `useFormItem('start'/'end')` |
 | 宿主 Item `prop` | 适配编码（Element 常用控件键） | 适配按口叶子路径（`fieldValue` 是真值） |
 | `empty` / required | 本文：对 **整份口值** 判空 | 该格 ElForm `value`（单叶子）；策略仍是标签上那一份 `:formless.validate` |
 | 区间 `format` | 本文：对整份口值 | 仍是该 control 的 `validation`；用同一套口值（闭包 `getValues()`），不要在 `toEpRules` 里写另一端叶子名 |

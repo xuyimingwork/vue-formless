@@ -63,7 +63,7 @@ const notes: Record<DemoId, { baseline: string; formless: string; compare: strin
   range: {
     baseline: '三列混排：行程日期 span 16 旁塞一格；开始+结束同样两列再塞一格。',
     formless:
-      'Range One / Two 都是 span 16（两列），旁边各塞普通字段。',
+      'Range One 一格 span 16；Range Two schema item/layout false，内部 useFormItem 两格进同一行；备注是临场 FormView.Item。',
     compare: '对照两种 Range 都占两列的混排。',
   },
 }

@@ -45,10 +45,12 @@ function onReset() {
     <User.Mobile />
     <Range.DateRangeOne :formless="{ ...required, span: 16 }" />
     <User.Email />
-    <Range.DateRangeTwo :formless="{ ...required, span: 16 }" />
+    <Range.DateRangeTwo :formless="required" />
     <User.IdCard />
     <User.Address />
-    <User.Remark :formless="{ span: 24 }" />
+    <FormView.Item prop="remark" label="备注" :span="24" v-slot="{ field }">
+      <el-input v-bind="field" type="textarea" :rows="3" placeholder="可选" />
+    </FormView.Item>
   </FormView>
 
   <div class="pg-actions">

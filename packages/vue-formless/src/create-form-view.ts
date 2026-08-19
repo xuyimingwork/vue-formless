@@ -17,6 +17,7 @@ import {
   type FormLayoutProp,
 } from './layout'
 import { createControlWrap } from './wrap-control'
+import { attachFormViewItem, FormViewItem } from './use-form-item'
 
 export interface CreateFormViewOptions {
   /** Row container (e.g. ElRow). Required together with Col for hosted layout. */
@@ -45,8 +46,8 @@ export interface FormViewProps {
    */
   form?: boolean
   /**
-   * Wrap the factory `Item` per control (default `true` when `Item` is bound).
-   * Per-control skip is schema `shell: false`, not this flag.
+   * Wrap the factory `Item` per cell (default `true` when `Item` is bound).
+   * Per-control skip is schema `item: false`, not this flag.
    */
   item?: boolean
 }
@@ -127,7 +128,7 @@ function provideFormViewContext(options: {
 /**
  * Bind external Row/Col (and optional Form/Item) once; returns a FormView (ADR-008 / ADR-012).
  *
- * Host shells stay in this closure. Controls call `ctx.wrap(body, meta)` and never `h()` Item/Col.
+ * Host shells stay in this closure. Cells go through `useFormItem` / `FormView.Item`, which call `wrap`.
  *
  * @example
  * ```ts
@@ -139,7 +140,7 @@ function provideFormViewContext(options: {
  * })
  * ```
  */
-export function createFormView(options: CreateFormViewOptions): Component {
+export function createFormView(options: CreateFormViewOptions): FormViewComponent {
   const adapter: FormGridAdapter = {
     Row: markRaw(options.Row),
     Col: markRaw(options.Col),
@@ -147,56 +148,62 @@ export function createFormView(options: CreateFormViewOptions): Component {
   const Form = options.Form ? markRaw(options.Form) : undefined
   const Item = options.Item ? markRaw(options.Item) : undefined
 
-  return defineComponent({
-    name: 'FormView',
-    inheritAttrs: false,
-    props: formViewProps,
-    emits: formViewEmits,
-    setup(props, { slots, emit, attrs, expose }) {
-      const hostForm = ref<object | null>(null)
-      expose(proxyExpose(hostForm))
+  return attachFormViewItem(
+    defineComponent({
+      name: 'FormView',
+      inheritAttrs: false,
+      props: formViewProps,
+      emits: formViewEmits,
+      setup(props, { slots, emit, attrs, expose }) {
+        const hostForm = ref<object | null>(null)
+        expose(proxyExpose(hostForm))
 
-      const resolved = provideFormViewContext({
-        getModel: () => props.modelValue,
-        emitUpdate: (next) => emit('update:modelValue', next),
-        getLayout: () => props.layout as FormLayoutProp,
-        adapter,
-        Item,
-        isItemEnabled: () => props.item !== false,
-      })!
+        const resolved = provideFormViewContext({
+          getModel: () => props.modelValue,
+          emitUpdate: (next) => emit('update:modelValue', next),
+          getLayout: () => props.layout as FormLayoutProp,
+          adapter,
+          Item,
+          isItemEnabled: () => props.item !== false,
+        })!
 
-      return (): VNodeChild => {
-        const children = slots.default?.() ?? null
-        const body = resolved.value.enabled
-          ? h(adapter.Row, { gutter: resolved.value.gutter }, () => children)
-          : children
+        return (): VNodeChild => {
+          const children = slots.default?.() ?? null
+          const body = resolved.value.enabled
+            ? h(adapter.Row, { gutter: resolved.value.gutter }, () => children)
+            : children
 
-        if (!Form || props.form === false) return body
+          if (!Form || props.form === false) return body
 
-        return h(
-          Form,
-          { ref: hostForm, ...attrs },
-          { default: () => body },
-        )
-      }
-    },
-  })
+          return h(
+            Form,
+            { ref: hostForm, ...attrs },
+            { default: () => body },
+          )
+        }
+      },
+    }),
+  )
 }
+
+export type FormViewComponent = Component & { Item: typeof FormViewItem }
 
 /**
  * Context-only FormView (no Row/Col/Form/Item). Prefer `createFormView({ Row, Col })`.
  */
-export const FormView = defineComponent({
-  name: 'FormView',
-  inheritAttrs: false,
-  props: formViewProps,
-  emits: formViewEmits,
-  setup(props, { slots, emit }) {
-    provideFormViewContext({
-      getModel: () => props.modelValue,
-      emitUpdate: (next) => emit('update:modelValue', next),
-      getLayout: () => props.layout as FormLayoutProp,
-    })
-    return (): VNodeChild => slots.default?.() ?? null
-  },
-})
+export const FormView = attachFormViewItem(
+  defineComponent({
+    name: 'FormView',
+    inheritAttrs: false,
+    props: formViewProps,
+    emits: formViewEmits,
+    setup(props, { slots, emit }) {
+      provideFormViewContext({
+        getModel: () => props.modelValue,
+        emitUpdate: (next) => emit('update:modelValue', next),
+        getLayout: () => props.layout as FormLayoutProp,
+      })
+      return (): VNodeChild => slots.default?.() ?? null
+    },
+  }),
+)

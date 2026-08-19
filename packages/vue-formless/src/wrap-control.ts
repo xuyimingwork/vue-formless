@@ -5,6 +5,16 @@ import { GRID_TOTAL } from './layout'
 /** Input Control hands to FormView's wrap: identity snapshot + Item fallthrough. */
 export interface WrapControlMeta {
   span?: number
+  /**
+   * This wrap only. `false` skips Item even when FormView `item` is on
+   * (control schema `item: false`). Omit = follow FormView.
+   */
+  item?: boolean
+  /**
+   * This wrap only. `false` skips Col even when FormView `layout` is on
+   * (control schema `layout: false`). Omit = follow FormView.
+   */
+  layout?: boolean
   snapshot: ItemRenderInput
   itemAttrs: Record<string, unknown>
   itemOn: Record<string, unknown>
@@ -27,7 +37,7 @@ export function createControlWrap(options: {
   return (body, meta) => {
     const input = body
     const withItem =
-      Item && (options.isItemEnabled?.() ?? true)
+      Item && (options.isItemEnabled?.() ?? true) && meta.item !== false
         ? h(
             Item,
             {
@@ -42,7 +52,7 @@ export function createControlWrap(options: {
           )
         : input
 
-    if (!Col || !options.isLayoutEnabled()) return withItem
+    if (!Col || !options.isLayoutEnabled() || meta.layout === false) return withItem
 
     const span = meta.span ?? options.getDefaultSpan() ?? Math.floor(GRID_TOTAL / 2)
     return h(Col, { span }, () => withItem)

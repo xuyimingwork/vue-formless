@@ -14,7 +14,7 @@ export interface FormContext {
   update: (prop: string, value: unknown, path?: string) => void
   /**
    * FormView-owned shell: Col? → Item? → body.
-   * Layout density stays in the FormView closure. Form-level disabled stays on the host form.
+   * Used by `useFormItem` / `FormView.Item`, not by widget authors.
    */
   wrap: WrapControl
 }

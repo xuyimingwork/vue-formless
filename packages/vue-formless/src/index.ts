@@ -2,6 +2,7 @@ export {
   createFormView,
   FormView,
   type CreateFormViewOptions,
+  type FormViewComponent,
   type FormViewProps,
   type FormLayoutProp,
   type FormLayoutOptions,
@@ -21,6 +22,7 @@ export {
 export {
   resolveControlBinding,
   applyControlBinding,
+  bindingForPort,
   resolveFormItemProp,
   toBindingList,
   type ControlBindingOverrides,
@@ -46,6 +48,12 @@ export {
   type FormContext,
   type FormGridAdapter,
 } from './context'
+export {
+  useFormItem,
+  FormViewItem,
+  type FormViewItemProps,
+  type FormViewItemSlotProps,
+} from './use-form-item'
 export type { ItemRenderInput } from './item-adapter'
 export type { WrapControl, WrapControlMeta } from './wrap-control'
 export {

@@ -8,7 +8,7 @@
   - 2026-08-18 — Item 原生 props 走 `:item:xxx`，盖在 `toItemProps` 上。
   - 2026-08-18 — Control 只渲染输入，壳由 FormView 注入的 `wrap` 包；Item/Col 不进 FormContext。
   - 2026-08-18 — 整表 `disabled` 走宿主表单；FormView 不再广播 `readonly` / `disabled`。
-  - 2026-08-19 — 「一颗 control 只 wrap 一次」由 [ADR-013](./013-one-control-multiple-items.md) 修订：默认仍如此；复合体 `shell: false` 可多次实例化同一颗 Item。
+  - 2026-08-19 — 「一颗 control 只 wrap 一次」由 [ADR-013](./013-one-control-multiple-items.md) 修订：默认仍如此；复合体 schema `item: false` + `layout: false` 可多次 `useFormItem`。
   - 2026-08-19 — 多口 control 的宿主校验见 [ADR-014](./014-multi-vmodel-host-validation.md)。
   - 2026-08-19 — `Form` / `Item` 均为适配组件 + slot；内核填 default、决定是否跳过壳。`toItemProps` 不再是 `createFormView` 选项。无公开 `FormLayout`。见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。
   - 2026-08-19 — wrap 把 `snapshot` 交给 Item；实例 `form` / `item` 开关见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。
@@ -69,14 +69,14 @@ h(Form?, formAttrs, { default: () =>
 ```
 
 - **body 由 formless 渲**：`slots.default` 一定是字段树或输入。适配只 `h(ElForm, …, slots)` / `h(ElFormItem, 转换(snapshot), slots)`，必须转发 default。
-- **无 Form / 无 Item / 无 Col**：内核 **不** `h()` 那一层（工厂不传、`:form="false"` / `:item="false"`、`shell: false`、不开 `layout`）。不要在适配里 `if` 丢掉 default。
+- **无 Form / 无 Item / 无 Col**：内核 **不** `h()` 那一层（工厂不传、`:form="false"` / `:item="false"`、schema `item` / `layout` 为 false、不开 `layout`）。不要在适配里 `if` 丢掉 default。
 - Control **不** `h(Item)` / `h(Col)` / `h(Form)`。Item/Col/Form 不得放进深 `reactive` 的 FormContext。
 - 内核 **不**写死 `label` / `prop` / `rules`；转换留在 `EpItem` 内部（原 `toItemProps` / `toEpRules`），**不是**工厂第二参数。snapshot 给 `controlKey`、`binding`、`getValues()`、`validation` / `validate`；宿主 `prop` 由 Item 编码（与 Form 投影键必须一致，见 [ADR-014](./014-multi-vmodel-host-validation.md)）。
 - `:item:` attrs 盖在适配转换结果上（协议见 §5）。
 
 有 `Form` 时页面 **不**手写 `el-form`；`validate()` / `resetFields()` 走 FormView expose。整表 `disabled` 是落到 `Form` 的 attrs。无 `Form`（表格、非表单）字段树照渲。
 
-单格跳过 Item（`AgencyList`、`shell: false`）由 formless 不 `h(Item)`，不是 `:formless.bare`。
+单格跳过 Item（`AgencyList`、schema `item: false`）由 formless 不 `h(Item)`，不是 `:formless.bare`。
 
 不把栅格拆成公开的 `FormLayout`（[ADR-008](./008-form-view-vmodel-and-grid-gcd.md)）。
 
@@ -161,7 +161,7 @@ Item 的 **default** 由内核填入控件，用户从不提供。规范槽写�
 2. **control 上直接写 ElForm `rules` 数组**：已否。Schema 用 `validation`。
 3. **顶层保留字 `required` / `span`**：已否；改为一只袋子 `:formless`。
 4. **标签覆盖 `component`**：先点名再整颗替换，语义拧。已否。
-5. **`:formless.bare`**：单格退出 Item 走 `shell: false` / 内核跳过 `h(Item)`，见 [ADR-013](./013-one-control-multiple-items.md)。整段不写 `layout` 即可手写栅格。不拆公开 `FormLayout`。
+5. **`:formless.bare`**：单格退出 Item 走 schema `item: false` / 内核跳过 `h(Item)`，见 [ADR-013](./013-one-control-multiple-items.md)。整段不写 `layout` 即可手写栅格。不拆公开 `FormLayout`。
 6. **内核 `toRules` 只编 `rules` 数组**：假定所有 Item 都有 `rules` prop。已否；改为适配 Item 内部转换。
 7. **按 ElInput 分流槽 / 双前缀 / 开放 `item-*` / 内核白名单 Item 槽**：已否。`item:` 机械转发。
 8. **`Form: ({ FormBody }) => if xxx`**：无 Form 应由内核跳过 `h(Form)`，不要适配丢掉 default。已否为默认。

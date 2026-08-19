@@ -32,7 +32,7 @@
  │              ├── 011 model = v-model 口；prop = 叶子键；path = 导航（buyers[0]）
  │              │    └── 014 多口：Form 投影；host prop 由适配编码；validate 在 FormView
  │              └── 012 component = 输入；Form/Item 适配组件 + slot；内核决定跳过壳
- │                   └── 013 control ≠ Item 基数；默认仍 wrap 一次；TwoInput = shell: false + useFormItem(口名)
+ │                   └── 013 control ≠ Item 基数；默认 `useFormItem()`；Two = schema item/layout false + `useFormItem(口名)`
  ├── 003 模板表达 = <User.Agency /> / <User.Name />
  ├── 004 运行时粘合 = Context + 控件表（内核 UI 无关）
  │    ├── 007 外部 Row/Col 适配；字段 span > 页级默认；响应式只在页级

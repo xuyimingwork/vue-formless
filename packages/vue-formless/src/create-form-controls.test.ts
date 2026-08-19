@@ -1,11 +1,15 @@
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
+import { defineComponent } from 'vue'
 import { camelToPascal, pascalToCamel } from './case'
 import {
   applyControlBinding,
+  bindingForPort,
   resolveControlBinding,
   resolveFormItemProp,
 } from './control-model'
 import { createFormControls } from './create-form-controls'
+import { createFormView, FormView } from './create-form-view'
+import { FormViewItem } from './use-form-item'
 
 describe('case', () => {
   it('converts camelCase ↔ PascalCase', () => {
@@ -180,6 +184,29 @@ describe('resolveFormItemProp', () => {
   })
 })
 
+describe('bindingForPort', () => {
+  const pair = {
+    models: ['start', 'end'],
+    props: ['fromTime', 'toTime'],
+    path: 'buyers[0]',
+  }
+
+  it('slices one v-model port to its leaf', () => {
+    expect(bindingForPort(pair, 'end')).toEqual({
+      models: ['end'],
+      props: ['toTime'],
+      path: 'buyers[0]',
+    })
+  })
+
+  it('throws when the port is missing or unbound', () => {
+    expect(() => bindingForPort(pair, 'modelValue')).toThrow(/not a v-model port/)
+    expect(() =>
+      bindingForPort({ models: ['start', 'end'], props: ['fromTime'] }, 'end'),
+    ).toThrow(/not bound/)
+  })
+})
+
 describe('createFormControls', () => {
   it('exposes PascalCase components for camelCase control keys', () => {
     const User = createFormControls({
@@ -204,5 +231,14 @@ describe('createFormControls', () => {
     })
     expectTypeOf(User).toHaveProperty('Name')
     expectTypeOf(User).toHaveProperty('IdCard')
+  })
+})
+
+describe('FormView.Item', () => {
+  it('is attached on createFormView and the context-only FormView', () => {
+    const Dummy = defineComponent({ setup: () => () => null })
+    const View = createFormView({ Row: Dummy, Col: Dummy })
+    expect(View.Item).toBe(FormViewItem)
+    expect(FormView.Item).toBe(FormViewItem)
   })
 })

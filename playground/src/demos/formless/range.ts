@@ -20,5 +20,7 @@ export const Range = createFormControls({
     model: ['start', 'end'],
     prop: ['fromTime', 'toTime'],
     validation: rangeValidation,
+    item: false,
+    layout: false,
   },
 })

@@ -20,6 +20,11 @@ import { useFormContext } from './context'
 import { resolveValidatePolicy, type ControlValidation } from './identity-rules'
 import type { FormlessAttr } from './item-adapter'
 import { splitFallthrough, splitSlots } from './split-fallthrough'
+import {
+  provideControlRuntime,
+  useFormItem,
+  type ControlFrame,
+} from './use-form-item'
 
 export type { ControlNavPath, ControlProp, ControlVModel }
 export type { FormlessAttr, ItemRenderInput } from './item-adapter'
@@ -53,6 +58,17 @@ export interface ControlSchema {
    * Overridable via `:formless.path`.
    */
   path?: ControlNavPath
+  /**
+   * Outer wrap only: skip Item even when FormView `item` is on.
+   * Same name as FormView; FormView is the default, this can only turn off.
+   * Composites that call `useFormItem('start')` set `item: false` and `layout: false`.
+   */
+  item?: boolean
+  /**
+   * Outer wrap only: skip Col even when FormView `layout` is on.
+   * Inner `useFormItem(port)` still follows FormView `layout`.
+   */
+  layout?: boolean
 }
 
 /** Loose schema bag. Prefer inferring `S` from an object literal via `createFormControls`. */
@@ -105,6 +121,14 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
     },
     setup(controlProps, { attrs, slots }) {
       const ctx = useFormContext()
+      let frame!: ControlFrame
+      provideControlRuntime({
+        controlKey,
+        skipOuterItem: control.item === false,
+        skipOuterLayout: control.layout === false,
+        getFrame: () => frame,
+      })
+      const Cell = useFormItem()
 
       return (): VNodeChild => {
         const fl = controlProps.formless ?? {}
@@ -147,22 +171,18 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
               ],
             )
 
-        return ctx.wrap(body, {
-          span: fl.span,
-          snapshot: {
-            controlKey,
-            label,
-            validation: control.validation,
-            validate,
-            binding,
-            getValues: () =>
-              binding.props.map((p) => getIn(ctx.model, binding.path, p)),
-            formless: fl,
-          },
+        frame = {
+          formless: fl,
+          binding,
+          label,
+          validate,
+          validation: control.validation,
           itemAttrs,
           itemOn,
           itemSlots,
-        })
+        }
+
+        return h(Cell, null, () => body)
       }
     },
   }) as FormControlComponent

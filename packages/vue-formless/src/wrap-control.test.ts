@@ -72,6 +72,28 @@ describe('createControlWrap', () => {
     expect(wrap(body, emptyMeta)).toBe(body)
   })
 
+  it('skips Item this wrap when meta.item is false', () => {
+    const wrap = createControlWrap({
+      Item,
+      isLayoutEnabled: () => false,
+      getDefaultSpan: () => undefined,
+    })
+    const body = h('input')
+    expect(wrap(body, { ...emptyMeta, item: false })).toBe(body)
+  })
+
+  it('skips Col this wrap when meta.layout is false', () => {
+    const wrap = createControlWrap({
+      Col,
+      Item,
+      isLayoutEnabled: () => true,
+      getDefaultSpan: () => 8,
+    })
+    const input = h('input')
+    const out = wrap(input, { ...emptyMeta, layout: false }) as VNode
+    expect(out.type).toBe(Item)
+  })
+
   it('wraps Col → Item → input when layout is on', () => {
     const wrap = createControlWrap({
       Col,

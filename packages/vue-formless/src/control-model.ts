@@ -65,6 +65,26 @@ export function resolveFormItemProp(
   return formItemProp(binding.path, controlKey)
 }
 
+/** Slice a multi-port binding to one v-model port (ADR-013 `useFormItem('start')`). */
+export function bindingForPort(
+  binding: ResolvedControlBinding,
+  port: string,
+): ResolvedControlBinding {
+  const index = binding.models.indexOf(port)
+  if (index === -1) {
+    throw new Error(
+      `[vue-formless] useFormItem("${port}"): not a v-model port of this control`,
+    )
+  }
+  const prop = binding.props[index]
+  if (prop === undefined) {
+    throw new Error(
+      `[vue-formless] useFormItem("${port}"): port is not bound to a prop`,
+    )
+  }
+  return { models: [port], props: [prop], path: binding.path }
+}
+
 export function applyControlBinding(
   formModel: unknown,
   binding: ResolvedControlBinding,
