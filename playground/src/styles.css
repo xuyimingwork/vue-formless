@@ -230,6 +230,18 @@ button {
   width: 100%;
 }
 
+.pg-range-one {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.pg-range-one__sep {
+  color: var(--pg-muted);
+  flex: none;
+}
+
 @media (max-width: 900px) {
   .pg-shell {
     grid-template-columns: 1fr;

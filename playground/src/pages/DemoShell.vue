@@ -6,10 +6,12 @@ import BaselineBasic from '../demos/baseline/BasicUserForm.vue'
 import BaselineFilter from '../demos/baseline/FilterForm.vue'
 import BaselineReadonly from '../demos/baseline/ReadonlyDetail.vue'
 import BaselineMixed from '../demos/baseline/MixedLayoutForm.vue'
+import BaselineRange from '../demos/baseline/RangeForm.vue'
 import FormlessBasic from '../demos/formless/BasicUserForm.vue'
 import FormlessFilter from '../demos/formless/FilterForm.vue'
 import FormlessReadonly from '../demos/formless/ReadonlyDetail.vue'
 import FormlessMixed from '../demos/formless/MixedLayoutForm.vue'
+import FormlessRange from '../demos/formless/RangeForm.vue'
 
 const props = defineProps<{
   id: string
@@ -25,6 +27,7 @@ const baselineMap: Record<DemoId, Component> = {
   filter: BaselineFilter,
   readonly: BaselineReadonly,
   mixed: BaselineMixed,
+  range: BaselineRange,
 }
 
 const formlessMap: Record<DemoId, Component> = {
@@ -32,6 +35,7 @@ const formlessMap: Record<DemoId, Component> = {
   filter: FormlessFilter,
   readonly: FormlessReadonly,
   mixed: FormlessMixed,
+  range: FormlessRange,
 }
 
 const notes: Record<DemoId, { baseline: string; formless: string; compare: string }> = {
@@ -55,6 +59,12 @@ const notes: Record<DemoId, { baseline: string; formless: string; compare: strin
     baseline: '分组 + 三列 / 24+16+8 / 整行，手写 Col。',
     formless: '同一套 User.*；外层 FormView 包 Form；内层 `:form="false"` 托管 column:3 / column:1，中间段手写 Row/Col。',
     compare: '同一套分组布局，对照托管与逃逸。',
+  },
+  range: {
+    baseline: '三列混排：行程日期 span 16 旁塞一格；开始+结束同样两列再塞一格。',
+    formless:
+      'Range One / Two 都是 span 16（两列），旁边各塞普通字段。',
+    compare: '对照两种 Range 都占两列的混排。',
   },
 }
 </script>

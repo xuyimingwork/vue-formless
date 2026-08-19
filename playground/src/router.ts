@@ -22,6 +22,11 @@ export const demos = [
     title: '混合布局',
     desc: '整行、分组标题、局部不对齐 — 考验托管 vs 逃逸',
   },
+  {
+    id: 'range',
+    title: 'DateRange One / Two',
+    desc: '三列布局里混排普通字段和 DateRange One / Two',
+  },
 ] as const
 
 export type DemoId = (typeof demos)[number]['id']
