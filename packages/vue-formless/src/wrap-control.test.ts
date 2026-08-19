@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { defineComponent, h, isReactive, reactive, type VNode } from 'vue'
-import { createControlWrap } from './wrapControl'
+import { createControlWrap } from './wrap-control'
 
 const Item = defineComponent({
   name: 'DummyItem',

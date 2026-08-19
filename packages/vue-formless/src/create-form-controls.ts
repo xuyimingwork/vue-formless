@@ -15,21 +15,21 @@ import {
   type ControlNavPath,
   type ControlProp,
   type ControlVModel,
-} from './controlModel'
-import { getIn } from './modelPath'
+} from './control-model'
+import { getIn } from './model-path'
 import { useFormContext } from './context'
-import { resolveValidatePolicy, type ControlValidation } from './identityRules'
-import type { FormlessAttr } from './itemAdapter'
-import { splitFallthrough, splitSlots } from './splitFallthrough'
+import { resolveValidatePolicy, type ControlValidation } from './identity-rules'
+import type { FormlessAttr } from './item-adapter'
+import { splitFallthrough, splitSlots } from './split-fallthrough'
 
 export type { ControlNavPath, ControlProp, ControlVModel }
-export type { FormlessAttr, ItemRenderInput, ToItemProps } from './itemAdapter'
-export type { WrapControl, WrapControlMeta } from './wrapControl'
+export type { FormlessAttr, ItemRenderInput, ToItemProps } from './item-adapter'
+export type { WrapControl, WrapControlMeta } from './wrap-control'
 export type {
   IdentityRule,
   ControlValidation,
   ValidatePolicy,
-} from './identityRules'
+} from './identity-rules'
 
 export interface ControlSchema {
   label?: string

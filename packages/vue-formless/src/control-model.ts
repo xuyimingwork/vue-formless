@@ -5,7 +5,7 @@
  * - `path`  — optional navigation string (`buyers[0]`, `[2]`). Scalar only.
  * `prop` array pairs with `model` (prefix-aligned). Extra model ports are unbound.
  */
-import { formItemProp, getIn } from './modelPath'
+import { formItemProp, getIn } from './model-path'
 
 export type ControlVModel = string | string[]
 export type ControlProp = string | string[]

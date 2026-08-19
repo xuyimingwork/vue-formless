@@ -1,5 +1,5 @@
 import { h, markRaw, type Component, type Slot, type VNodeChild } from 'vue'
-import type { ItemRenderInput, ToItemProps } from './itemAdapter'
+import type { ItemRenderInput, ToItemProps } from './item-adapter'
 import { GRID_TOTAL } from './layout'
 
 /** Input Control hands to FormView's wrap: identity snapshot + Item fallthrough. */

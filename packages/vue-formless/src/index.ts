@@ -5,7 +5,7 @@ export {
   type FormViewProps,
   type FormLayoutProp,
   type FormLayoutOptions,
-} from './createFormView'
+} from './create-form-view'
 export {
   createFormControls,
   type ControlSchema,
@@ -17,7 +17,7 @@ export {
   type FormControlComponent,
   type FormlessAttr,
   type NamespacedControls,
-} from './createFormControls'
+} from './create-form-controls'
 export {
   resolveControlBinding,
   applyControlBinding,
@@ -25,14 +25,14 @@ export {
   toBindingList,
   type ControlBindingOverrides,
   type ResolvedControlBinding,
-} from './controlModel'
+} from './control-model'
 export {
   parsePath,
   getIn,
   setIn,
   formItemProp,
   type PathSegment,
-} from './modelPath'
+} from './model-path'
 export {
   resolveLayout,
   DEFAULT_LAYOUT,
@@ -46,12 +46,12 @@ export {
   type FormContext,
   type FormGridAdapter,
 } from './context'
-export type { FormItemAdapter, ItemRenderInput, ToItemProps } from './itemAdapter'
-export type { WrapControl, WrapControlMeta } from './wrapControl'
+export type { FormItemAdapter, ItemRenderInput, ToItemProps } from './item-adapter'
+export type { WrapControl, WrapControlMeta } from './wrap-control'
 export {
   resolveValidatePolicy,
   isEmptyValue,
   type IdentityRule,
   type ControlValidation,
   type ValidatePolicy,
-} from './identityRules'
+} from './identity-rules'

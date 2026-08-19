@@ -1,5 +1,5 @@
 import { nextTick } from 'vue'
-import { setIn } from './modelPath'
+import { setIn } from './model-path'
 
 export interface ModelUpdate {
   prop: string

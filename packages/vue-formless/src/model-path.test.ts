@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formItemProp, getIn, parsePath, setIn } from './modelPath'
+import { formItemProp, getIn, parsePath, setIn } from './model-path'
 
 describe('parsePath', () => {
   it('parses object keys and array indices', () => {

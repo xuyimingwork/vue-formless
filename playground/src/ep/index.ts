@@ -1,2 +1,2 @@
-export { FormView } from './formView'
-export { toEpItemProps, toEpRules } from './toItemProps'
+export { FormView } from './form-view'
+export { toEpItemProps, toEpRules } from './to-item-props'

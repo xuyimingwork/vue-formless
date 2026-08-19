@@ -10,13 +10,13 @@ import {
   type VNodeChild,
 } from 'vue'
 import { formContextKey, type FormContext, type FormGridAdapter } from './context'
-import { createFormModelWriter } from './formModelWriter'
+import { createFormModelWriter } from './form-model-writer'
 import {
   resolveLayout,
   type FormLayoutProp,
 } from './layout'
-import type { FormItemAdapter, ToItemProps } from './itemAdapter'
-import { createControlWrap } from './wrapControl'
+import type { FormItemAdapter, ToItemProps } from './item-adapter'
+import { createControlWrap } from './wrap-control'
 
 export interface CreateFormViewOptions {
   /** Row container (e.g. ElRow). Required together with Col for hosted layout. */

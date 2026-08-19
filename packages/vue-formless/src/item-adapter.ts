@@ -1,6 +1,6 @@
 import type { Component } from 'vue'
-import type { ControlNavPath, ControlProp } from './controlModel'
-import type { ControlValidation, ValidatePolicy } from './identityRules'
+import type { ControlNavPath, ControlProp } from './control-model'
+import type { ControlValidation, ValidatePolicy } from './identity-rules'
 
 /** Runtime config on `<User.Xxx :formless="…" />`. Does not steal input prop names. */
 export interface FormlessAttr {

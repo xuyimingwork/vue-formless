@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { resolveValidatePolicy, isEmptyValue } from './identityRules'
-import { splitFallthrough, splitSlots } from './splitFallthrough'
+import { resolveValidatePolicy, isEmptyValue } from './identity-rules'
+import { splitFallthrough, splitSlots } from './split-fallthrough'
 import type { Slot, Slots } from 'vue'
 
 describe('resolveValidatePolicy', () => {

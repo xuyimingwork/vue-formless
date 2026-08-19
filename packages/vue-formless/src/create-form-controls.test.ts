@@ -4,8 +4,8 @@ import {
   applyControlBinding,
   resolveControlBinding,
   resolveFormItemProp,
-} from './controlModel'
-import { createFormControls } from './createFormControls'
+} from './control-model'
+import { createFormControls } from './create-form-controls'
 
 describe('case', () => {
   it('converts camelCase ↔ PascalCase', () => {

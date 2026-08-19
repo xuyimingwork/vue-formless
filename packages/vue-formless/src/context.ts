@@ -1,5 +1,5 @@
 import { inject, type Component, type InjectionKey, type Ref } from 'vue'
-import type { WrapControl } from './wrapControl'
+import type { WrapControl } from './wrap-control'
 
 /** External grid primitives bound by `createFormView` (ADR-007 / ADR-008). */
 export interface FormGridAdapter {
