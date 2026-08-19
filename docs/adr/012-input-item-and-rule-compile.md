@@ -8,6 +8,11 @@
   - 2026-08-18 — Item 原生 props 走 `:item:xxx`，盖在 `toItemProps` 上。
   - 2026-08-18 — Control 只渲染输入，壳由 FormView 注入的 `wrap` 包；Item/Col 不进 FormContext。
   - 2026-08-18 — 整表 `disabled` 走宿主表单；FormView 不再广播 `readonly` / `disabled`。
+  - 2026-08-19 — 「一颗 control 只 wrap 一次」由 [ADR-013](./013-one-control-multiple-items.md) 修订：默认仍如此；复合体 `shell: false` 可多次实例化同一颗 Item。
+  - 2026-08-19 — 多口 control 的宿主校验见 [ADR-014](./014-multi-vmodel-host-validation.md)。
+  - 2026-08-19 — `Form` / `Item` 均为适配组件 + slot；内核填 default、决定是否跳过壳。`toItemProps` 不再是 `createFormView` 选项。无公开 `FormLayout`。见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。
+  - 2026-08-19 — wrap 把 `snapshot` 交给 Item；实例 `form` / `item` 开关见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。
+  - 2026-08-19 — snapshot 给 `binding` + `getValues()`，不预计算宿主 `prop`。编码在适配 Item（与 Form 投影键对齐）。见 [ADR-014](./014-multi-vmodel-host-validation.md)。
 - **来源**：相对 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md) / [ADR-010](./010-controls-as-semantic-cluster.md) 的后续收口（`component` 接什么、Item 挂在哪、规则与策略如何变成宿主 `rules`、一颗标签如何分流）
 
 ## 背景
@@ -41,7 +46,7 @@ agency: { label: '机构', component: AgencySelect }
 
 `ElSelect` + `options` → 选项列表 这类薄封装仍算输入侧适配，和 FormItem 不是一层。换控件位写在本页 `createFormControls`，**标签不得覆盖 `component`**。
 
-### 2. Item 投影挂在 `createFormView`
+### 2. Form / Item 挂在 `createFormView`；slot 由内核填
 
 与 Row/Col 同一条适配缝，项目级一次：
 
@@ -49,22 +54,31 @@ agency: { label: '机构', component: AgencySelect }
 createFormView({
   Row: ElRow,
   Col: ElCol,
-  Item: ElFormItem,
-  toItemProps: (ctx) => /* 宿主 Item 的原生 props */,
+  Form: EpForm,  // 可选
+  Item: EpItem,  // 可选
 })
 ```
 
-渲染顺序：`Col?` → `Item(toItemProps(…))` → `component(v-model, …)`。Control **不** `h(Item)` / `h(Col)`：FormView 把宿主组件闭包进 `wrap`，控件只交 body 与 `:formless` / `:item:` 快照。Item/Col 不得放进深 `reactive` 的 FormContext（会把组件做成 Proxy，渲染栈溢出）。
+`Form`、`Item` 是适配 **组件**，不是裸 `ElForm` / `ElFormItem`。内核：
 
-- **Col**：仅当 `layout` 托管时包。整段退出托管：该 `FormView` 不写 `layout`，手写 Row/Col。单格 `bare` **暂不开放**。
-- **Item**：同时提供 `Item` + `toItemProps` 则包（**与是否托管栅格无关**）。内核 **不**写死 `label` / `prop` / `rules` / `required`。无 Item 时不套表单项。
-- **输入**：始终是 Schema 上的 `component`
+```text
+h(Form?, formAttrs, { default: () =>
+  Row?（:layout）→ 字段
+})
+每格 wrap：h(Col?, { span }, () => h(Item?, { snapshot, ...item: }, { default: () => 输入 }))
+```
 
-`toItemProps` 吃的是 Formless 已合并快照（`label`、`validation`、`validate`、`formItemProp`、`:formless`），产出宿主 Item props。编 ElForm `rules` 是 Element 适配的内部细节，不是内核插件点。
+- **body 由 formless 渲**：`slots.default` 一定是字段树或输入。适配只 `h(ElForm, …, slots)` / `h(ElFormItem, 转换(snapshot), slots)`，必须转发 default。
+- **无 Form / 无 Item / 无 Col**：内核 **不** `h()` 那一层（工厂不传、`:form="false"` / `:item="false"`、`shell: false`、不开 `layout`）。不要在适配里 `if` 丢掉 default。
+- Control **不** `h(Item)` / `h(Col)` / `h(Form)`。Item/Col/Form 不得放进深 `reactive` 的 FormContext。
+- 内核 **不**写死 `label` / `prop` / `rules`；转换留在 `EpItem` 内部（原 `toItemProps` / `toEpRules`），**不是**工厂第二参数。snapshot 给 `controlKey`、`binding`、`getValues()`、`validation` / `validate`；宿主 `prop` 由 Item 编码（与 Form 投影键必须一致，见 [ADR-014](./014-multi-vmodel-host-validation.md)）。
+- `:item:` attrs 盖在适配转换结果上（协议见 §5）。
 
-外层仍用业务侧 `el-form` 做 `validate()` / `resetFields()` 宿主（[ADR-004](./004-form-layout-and-context.md)）。
+有 `Form` 时页面 **不**手写 `el-form`；`validate()` / `resetFields()` 走 FormView expose。整表 `disabled` 是落到 `Form` 的 attrs。无 `Form`（表格、非表单）字段树照渲。
 
-单格跳过 Item（块级 `AgencyList`）暂不作为默认能力。
+单格跳过 Item（`AgencyList`、`shell: false`）由 formless 不 `h(Item)`，不是 `:formless.bare`。
+
+不把栅格拆成公开的 `FormLayout`（[ADR-008](./008-form-view-vmodel-and-grid-gcd.md)）。
 
 ### 3. `validation` 在 Schema，策略在 `:formless.validate`
 
@@ -81,7 +95,7 @@ mobile: {
 }
 ```
 
-一个控件绑两端时，区间约束仍写在该 control 的 `validation` 上。
+一个控件绑两端时，区间约束仍写在该 control 的 `validation` 上。多口时宿主 `value` 与口值 getter 见 [ADR-014](./014-multi-vmodel-host-validation.md)。
 
 **运行时（`:formless`）**：这场怎么用。覆盖静态同名键（`label` / `prop` / `path`）+ 仅此场（`validate` / `span`）：
 
@@ -91,7 +105,7 @@ mobile: {
 | `'required'` | 必填：空值 + 格式 |
 | `'none'` | 本场不跑 |
 
-**投影**：`toItemProps(snapshot)` → Item 原生 props。跨格约束仍走页面 / 提交。
+**投影**：适配 Item 把 snapshot 转成宿主 props。跨格约束仍走页面 / 提交。多口见 [ADR-014](./014-multi-vmodel-host-validation.md)。
 
 ### 4. 两条通道：`:formless` vs 输入自身
 
@@ -122,9 +136,9 @@ mobile: {
 
 不可在标签覆盖：`component`、`model`、`validation`。
 
-簇里的 `props` 与顶层 attrs 合并后给输入。整表禁用走宿主表单（如 `el-form disabled`）；单格 `disabled` / `readonly` 是输入自己的 attrs，不经 FormContext 广播。
+簇里的 `props` 与顶层 attrs 合并后给输入。整表禁用走宿主 `Form` 的 attrs（如落到 ElForm 的 `disabled`）；单格 `disabled` / `readonly` 是输入自己的 attrs，不经 FormContext 广播。
 
-`:item:xxx` 是宿主 Item 原生 props（如 `label-width`），**不是** Formless 语义。默认 Item 形状仍由 `toItemProps` 投影；`:item:` 盖在投影结果上（可盖掉 `label` 等）。不要把各家 Item 长尾塞进 `:formless`。
+`:item:xxx` 是宿主 Item 原生 props（如 `label-width`），**不是** Formless 语义。默认 Item 形状由适配 Item 自己转 snapshot；`:item:` 盖在转换结果上。不要把各家 Item 长尾塞进 `:formless`。
 
 ### 5. Item 前缀协议
 
@@ -137,7 +151,7 @@ mobile: {
 其余 attrs / 槽 / 事件 → component 原名
 ```
 
-合并顺序：`toItemProps(快照)` → `:item:` attrs → `@item:` 事件。
+合并顺序：适配转换(快照) → `:item:` attrs → `@item:` 事件。
 
 Item 的 **default** 由内核填入控件，用户从不提供。规范槽写法只认 `` #[`item:label`] ``（静态 `#item.label` 是 v-slot 修饰符，已否）。`:item:label-width` 与 `@item:validate` 都是 Vue 一等带冒号绑定，不必方括号。
 
@@ -147,12 +161,15 @@ Item 的 **default** 由内核填入控件，用户从不提供。规范槽写�
 2. **control 上直接写 ElForm `rules` 数组**：已否。Schema 用 `validation`。
 3. **顶层保留字 `required` / `span`**：已否；改为一只袋子 `:formless`。
 4. **标签覆盖 `component`**：先点名再整颗替换，语义拧。已否。
-5. **`:formless.bare`**：单格退出托管尚未定用法，暂不开放。整段不写 `layout` 即可手写栅格。
-6. **内核 `toRules` 只编 `rules` 数组**：假定所有 Item 都有 `rules` prop。已否；改为 `toItemProps`。
+5. **`:formless.bare`**：单格退出 Item 走 `shell: false` / 内核跳过 `h(Item)`，见 [ADR-013](./013-one-control-multiple-items.md)。整段不写 `layout` 即可手写栅格。不拆公开 `FormLayout`。
+6. **内核 `toRules` 只编 `rules` 数组**：假定所有 Item 都有 `rules` prop。已否；改为适配 Item 内部转换。
 7. **按 ElInput 分流槽 / 双前缀 / 开放 `item-*` / 内核白名单 Item 槽**：已否。`item:` 机械转发。
+8. **`Form: ({ FormBody }) => if xxx`**：无 Form 应由内核跳过 `h(Form)`，不要适配丢掉 default。已否为默认。
+9. **页面 `v-slot="{ model }"` 手写 `el-form`**：多一份绑定、易绑回 DTO；主路径由适配 `Form` 包。已否。
+10. **公开 `FormLayout` 组件**：与 FormView / Form 套娃；[ADR-008](./008-form-view-vmodel-and-grid-gcd.md) 再次否决。
 
 ## 后果
 
-- **正向**：业务控件按 v-model 接入；Item 形状全在适配层；校验身份与这场策略分离；输入 API 不被偷名。
-- **代价**：日常写成 `:formless="{ validate: 'required' }"`；`:item:` / `` #[`item:label`] `` 无 Volar 补全。
-- **关联**：语义簇见 [ADR-010](./010-controls-as-semantic-cluster.md)；栅格见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)；命名空间标签见 [ADR-003](./003-namespaced-field-components.md)；绑定见 [ADR-011](./011-model-and-path.md)；控件单元见 [ADR-005](./005-view-model-as-unit.md)。
+- **正向**：业务控件按 v-model 接入；Form / Item 形状全在适配层；无 Form / 无 Item 由内核跳过壳；校验身份与这场策略分离。
+- **代价**：日常写成 `:formless="{ validate: 'required' }"`；`:item:` 无 Volar 补全；有 Form 时 `validate` 走 FormView ref。
+- **关联**：语义簇见 [ADR-010](./010-controls-as-semantic-cluster.md)；栅格与 Form 组树见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)；命名空间标签见 [ADR-003](./003-namespaced-field-components.md)；绑定见 [ADR-011](./011-model-and-path.md)；控件单元见 [ADR-005](./005-view-model-as-unit.md)；一 control 多 Item 见 [ADR-013](./013-one-control-multiple-items.md)；多口宿主校验见 [ADR-014](./014-multi-vmodel-host-validation.md)。

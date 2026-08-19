@@ -38,7 +38,7 @@ const notes: Record<DemoId, { baseline: string; formless: string; compare: strin
   basic: {
     baseline: 'ElForm + Row/Col + FormItem，每个字段自己写 v-model。',
     formless:
-      '共用 User 控件表；模板只摆控件。:layout="{ column: 2 }"，备注 :formless="{ span: 24 }"，必填 :formless="{ validate: \'required\' }"。',
+      '共用 User 控件表；模板只摆控件。FormView 自带 Form；:layout="{ column: 2 }"，备注 :formless="{ span: 24 }"，必填 :formless="{ validate: \'required\' }"。',
     compare: '同一套字段与校验，对照模板密度。',
   },
   filter: {
@@ -48,12 +48,12 @@ const notes: Record<DemoId, { baseline: string; formless: string; compare: strin
   },
   readonly: {
     baseline: '与编辑同布局，逐项 disabled。',
-    formless: '同一套 User.*；el-form disabled + column: 2。',
+    formless: '同一套 User.*；FormView disabled + column: 2。',
     compare: '同一份详情数据，对照只读写法。',
   },
   mixed: {
     baseline: '分组 + 三列 / 24+16+8 / 整行，手写 Col。',
-    formless: '同一套 User.*；托管 column:3 与 column:1；中间段不写 layout，手写 Row/Col。',
+    formless: '同一套 User.*；外层 FormView 包 Form；内层 `:form="false"` 托管 column:3 / column:1，中间段手写 Row/Col。',
     compare: '同一套分组布局，对照托管与逃逸。',
   },
 }

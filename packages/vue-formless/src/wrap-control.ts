@@ -1,5 +1,5 @@
 import { h, markRaw, type Component, type Slot, type VNodeChild } from 'vue'
-import type { ItemRenderInput, ToItemProps } from './item-adapter'
+import type { ItemRenderInput } from './item-adapter'
 import { GRID_TOTAL } from './layout'
 
 /** Input Control hands to FormView's wrap: identity snapshot + Item fallthrough. */
@@ -17,22 +17,21 @@ export type WrapControl = (body: VNodeChild, meta: WrapControlMeta) => VNodeChil
 export function createControlWrap(options: {
   Col?: Component
   Item?: Component
-  toItemProps?: ToItemProps
   isLayoutEnabled: () => boolean
+  isItemEnabled?: () => boolean
   getDefaultSpan: () => number | undefined
 }): WrapControl {
   const Col = options.Col ? markRaw(options.Col) : undefined
   const Item = options.Item ? markRaw(options.Item) : undefined
-  const toItemProps = options.toItemProps
 
   return (body, meta) => {
     const input = body
     const withItem =
-      Item && toItemProps
+      Item && (options.isItemEnabled?.() ?? true)
         ? h(
             Item,
             {
-              ...toItemProps(meta.snapshot),
+              snapshot: meta.snapshot,
               ...meta.itemAttrs,
               ...meta.itemOn,
             },

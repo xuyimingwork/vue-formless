@@ -2,7 +2,7 @@
 
 本目录记录 vue-formless 的重要设计决策。每篇 ADR 自洽，包含背景、备选方案、取舍与结论（或待定项）。
 
-观点提炼自《动态表单架构设计推演》：在 Schema 复用与 Template 定制之间，用「页级控件表 + 命名空间控件 + FormView/Context」取得平衡，而不是全量 JSON 布局引擎。`createFormControls` 声明的是语义输入簇（`validation` + `:formless.validate`，适配层 `toItemProps` 投影到 Item），不是表单 schema；`component` 只接输入；布局栅格与 FormItem 消费外部 Row/Col/Item，不自研；根组件以 `v-model` 接入可写状态。
+观点提炼自《动态表单架构设计推演》：在 Schema 复用与 Template 定制之间，用「页级控件表 + 命名空间控件 + FormView/Context」取得平衡，而不是全量 JSON 布局引擎。`createFormControls` 声明的是语义输入簇（`validation` + `:formless.validate`），不是表单 schema；`component` 只接输入；可选适配 `Form` / `Item` 与 Row/Col 用 slot 由内核填 default；栅格仍是 FormView `:layout`（不拆公开 FormLayout）；根组件以 `v-model` 接入可写状态。
 
 | ADR | 标题 | 状态 |
 |-----|------|------|
@@ -16,8 +16,10 @@
 | [008](./008-form-view-vmodel-and-grid-gcd.md) | FormView、`v-model` 与栅格适配公约数 | Accepted（修订） |
 | [009](./009-controls-as-protagonist.md) | 控件主角、页级控件表与列表上下文 | Accepted（修订） |
 | [010](./010-controls-as-semantic-cluster.md) | `createFormControls` 是语义输入簇，不是表单 schema | Accepted（修订） |
-| [011](./011-model-and-path.md) | `model`、`prop`（叶子）与 `path`（导航串） | Accepted |
-| [012](./012-input-item-and-rule-compile.md) | 输入、Item 与校验合成 | Accepted |
+| [011](./011-model-and-path.md) | `model`、`prop`（叶子）与 `path`（导航串） | Accepted（修订） |
+| [012](./012-input-item-and-rule-compile.md) | 输入、Item 与校验合成 | Accepted（修订） |
+| [013](./013-one-control-multiple-items.md) | 一颗 control、多格 Item | Accepted（修订） |
+| [014](./014-multi-vmodel-host-validation.md) | 多口 control 与宿主校验 | Accepted（修订） |
 
 ## 决策关系（简图）
 
@@ -28,10 +30,12 @@
  │    └── 009 控件主角；createFormControls；页级声明；列表一层 FormView + :path
  │         └── 010 工厂 = 语义输入簇；validation + 标签策略；不配联动 / 布局
  │              ├── 011 model = v-model 口；prop = 叶子键；path = 导航（buyers[0]）
- │              └── 012 component = 输入；Item + toItemProps；配置走 :formless；item: 给 Item 的 props/槽/事件
+ │              │    └── 014 多口：Form 投影；host prop 由适配编码；validate 在 FormView
+ │              └── 012 component = 输入；Form/Item 适配组件 + slot；内核决定跳过壳
+ │                   └── 013 control ≠ Item 基数；默认仍 wrap 一次；TwoInput = shell: false + useFormItem(口名)
  ├── 003 模板表达 = <User.Agency /> / <User.Name />
  ├── 004 运行时粘合 = Context + 控件表（内核 UI 无关）
  │    ├── 007 外部 Row/Col 适配；字段 span > 页级默认；响应式只在页级
- │    └── 008 FormView 命名与真 v-model（tick 内合并 patch 再 emit）；公约数 = Row/Col/Item；空白 Col 占位
+ │    └── 008 FormView：v-model；可选 Form；`:layout` 栅格（不拆 FormLayout）；公约数 Row/Col/Item
  └── 006 动态性默认走生成/CI，而非运行时全量 JSON
 ```

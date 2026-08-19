@@ -11,6 +11,7 @@
   - 2026-08-18 — `model` 仅为组件 v-model 口名；叶子键是 `prop`。见 [ADR-011](./011-model-and-path.md)。Item 挂在 `createFormView`。见 [ADR-012](./012-input-item-and-rule-compile.md)。
   - 2026-08-18 — FormContext 不再下传 `column` / `gutter` / `defaultSpan`；布局密度留在 FormView / `wrap`。
   - 2026-08-18 — 整表 `disabled` / `readonly` 不进 FormContext；宿主表单或输入 attrs 各自管。
+  - 2026-08-19 — 校验宿主改为可选适配 `Form`（slot），不由 `createFormControls` 生成，也不再默认外层手写 `el-form`。公开 `FormLayout` 再次否决。实例 `form` / `item` 开关见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。
 - **来源**：动态表单架构设计推演
 
 ## 背景
@@ -40,7 +41,7 @@ FormView + User.Xxx  ≈  （可选）行容器 + 列格子 + 表单项 + 控件
 2. **`FormView`（原推演名 FormLayout）**  
    - 提供 **FormContext**（`v-model` 可写状态、以及壳函数 `wrap`）  
    - **可选**作为字段的布局宿主（外部 Row/Col）；密度 `column` / `gutter` / 缺省 span 留在 FormView 闭包，不进 Context  
-   - 适配层同时可挂 **Item** 与 `toItemProps`（投影宿主 Item props），见 ADR-008 / ADR-012
+   - 适配层可挂 **Form** / **Item**（组件 + slot），见 ADR-008 / ADR-012；栅格仍是 FormView 的 `:layout`，不拆公开 `FormLayout`
 
 3. **`User.Xxx`**  
    - 从 FormContext 取得运行时数据，输入 vnode 交给 `wrap`  
@@ -48,7 +49,7 @@ FormView + User.Xxx  ≈  （可选）行容器 + 列格子 + 表单项 + 控件
    - 负责字段级绑定；无前缀插槽透传给输入；列宽以 `:formless.span` 覆盖页级缺省
 
 4. **校验 / 表单宿主**  
-   外层仍用业务侧已有表单容器（如 `el-form`），**不由** `createFormControls` 生成。单格 Item props 由适配 `toItemProps` 投影，见 ADR-012。整表禁用走宿主（如 `el-form disabled`）；单格 `disabled` / `readonly` 是输入 attrs。
+   可选适配 `Form` 由 `createFormView` 挂上，**不是** `createFormControls` 生成，也 **不是** 页面外层手写 `el-form`（主路径）。工厂有 `Form` 且实例 `form` 未关才 `h(Form)`；表格等 `:form="false"`。`validate()` expose 在 FormView（转到内层 Form）。整表禁用落到 `Form` 的 attrs；单格 `disabled` / `readonly` 是输入 attrs。单格 Item 由适配 Item 自己转 snapshot，见 ADR-012。当初否决「Hook 返回 Form + Fields」仍成立：Form 是可选壳，与控件表分离。
 
 ## 备选方案
 

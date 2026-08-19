@@ -29,17 +29,20 @@ function onReset() {
 </script>
 
 <template>
-  <el-form ref="formRef" :model="form" label-width="96px">
-    <FormView v-model="form" :layout="{ column: 2, gutter: 16 }">
-      <User.Name :formless="required" />
-      <User.Gender :formless="required" />
-      <User.Mobile :formless="required" />
-      <User.Email />
-      <User.IdCard />
-      <User.Address />
-      <User.Remark :formless="{ span: 24 }" />
-    </FormView>
-  </el-form>
+  <FormView
+    ref="formRef"
+    v-model="form"
+    label-width="96px"
+    :layout="{ column: 2, gutter: 16 }"
+  >
+    <User.Name :formless="required" />
+    <User.Gender :formless="required" />
+    <User.Mobile :formless="required" />
+    <User.Email />
+    <User.IdCard />
+    <User.Address />
+    <User.Remark :formless="{ span: 24 }" />
+  </FormView>
 
   <div class="pg-actions">
     <el-button @click="onReset">重置</el-button>

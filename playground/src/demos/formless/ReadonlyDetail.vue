@@ -15,16 +15,14 @@ const form = ref({
 </script>
 
 <template>
-  <el-form :model="form" disabled label-width="96px">
-    <FormView v-model="form" :layout="{ column: 2, gutter: 16 }">
-      <User.Name />
-      <User.Gender />
-      <User.Mobile />
-      <User.Email />
-      <User.IdCard />
-      <User.Address />
-      <User.Remark :formless="{ span: 24 }" />
-    </FormView>
-  </el-form>
+  <FormView v-model="form" disabled label-width="96px" :layout="{ column: 2, gutter: 16 }">
+    <User.Name />
+    <User.Gender />
+    <User.Mobile />
+    <User.Email />
+    <User.IdCard />
+    <User.Address />
+    <User.Remark :formless="{ span: 24 }" />
+  </FormView>
   <pre class="pg-preview">{{ form }}</pre>
 </template>

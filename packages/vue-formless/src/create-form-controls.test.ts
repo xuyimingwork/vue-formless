@@ -161,7 +161,7 @@ describe('applyControlBinding', () => {
 })
 
 describe('resolveFormItemProp', () => {
-  it('uses navigation + sole prop, otherwise control key', () => {
+  it('uses navigation + sole prop, otherwise control key (Element helper)', () => {
     expect(
       resolveFormItemProp({ models: ['modelValue'], props: ['title'] }, 'name'),
     ).toBe('title')

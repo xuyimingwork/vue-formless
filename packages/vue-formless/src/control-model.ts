@@ -50,7 +50,11 @@ export function resolveControlBinding(
   return { models, props, path }
 }
 
-/** ElFormItem `prop` — full dot path from navigation + leaf. */
+/**
+ * Optional Element-style encoding: one leaf → dotted path; several leaves →
+ * control key. Kernel does not put this on the snapshot — the adapter Item
+ * calls this (or encodes another way) when mapping to host `prop`.
+ */
 export function resolveFormItemProp(
   binding: ResolvedControlBinding,
   controlKey: string,

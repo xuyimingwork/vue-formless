@@ -1,5 +1,8 @@
-import type { Component } from 'vue'
-import type { ControlNavPath, ControlProp } from './control-model'
+import type {
+  ControlNavPath,
+  ControlProp,
+  ResolvedControlBinding,
+} from './control-model'
 import type { ControlValidation, ValidatePolicy } from './identity-rules'
 
 /** Runtime config on `<User.Xxx :formless="…" />`. Does not steal input prop names. */
@@ -17,20 +20,16 @@ export interface FormlessAttr {
 }
 
 /**
- * Snapshot passed to the Item adapter: merged Formless model, not host Item props.
+ * Snapshot passed to the adapter Item: Formless model, not host Item props.
+ * Kernel does not pick ElFormItem `prop` — Item maps `binding` + `controlKey`.
  */
 export interface ItemRenderInput {
   controlKey: string
   label?: string
   validation?: ControlValidation
   validate: ValidatePolicy
-  formItemProp: string
+  binding: ResolvedControlBinding
+  /** Current values for each `binding.props` leaf, FormView-root order. */
+  getValues: () => unknown[]
   formless: FormlessAttr
-}
-
-export type ToItemProps = (input: ItemRenderInput) => Record<string, unknown>
-
-export interface FormItemAdapter {
-  Item: Component
-  toItemProps: ToItemProps
 }

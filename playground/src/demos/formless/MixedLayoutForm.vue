@@ -23,16 +23,16 @@ async function onSubmit() {
 </script>
 
 <template>
-  <el-form ref="formRef" :model="form" label-width="96px">
+  <FormView ref="formRef" v-model="form" label-width="96px">
     <p class="pg-section-title">基本信息</p>
-    <FormView v-model="form" :layout="{ column: 3, gutter: 16 }">
+    <FormView v-model="form" :form="false" :layout="{ column: 3, gutter: 16 }">
       <User.Name :formless="{ validate: 'required' }" />
       <User.Gender />
       <User.Mobile />
     </FormView>
 
     <p class="pg-section-title">证件与联系</p>
-    <FormView v-model="form">
+    <FormView v-model="form" :form="false">
       <el-row :gutter="16">
         <el-col :span="24">
           <User.IdCard />
@@ -47,10 +47,10 @@ async function onSubmit() {
     </FormView>
 
     <p class="pg-section-title">其他</p>
-    <FormView v-model="form" :layout="{ column: 1, gutter: 16 }">
+    <FormView v-model="form" :form="false" :layout="{ column: 1, gutter: 16 }">
       <User.Remark />
     </FormView>
-  </el-form>
+  </FormView>
 
   <div class="pg-actions">
     <el-button type="primary" @click="onSubmit">提交</el-button>

@@ -7,6 +7,8 @@
   - 2026-08-18 — 簇的边界是归属（是不是该域的 control），不是项数。
   - 2026-08-18 — 绑定拆成 `model` / `prop` / `path`，见 [ADR-011](./011-model-and-path.md)。
   - 2026-08-18 — Schema `validation` 不是 ElForm 数组；标签策略 `:formless.validate`。见 [ADR-012](./012-input-item-and-rule-compile.md)。
+  - 2026-08-19 — 一颗区间控件可以铺多格 Item，身份仍是一份 `validation`。见 [ADR-013](./013-one-control-multiple-items.md)。
+  - 2026-08-19 — 多口挂到 ElForm 上见 [ADR-014](./014-multi-vmodel-host-validation.md)。
 - **来源**：相对 [ADR-009](./009-controls-as-protagonist.md) 的定位收口（工厂是什么、故意不做什么）
 
 ## 背景
@@ -92,7 +94,7 @@ mobile: {
 
 - **控件间联动**（省变市 options、改类型显隐、清下游）：页面 / 流程（`watch`、事件、拉数）。例外：完全发生在**单个** `component` 内部的（树选 `loadData`、时间范围自限区间）。
 - **本场策略**：`:formless.validate`（`'required'` / 不写 = `'optional'` / `'none'`）。不要在簇上写死本场必填（那是这场用法，不是「手机号会什么」）。筛选与编辑应能点同一套 `User.Name` 而必填不同。投影见 [ADR-012](./012-input-item-and-rule-compile.md)。
-- **跨控件约束**（两个独立的开始/结束时间）：跟 FormView 上那份对象走，或提交时再判；不写进 `User.EndTime` 的 schema。一个 `CreateTimeRange` 控件绑两端，则区间约束仍写在该 control 的 `validation` 上。
+- **跨控件约束**（两个独立的开始/结束时间）：跟 FormView 上那份对象走，或提交时再判；不写进 `User.EndTime` 的 schema。一个 `CreateTimeRange` 控件绑两端，则区间约束仍写在该 control 的 `validation` 上——哪怕 DOM 是两格 Item，见 [ADR-013](./013-one-control-multiple-items.md)；一格多口时宿主 `value` 见 [ADR-014](./014-multi-vmodel-host-validation.md)。
 - **布局**：FormView 托管栅格 + 模板 `:formless.span`；整段退出托管则不写 `layout`。语义输入不把自己包成 Col。
 - **别人的格**：订单字段、与 User 无关的查询时间不要进 `User.*`。筛选用 `CreateTimeRange` 不算越界。
 
@@ -109,4 +111,4 @@ mobile: {
 
 - **正向**：有人提「在 schema 里配级联 / 把本场必填写进控件表」时，用本文挡。`validation` 写在 control 上；怎么跑由 `:formless.validate` 决定。复用单元是簇里的标签，不是 Form。
 - **代价**：先声明簇再在模板点名（两处）；调试栈多一个工厂组件。
-- **关联**：控件主角、页级所有权、列表见 [ADR-009](./009-controls-as-protagonist.md)；`model` / `path` 见 [ADR-011](./011-model-and-path.md)；命名空间标签见 [ADR-003](./003-namespaced-field-components.md)；配置单元见 [ADR-005](./005-view-model-as-unit.md)；布局见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)；Item / `toItemProps` / 槽协议见 [ADR-012](./012-input-item-and-rule-compile.md)。
+- **关联**：控件主角、页级所有权、列表见 [ADR-009](./009-controls-as-protagonist.md)；`model` / `path` 见 [ADR-011](./011-model-and-path.md)；命名空间标签见 [ADR-003](./003-namespaced-field-components.md)；配置单元见 [ADR-005](./005-view-model-as-unit.md)；布局见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)；Form / Item slot 见 [ADR-012](./012-input-item-and-rule-compile.md)；一 control 多 Item 见 [ADR-013](./013-one-control-multiple-items.md)；多口宿主校验见 [ADR-014](./014-multi-vmodel-host-validation.md)。

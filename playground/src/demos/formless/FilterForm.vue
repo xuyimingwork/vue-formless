@@ -26,14 +26,17 @@ function onReset() {
 </script>
 
 <template>
-  <el-form :model="query" label-width="72px" @submit.prevent>
-    <FormView v-model="query" :layout="{ column: 4, gutter: 12 }">
-      <User.Name placeholder="姓名" clearable />
-      <User.Gender placeholder="全部" clearable />
-      <User.Mobile placeholder="手机" clearable />
-      <User.Email placeholder="邮箱" clearable />
-    </FormView>
-  </el-form>
+  <FormView
+    v-model="query"
+    label-width="72px"
+    :layout="{ column: 4, gutter: 12 }"
+    @submit.prevent
+  >
+    <User.Name placeholder="姓名" clearable />
+    <User.Gender placeholder="全部" clearable />
+    <User.Mobile placeholder="手机" clearable />
+    <User.Email placeholder="邮箱" clearable />
+  </FormView>
 
   <div class="pg-actions">
     <el-button @click="onReset">重置</el-button>

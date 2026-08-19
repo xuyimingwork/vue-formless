@@ -1,6 +1,7 @@
 import type { FormItemRule } from 'element-plus'
 import {
   isEmptyValue,
+  resolveFormItemProp,
   type ControlValidation,
   type IdentityRule,
   type ItemRenderInput,
@@ -59,10 +60,11 @@ export function toEpRules(
   return rules.length ? rules : undefined
 }
 
+/** Map a control snapshot to ElFormItem props. Host `prop` is this adapter's encoding. */
 export function toEpItemProps(input: ItemRenderInput): Record<string, unknown> {
   return {
     label: input.label,
-    prop: input.formItemProp,
+    prop: resolveFormItemProp(input.binding, input.controlKey),
     rules: toEpRules(input.validation, input.validate),
     required: input.validate === 'required',
   }

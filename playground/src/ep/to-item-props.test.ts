@@ -54,15 +54,18 @@ describe('toEpRules', () => {
 })
 
 describe('toEpItemProps', () => {
+  const mobileSnap = {
+    controlKey: 'mobile',
+    label: '手机',
+    validation: mobile,
+    validate: 'required' as const,
+    binding: { models: ['modelValue'], props: ['mobile'] },
+    getValues: () => [''],
+    formless: { validate: 'required' as const },
+  }
+
   it('maps snapshot to ElFormItem props', () => {
-    const props = toEpItemProps({
-      controlKey: 'mobile',
-      label: '手机',
-      validation: mobile,
-      validate: 'required',
-      formItemProp: 'mobile',
-      formless: { validate: 'required' },
-    })
+    const props = toEpItemProps(mobileSnap)
     expect(props.label).toBe('手机')
     expect(props.prop).toBe('mobile')
     expect(props.required).toBe(true)
@@ -72,14 +75,27 @@ describe('toEpItemProps', () => {
 
   it('omits rules when validate is none', () => {
     const props = toEpItemProps({
-      controlKey: 'mobile',
-      label: '手机',
-      validation: mobile,
+      ...mobileSnap,
       validate: 'none',
-      formItemProp: 'mobile',
       formless: { validate: 'none' },
     })
     expect(props.required).toBe(false)
     expect(props.rules).toBeUndefined()
+  })
+
+  it('encodes host prop: one leaf path vs multi-port control key', () => {
+    expect(
+      toEpItemProps({
+        ...mobileSnap,
+        binding: { models: ['modelValue'], props: ['name'], path: 'buyers[0]' },
+      }).prop,
+    ).toBe('buyers.0.name')
+    expect(
+      toEpItemProps({
+        ...mobileSnap,
+        controlKey: 'timeRange',
+        binding: { models: ['start', 'end'], props: ['startTime', 'endTime'] },
+      }).prop,
+    ).toBe('timeRange')
   })
 })

@@ -11,7 +11,6 @@ import { camelToPascal, type CamelToPascal } from './case'
 import {
   applyControlBinding,
   resolveControlBinding,
-  resolveFormItemProp,
   type ControlNavPath,
   type ControlProp,
   type ControlVModel,
@@ -23,7 +22,7 @@ import type { FormlessAttr } from './item-adapter'
 import { splitFallthrough, splitSlots } from './split-fallthrough'
 
 export type { ControlNavPath, ControlProp, ControlVModel }
-export type { FormlessAttr, ItemRenderInput, ToItemProps } from './item-adapter'
+export type { FormlessAttr, ItemRenderInput } from './item-adapter'
 export type { WrapControl, WrapControlMeta } from './wrap-control'
 export type {
   IdentityRule,
@@ -114,7 +113,6 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
           { model: control.model, prop: control.prop, path: control.path },
           { prop: fl.prop, path: fl.path },
         )
-        const formItemProp = resolveFormItemProp(binding, controlKey)
         const label = fl.label !== undefined ? fl.label : control.label
         const validate = resolveValidatePolicy(fl.validate)
         const widget = control.component
@@ -156,7 +154,9 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
             label,
             validation: control.validation,
             validate,
-            formItemProp,
+            binding,
+            getValues: () =>
+              binding.props.map((p) => getIn(ctx.model, binding.path, p)),
             formless: fl,
           },
           itemAttrs,

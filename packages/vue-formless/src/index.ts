@@ -46,7 +46,7 @@ export {
   type FormContext,
   type FormGridAdapter,
 } from './context'
-export type { FormItemAdapter, ItemRenderInput, ToItemProps } from './item-adapter'
+export type { ItemRenderInput } from './item-adapter'
 export type { WrapControl, WrapControlMeta } from './wrap-control'
 export {
   resolveValidatePolicy,

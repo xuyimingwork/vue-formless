@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { defineComponent, h, isReactive, reactive, type VNode } from 'vue'
+import type { ItemRenderInput } from './item-adapter'
 import { createControlWrap } from './wrap-control'
 
 const Item = defineComponent({
@@ -14,11 +15,12 @@ const Col = defineComponent({
   setup: () => () => null,
 })
 
-const snapshot = {
+const snapshot: ItemRenderInput = {
   controlKey: 'name',
   label: '姓名',
-  validate: 'optional' as const,
-  formItemProp: 'name',
+  validate: 'optional',
+  binding: { models: ['modelValue'], props: ['name'] },
+  getValues: () => [undefined],
   formless: {},
 }
 
@@ -46,24 +48,34 @@ describe('createControlWrap', () => {
     expect(wrap(body, emptyMeta)).toBe(body)
   })
 
-  it('wraps Item without capturing the Item vnode in default', () => {
+  it('wraps Item with snapshot, without capturing the Item vnode in default', () => {
     const wrap = createControlWrap({
       Item,
-      toItemProps: ({ label }) => ({ label }),
       isLayoutEnabled: () => false,
       getDefaultSpan: () => undefined,
     })
     const input = h('input')
     const out = wrap(input, emptyMeta) as VNode
     expect(out.type).toBe(Item)
+    expect(out.props?.snapshot).toBe(snapshot)
     expect(slotDefault(out)).toBe(input)
+  })
+
+  it('skips Item when isItemEnabled is false', () => {
+    const wrap = createControlWrap({
+      Item,
+      isLayoutEnabled: () => false,
+      isItemEnabled: () => false,
+      getDefaultSpan: () => undefined,
+    })
+    const body = h('input')
+    expect(wrap(body, emptyMeta)).toBe(body)
   })
 
   it('wraps Col → Item → input when layout is on', () => {
     const wrap = createControlWrap({
       Col,
       Item,
-      toItemProps: ({ label }) => ({ label }),
       isLayoutEnabled: () => true,
       getDefaultSpan: () => 12,
     })
@@ -98,7 +110,6 @@ describe('createControlWrap', () => {
     const wrap = createControlWrap({
       Col,
       Item,
-      toItemProps: () => ({}),
       isLayoutEnabled: () => true,
       getDefaultSpan: () => 12,
     })

@@ -1,10 +1,13 @@
 # ADR-011：`model`、`prop` 与 `path`
 
-- **状态**：Accepted
+- **状态**：Accepted（修订）
 - **日期**：2026-08-18
 - **修订**：
   - 2026-08-18 — 原「path = 数据键」作废；拆成 **`prop`（叶子键）+ `path`（导航串）**。
   - 2026-08-18 — `prop` 可短于 `model`（前缀接线）。表格用 `:path="\`buyers[${$index}]\`"`，一层 FormView。
+  - 2026-08-19 — 多叶子时 `formItemProp` 退回控件键，只适用于 **一格 Item**（OneInput）。两格按口投影，见 [ADR-013](./013-one-control-multiple-items.md)。
+  - 2026-08-19 — 宿主 Item `prop` 由适配器编码，内核 snapshot 只给 `binding` + `controlKey` + `getValues()`。见 [ADR-014](./014-multi-vmodel-host-validation.md)。
+  - 2026-08-19 — 一格多口时 ElForm `value` / 红字 / 不污 DTO，见 [ADR-014](./014-multi-vmodel-host-validation.md)。
 - **来源**：相对 [ADR-009](./009-controls-as-protagonist.md) §6 的修订
 
 ## 背景
@@ -82,10 +85,13 @@ FormView writer 解析 `[index]`，对数组段 **clone 再 emit**，禁止 `arr
 - **不需要** `Path` 包裹组件；`:formless.path` 足够。
 - 同一概念两个数据位（行程 vs 签证时间）→ 簇里两项，各自写死 `prop`，不是标签上改两个 path。
 
-### 6. ElFormItem `prop`
+### 6. 宿主 Item `prop` 不由内核决定
 
-内层校验用 **派生完整路径**：`formItemProp(path, prop)` → `buyers.0.name`（点号，与 Element 一致）。  
-控件 schema 上的 **`prop` 仍是叶子**；完整路径只传给适配层 Item，不传给输入。见 [ADR-012](./012-input-item-and-rule-compile.md)。
+内核 snapshot 只给 `binding`、`controlKey`、`getValues()`，**不**预计算 ElFormItem `prop`。
+
+控件 schema 上的 **`prop` 仍是叶子**。点号路径、控件键、Naive `path` 数组等编码都在适配 Item 内部。Element 适配可用 `resolveFormItemProp`（单叶子 → `formItemProp(path, leaf)` → `buyers.0.name`；多口一格 → 控件键）或自己编码。Form 投影键必须与 Item 写出的 `prop` 一致。见 [ADR-012](./012-input-item-and-rule-compile.md) / [ADR-014](./014-multi-vmodel-host-validation.md)。
+
+一颗 control 铺 **多格** Item 时，适配按口派生叶子路径，见 [ADR-013](./013-one-control-multiple-items.md)。
 
 ### 7. 列表 / 表格
 
@@ -118,5 +124,5 @@ FormView writer 解析 `[index]`，对数组段 **clone 再 emit**，禁止 `arr
 ## 后果
 
 - **正向**：叶子（`prop`）与导航（`path`）名实相符；表格一层 FormView；`[index]` 显式表达数组段；多 model 同 path 自然合并 patch。
-- **代价**：path 要写 mini DSL；完整路径交给 Item 的 `prop`，控件 schema 上的 `prop` 仍是叶子（ADR-012）；父级 `v-model` 须可赋值（`ref`）。
-- **关联**：[ADR-009](./009-controls-as-protagonist.md)、[ADR-010](./010-controls-as-semantic-cluster.md)、[ADR-008](./008-form-view-vmodel-and-grid-gcd.md)、[ADR-012](./012-input-item-and-rule-compile.md)。009 §6 以本文为准。
+- **代价**：path 要写 mini DSL；完整路径由适配 Item 编码，控件 schema 上的 `prop` 仍是叶子（ADR-012）；父级 `v-model` 须可赋值（`ref`）。
+- **关联**：[ADR-009](./009-controls-as-protagonist.md)、[ADR-010](./010-controls-as-semantic-cluster.md)、[ADR-008](./008-form-view-vmodel-and-grid-gcd.md)、[ADR-012](./012-input-item-and-rule-compile.md)、[ADR-013](./013-one-control-multiple-items.md)、[ADR-014](./014-multi-vmodel-host-validation.md)。009 §6 以本文为准。
