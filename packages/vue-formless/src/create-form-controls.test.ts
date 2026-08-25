@@ -8,6 +8,7 @@ import {
   resolveFormItemProp,
 } from './control-model'
 import { createFormControls } from './create-form-controls'
+import { readWidgetFormless } from './fl-config'
 import { createFormView, FormView } from './create-form-view'
 import { FormViewItem } from './use-form-item'
 
@@ -113,6 +114,25 @@ describe('resolveControlBinding', () => {
       }),
     ).toThrow(/prop cannot be longer than model/)
   })
+
+  it('keeps empty-string path as a cover value', () => {
+    expect(
+      resolveControlBinding('name', { path: 'buyers[0]' }, { path: '' }),
+    ).toEqual({
+      models: ['modelValue'],
+      props: ['name'],
+      path: '',
+    })
+  })
+
+  it('throws on empty-string prop', () => {
+    expect(() => resolveControlBinding('name', { prop: '' })).toThrow(
+      /prop cannot be an empty string/,
+    )
+    expect(() => resolveControlBinding('name', {}, { prop: '' })).toThrow(
+      /fl:prop cannot be an empty string/,
+    )
+  })
 })
 
 describe('applyControlBinding', () => {
@@ -204,6 +224,17 @@ describe('bindingForPort', () => {
     expect(() =>
       bindingForPort({ models: ['start', 'end'], props: ['fromTime'] }, 'end'),
     ).toThrow(/not bound/)
+  })
+})
+
+describe('readWidgetFormless', () => {
+  it('reads model / item / layout from the component static bag', () => {
+    expect(
+      readWidgetFormless({
+        formless: { item: false, layout: false, model: ['start', 'end'] },
+      }),
+    ).toEqual({ item: false, layout: false, model: ['start', 'end'] })
+    expect(readWidgetFormless({})).toEqual({})
   })
 })
 

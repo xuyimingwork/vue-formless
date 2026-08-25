@@ -21,8 +21,6 @@ const form = ref({
   remark: '',
 })
 
-const required = { validate: 'required' as const }
-
 async function onSubmit() {
   await formRef.value?.validate()
   ElMessage.success('校验通过（formless DateRange）')
@@ -38,17 +36,17 @@ function onReset() {
     ref="formRef"
     v-model="form"
     label-width="96px"
-    :layout="{ column: 3, gutter: 16 }"
+    :fl:layout="{ column: 3, gutter: 16 }"
   >
-    <User.Name :formless="required" />
-    <User.Gender :formless="required" />
+    <User.Name :fl:validate="'required'" />
+    <User.Gender :fl:validate="'required'" />
     <User.Mobile />
-    <Range.DateRangeOne :formless="{ ...required, span: 16 }" />
+    <Range.DateRangeOne :fl:validate="'required'" :fl:span="16" />
     <User.Email />
-    <Range.DateRangeTwo :formless="required" />
+    <Range.DateRangeTwo :fl:validate="'required'" />
     <User.IdCard />
     <User.Address />
-    <FormView.Item prop="remark" label="备注" :span="24" v-slot="{ field }">
+    <FormView.Item :fl:prop="'remark'" label="备注" :fl:span="24" v-slot="{ field }">
       <el-input v-bind="field" type="textarea" :rows="3" placeholder="可选" />
     </FormView.Item>
   </FormView>

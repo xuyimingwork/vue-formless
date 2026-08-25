@@ -32,14 +32,18 @@ export function resolveControlBinding(
   options: { model?: ControlVModel; prop?: ControlProp; path?: ControlNavPath } = {},
   overrides: ControlBindingOverrides = {},
 ): ResolvedControlBinding {
+  if (overrides.prop === '') {
+    throw new Error(`[vue-formless] fl:prop cannot be an empty string (control "${controlKey}")`)
+  }
+  if (options.prop === '') {
+    throw new Error(`[vue-formless] prop cannot be an empty string (control "${controlKey}")`)
+  }
+
   const models = toBindingList(options.model ?? 'modelValue')
   const props = toBindingList(
     overrides.prop !== undefined ? overrides.prop : (options.prop ?? controlKey),
   )
-  const path =
-    overrides.path !== undefined
-      ? overrides.path || undefined
-      : options.path || undefined
+  const path = overrides.path !== undefined ? overrides.path : options.path
 
   if (props.length > models.length) {
     throw new Error(
@@ -52,7 +56,7 @@ export function resolveControlBinding(
 
 /**
  * Optional Element-style encoding: one leaf → dotted path; several leaves →
- * control key. Kernel does not put this on the snapshot — the adapter Item
+ * control key. Kernel does not put this on Item `fl` — the adapter Item
  * calls this (or encodes another way) when mapping to host `prop`.
  */
 export function resolveFormItemProp(

@@ -2,6 +2,7 @@ import type { Slot, Slots } from 'vue'
 
 const ITEM_PREFIX = 'item:'
 const ITEM_ON_PREFIX = 'onItem:'
+const FL_PREFIX = 'fl:'
 
 export function splitSlots(slots: Slots): {
   itemSlots: Record<string, Slot>
@@ -19,6 +20,23 @@ export function splitSlots(slots: Slots): {
     }
   }
   return { itemSlots, inputSlots }
+}
+
+/** `:fl:path` → `{ path }`; leftover attrs unchanged. */
+export function splitFlAttrs(attrs: Record<string, unknown>): {
+  fl: Record<string, unknown>
+  rest: Record<string, unknown>
+} {
+  const fl: Record<string, unknown> = {}
+  const rest: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(attrs)) {
+    if (key.startsWith(FL_PREFIX) && key.length > FL_PREFIX.length) {
+      fl[key.slice(FL_PREFIX.length)] = value
+    } else {
+      rest[key] = value
+    }
+  }
+  return { fl, rest }
 }
 
 /**

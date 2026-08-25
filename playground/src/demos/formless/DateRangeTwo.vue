@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { useFormItem } from 'vue-formless'
 
+defineOptions({
+  formless: {
+    item: false,
+    layout: false,
+    model: ['start', 'end'],
+  },
+})
+
 const start = defineModel<string>('start')
 const end = defineModel<string>('end')
 

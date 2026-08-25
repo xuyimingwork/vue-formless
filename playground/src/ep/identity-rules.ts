@@ -13,18 +13,14 @@ export interface IdentityRule {
   message?: string
 }
 
-/** How this value is checked. Lives on ControlSchema, not the tag. */
+/** How this value is checked. Lives on the control extras, not the tag. */
 export interface ControlValidation {
   empty?: IdentityRule
   format?: IdentityRule
 }
 
-/** How this render uses `validation` (`:formless.validate`). */
+/** How this render uses `validation` (`:fl:validate`). Default `'optional'` in the adapter. */
 export type ValidatePolicy = 'optional' | 'required' | 'none'
-
-export function resolveValidatePolicy(validate?: ValidatePolicy): ValidatePolicy {
-  return validate ?? 'optional'
-}
 
 export function isEmptyValue(value: unknown, empty?: IdentityRule): boolean {
   if (empty?.validate) return !empty.validate(value)

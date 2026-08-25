@@ -8,6 +8,7 @@
   - 2026-08-19 — 多叶子时 `formItemProp` 退回控件键，只适用于 **一格 Item**（OneInput）。两格按口投影，见 [ADR-013](./013-one-control-multiple-items.md)。
   - 2026-08-19 — 宿主 Item `prop` 由适配器编码，内核 snapshot 只给 `binding` + `controlKey` + `getValues()`。见 [ADR-014](./014-multi-vmodel-host-validation.md)。
   - 2026-08-19 — 一格多口时 ElForm `value` / 红字 / 不污 DTO，见 [ADR-014](./014-multi-vmodel-host-validation.md)。
+  - 2026-08-25 — 标签覆盖改为 `:fl:path` / `:fl:prop`（[ADR-015](./015-formless-config-groups.md)）。空串 path 算有值；`prop` 禁止空串。`model` 锁在 component / 控件 `formless`；格上无 `fl:model`。
 - **来源**：相对 [ADR-009](./009-controls-as-protagonist.md) §6 的修订
 
 ## 背景
@@ -73,21 +74,21 @@ FormView writer 解析 `[index]`，对数组段 **clone 再 emit**，禁止 `arr
 
 ### 5. 标签覆盖
 
-走 `:formless`（[ADR-012](./012-input-item-and-rule-compile.md)），不占输入的顶层 props：
+走 `:fl:path` / `:fl:prop`（[ADR-015](./015-formless-config-groups.md)），不占输入的顶层 props：
 
 ```vue
-<User.Name :formless="{ prop: 'title' }" />
-<User.Name :formless="{ path: `buyers[${$index}]` }" />
-<User.TimeRange :formless="{ path: `buyers[${$index}]` }" />
+<User.Name :fl:prop="'title'" />
+<User.Name :fl:path="`buyers[${$index}]`" />
+<User.TimeRange :fl:path="`buyers[${$index}]`" />
 ```
 
-- 可覆盖 `prop` / `path`，不可覆盖 `model`。
-- **不需要** `Path` 包裹组件；`:formless.path` 足够。
+- 可覆盖 `prop` / `path`，不可覆盖 `model`。有值才盖；空串 path 算有值；**`prop` 禁止空串**。
+- **不需要** `Path` 包裹组件；`:fl:path` 足够。
 - 同一概念两个数据位（行程 vs 签证时间）→ 簇里两项，各自写死 `prop`，不是标签上改两个 path。
 
 ### 6. 宿主 Item `prop` 不由内核决定
 
-内核 snapshot 只给 `binding`、`controlKey`、`getValues()`，**不**预计算 ElFormItem `prop`。
+内核 Item `fl` 只给 `binding`、`controlKey`、`getValues()`，**不**预计算 ElFormItem `prop`。
 
 控件 schema 上的 **`prop` 仍是叶子**。点号路径、控件键、Naive `path` 数组等编码都在适配 Item 内部。Element 适配可用 `resolveFormItemProp`（单叶子 → `formItemProp(path, leaf)` → `buyers.0.name`；多口一格 → 控件键）或自己编码。Form 投影键必须与 Item 写出的 `prop` 一致。见 [ADR-012](./012-input-item-and-rule-compile.md) / [ADR-014](./014-multi-vmodel-host-validation.md)。
 
@@ -95,21 +96,21 @@ FormView writer 解析 `[index]`，对数组段 **clone 再 emit**，禁止 `arr
 
 ### 7. 列表 / 表格
 
-一层 FormView，`v-model` 绑数组或含数组的对象；单元格只改 `:formless.path`，不改控件 API：
+一层 FormView，`v-model` 绑数组或含数组的对象；单元格只改 `:fl:path`，不改控件 API：
 
 ```vue
 <FormView v-model="order">
   <el-table :data="order.buyers">
     <el-table-column label="姓名">
       <template #default="{ $index }">
-        <User.Name :formless="{ path: `buyers[${$index}]` }" />
+        <User.Name :fl:path="`buyers[${$index}]`" />
       </template>
     </el-table-column>
   </el-table>
 </FormView>
 ```
 
-根为 array 时：`<FormView v-model="users">` + `` :formless="{ path: `[${$index}]` }" ``。
+根为 array 时：`<FormView v-model="users">` + `` :fl:path="`[${$index}]`" ``。
 
 写入：`ctx.update(prop, value, path)` → FormView 同 tick 合并 patch → `emit` 新对象（含新 array）。见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。
 
@@ -117,7 +118,7 @@ FormView writer 解析 `[index]`，对数组段 **clone 再 emit**，禁止 `arr
 
 1. **单一 `path` 兼叶子与导航**：表格要么 path-prefix，要么完整 `users[0].name` 重写身份；已否。
 2. **`path` array type**：与 `prop` array 语义冲突；已否。
-3. **`Path` 包裹组件 provide 前缀**：`:formless.path` 已够；已否。
+3. **`Path` 包裹组件 provide 前缀**：`:fl:path` 已够；已否。
 4. **嵌套 `FormView v-model="users[i]"`**：绕过数组 v-model 入口；已否。
 5. **就地改 modelValue**：与 FormView 唯一写口矛盾；已否（ADR-008）。
 

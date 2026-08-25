@@ -1,6 +1,6 @@
 import { ElForm } from 'element-plus'
-import { defineComponent, h, ref } from 'vue'
-import { useFormContext } from 'vue-formless'
+import { defineComponent, h, ref, type PropType } from 'vue'
+import type { FormFl } from 'vue-formless'
 
 function proxyExpose(host: { value: object | null }): object {
   return new Proxy(
@@ -21,12 +21,18 @@ function proxyExpose(host: { value: object | null }): object {
   )
 }
 
-/** Adapter Form: ElForm + FormView model. FormView ref proxies this instance. */
+/** Adapter Form: ElForm + FormView `modelValue`. FormView ref proxies this instance. */
 export const EpForm = defineComponent({
   name: 'EpForm',
   inheritAttrs: false,
-  setup(_, { slots, attrs, expose }) {
-    const ctx = useFormContext()
+  props: {
+    modelValue: { required: true },
+    fl: {
+      type: Object as PropType<FormFl>,
+      default: () => ({ layout: false, form: true, item: true }),
+    },
+  },
+  setup(props, { slots, attrs, expose }) {
     const formRef = ref<object | null>(null)
     expose(proxyExpose(formRef))
 
@@ -36,7 +42,7 @@ export const EpForm = defineComponent({
         {
           ref: formRef,
           ...attrs,
-          model: ctx.model as Record<string, unknown>,
+          model: props.modelValue as Record<string, unknown>,
         },
         slots,
       )

@@ -17,19 +17,19 @@ import {
   type ResolvedControlBinding,
 } from './control-model'
 import { useFormContext } from './context'
-import { resolveValidatePolicy, type ControlValidation, type ValidatePolicy } from './identity-rules'
-import type { FormlessAttr, ItemRenderInput } from './item-adapter'
+import { declaredFl, omitShellKeys } from './fl-config'
+import type { ItemFl } from './item-adapter'
 import { getIn } from './model-path'
-import { splitFallthrough, splitSlots } from './split-fallthrough'
+import { splitFallthrough, splitFlAttrs, splitSlots } from './split-fallthrough'
 import type { WrapControlMeta } from './wrap-control'
 
 /** Frame the namespaced control refreshes each render; `useFormItem` reads it. */
 export interface ControlFrame {
-  formless: FormlessAttr
+  /** Extras + span (no `item` / `layout` / `model`). */
+  fl: Record<string, unknown>
   binding: ResolvedControlBinding
-  label?: string
-  validate: ValidatePolicy
-  validation?: ControlValidation
+  skipOuterItem: boolean
+  skipOuterLayout: boolean
   itemAttrs: Record<string, unknown>
   itemOn: Record<string, unknown>
   itemSlots: WrapControlMeta['itemSlots']
@@ -37,10 +37,6 @@ export interface ControlFrame {
 
 export interface ControlRuntime {
   controlKey: string
-  /** Schema `item: false` — skip Item on the factory's wrap only. */
-  skipOuterItem: boolean
-  /** Schema `layout: false` — skip Col on the factory's wrap only. */
-  skipOuterLayout: boolean
   getFrame: () => ControlFrame
 }
 
@@ -52,34 +48,24 @@ export function provideControlRuntime(runtime: ControlRuntime): void {
   provide(controlRuntimeKey, runtime)
 }
 
-/** Cell props on `FormView.Item` / `useFormItem('start')` — not a `:formless` bag. */
-export interface FormViewItemProps {
-  label?: string
-  span?: number
-  /** Anonymous cell only. Control cells take leaf from the port / schema. */
-  prop?: ControlProp
-  path?: ControlNavPath
-  validate?: ValidatePolicy
-}
-
 export interface FormViewItemSlotProps {
   /** `applyControlBinding` result (`modelValue` + `onUpdate:modelValue` for a single leaf). */
   field: Record<string, unknown>
 }
 
-const formViewItemProps = {
-  label: { type: String, default: undefined },
-  span: { type: Number, default: undefined },
-  prop: { type: [String, Array] as PropType<ControlProp>, default: undefined },
-  path: { type: String as PropType<ControlNavPath>, default: undefined },
-  validate: { type: String as PropType<ValidatePolicy>, default: undefined },
+const formCellFlProps = {
+  'fl:path': { type: String, default: undefined },
+  'fl:prop': { type: [String, Array] as PropType<string | string[]>, default: undefined },
+  'fl:span': { type: Number, default: undefined },
+  'fl:label': { default: undefined },
+  'fl:validate': { default: undefined },
 }
 
 function createFormCellComponent(port?: string): Component {
   return defineComponent({
     name: port ? `FormViewItem_${port}` : 'FormViewItem',
     inheritAttrs: false,
-    props: formViewItemProps,
+    props: formCellFlProps,
     setup(props, { slots, attrs }) {
       const ctx = useFormContext()
       const runtime = inject(controlRuntimeKey, null)
@@ -89,7 +75,7 @@ function createFormCellComponent(port?: string): Component {
         )
       }
       return (): VNodeChild =>
-        renderFormCell(ctx, runtime, port, props, slots, attrs as Record<string, unknown>)
+        renderFormCell(ctx, runtime, port, slots, attrs as Record<string, unknown>, props)
     },
   })
 }
@@ -99,8 +85,9 @@ export const FormViewItem = createFormCellComponent()
 
 /**
  * One cell: Col? → Item? → default slot.
- * No arg: this control's outer wrap (factory). Port: one v-model mouth inside a composite.
- * FormView `:item="false"` / `:layout="false"` skip that layer; does not throw.
+ * No arg: this control's full binding (factory outer wrap).
+ * Port: slice one v-model mouth.
+ * Outer `item` / `layout` false hide the factory shell; binding stays on the frame.
  */
 export function useFormItem(port?: string): Component {
   useFormContext()
@@ -112,17 +99,19 @@ function renderFormCell(
   ctx: ReturnType<typeof useFormContext>,
   runtime: ControlRuntime | null,
   port: string | undefined,
-  props: FormViewItemProps,
   slots: Slots,
   attrs: Record<string, unknown>,
+  props: Record<string, unknown>,
 ): VNodeChild {
-  const { itemAttrs, itemOn, inputAttrs } = splitFallthrough(attrs)
+  const { fl: attrFl, rest } = splitFlAttrs(attrs)
+  const tagFl = { ...attrFl, ...declaredFl(props) }
+  const { itemAttrs, itemOn, inputAttrs } = splitFallthrough(rest)
   const hostItemAttrs = { ...itemAttrs, ...inputAttrs }
   const { itemSlots } = splitSlots(slots)
 
   const outer = port == null && runtime != null
-  const snapshotInput = resolveCellSnapshot(ctx, runtime, port, props)
-  const field = applyControlBinding(ctx.model, snapshotInput.binding, ctx.update)
+  const resolved = resolveCellFl(ctx, runtime, port, tagFl)
+  const field = applyControlBinding(ctx.model, resolved.binding, ctx.update)
   const inner = slots.default?.({ field }) ?? null
 
   let wrapItemAttrs = hostItemAttrs
@@ -135,80 +124,79 @@ function renderFormCell(
     wrapItemSlots = { ...frame.itemSlots, ...itemSlots }
   }
 
+  const skipItem = outer && runtime ? runtime.getFrame().skipOuterItem : undefined
+  const skipCol =
+    tagFl.layout === false || (outer && runtime?.getFrame().skipOuterLayout === true)
+
   return ctx.wrap(inner, {
-    span: snapshotInput.span,
-    item: outer && runtime?.skipOuterItem ? false : undefined,
-    layout: outer && runtime?.skipOuterLayout ? false : undefined,
-    snapshot: snapshotInput.snapshot,
+    span: resolved.span,
+    item: skipItem ? false : undefined,
+    layout: skipCol ? false : undefined,
+    fl: resolved.fl,
     itemAttrs: wrapItemAttrs,
     itemOn: wrapItemOn,
     itemSlots: wrapItemSlots,
   })
 }
 
-function resolveCellSnapshot(
+function resolveCellFl(
   ctx: ReturnType<typeof useFormContext>,
   runtime: ControlRuntime | null,
   port: string | undefined,
-  props: FormViewItemProps,
-): { snapshot: ItemRenderInput; binding: ResolvedControlBinding; span?: number } {
+  tagFl: Record<string, unknown>,
+): { fl: ItemFl; binding: ResolvedControlBinding; span?: number } {
+  const tagExtras = omitShellKeys(tagFl)
+
   if (runtime) {
     const frame = runtime.getFrame()
     const binding =
       port != null ? bindingForPort(frame.binding, port) : frame.binding
-    const label = props.label !== undefined ? props.label : port != null ? undefined : frame.label
-    const validate = resolveValidatePolicy(
-      props.validate !== undefined ? props.validate : frame.validate,
-    )
-    const span = port != null ? props.span : (props.span ?? frame.formless.span)
-    const formless: FormlessAttr = {
-      ...frame.formless,
-      label,
-      span,
-      validate,
-    }
-    return {
-      binding,
-      span,
-      snapshot: {
-        controlKey: runtime.controlKey,
-        label,
-        validation: frame.validation,
-        validate,
-        binding,
-        getValues: () => binding.props.map((p) => getIn(ctx.model, binding.path, p)),
-        formless,
-      },
-    }
-  }
-
-  const prop = props.prop
-  const controlKey =
-    typeof prop === 'string' ? prop : Array.isArray(prop) && prop[0] ? prop[0] : ''
-  const binding =
-    prop === undefined
-      ? { models: ['modelValue'] as string[], props: [] as string[], path: props.path }
-      : resolveControlBinding(controlKey || 'field', { prop, path: props.path })
-  const validate = resolveValidatePolicy(props.validate)
-  const formless: FormlessAttr = {
-    label: props.label,
-    span: props.span,
-    validate,
-    prop: props.prop,
-    path: props.path,
-  }
-  return {
-    binding,
-    span: props.span,
-    snapshot: {
-      controlKey,
-      label: props.label,
-      validate,
+    const span =
+      typeof tagFl.span === 'number'
+        ? tagFl.span
+        : port != null
+          ? undefined
+          : typeof frame.fl.span === 'number'
+            ? frame.fl.span
+            : undefined
+    const fl: ItemFl = {
+      ...frame.fl,
+      ...tagExtras,
+      controlKey: runtime.controlKey,
       binding,
       getValues: () => binding.props.map((p) => getIn(ctx.model, binding.path, p)),
-      formless,
-    },
+    }
+    if (span !== undefined) fl.span = span
+    return { binding, span, fl }
   }
+
+  const prop = tagFl.prop
+  if (prop === '') {
+    throw new Error('[vue-formless] fl:prop cannot be an empty string')
+  }
+  const path = tagFl.path as string | undefined
+  const controlKey =
+    typeof prop === 'string'
+      ? prop
+      : Array.isArray(prop) && prop[0]
+        ? String(prop[0])
+        : ''
+  const binding =
+    prop === undefined
+      ? { models: ['modelValue'] as string[], props: [] as string[], path }
+      : resolveControlBinding(controlKey || 'field', {
+          prop: prop as ControlProp,
+          path: path as ControlNavPath | undefined,
+        })
+  const span = typeof tagFl.span === 'number' ? tagFl.span : undefined
+  const fl: ItemFl = {
+    ...tagExtras,
+    controlKey,
+    binding,
+    getValues: () => binding.props.map((p) => getIn(ctx.model, binding.path, p)),
+  }
+  if (span !== undefined) fl.span = span
+  return { binding, span, fl }
 }
 
 export function attachFormViewItem<T extends Component>(

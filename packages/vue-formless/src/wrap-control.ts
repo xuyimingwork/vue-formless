@@ -1,21 +1,21 @@
 import { h, markRaw, type Component, type Slot, type VNodeChild } from 'vue'
-import type { ItemRenderInput } from './item-adapter'
+import type { ItemFl } from './item-adapter'
 import { GRID_TOTAL } from './layout'
 
-/** Input Control hands to FormView's wrap: identity snapshot + Item fallthrough. */
+/** Input Control hands to FormView's wrap: Item `fl` + host fallthrough. */
 export interface WrapControlMeta {
   span?: number
   /**
-   * This wrap only. `false` skips Item even when FormView `item` is on
-   * (control schema `item: false`). Omit = follow FormView.
+   * This wrap only. `false` skips Item even when FormView `item` is on.
+   * Omit = follow FormView.
    */
   item?: boolean
   /**
-   * This wrap only. `false` skips Col even when FormView `layout` is on
-   * (control schema `layout: false`). Omit = follow FormView.
+   * This wrap only. `false` skips Col even when FormView `layout` is on.
+   * Omit = follow FormView.
    */
   layout?: boolean
-  snapshot: ItemRenderInput
+  fl: ItemFl
   itemAttrs: Record<string, unknown>
   itemOn: Record<string, unknown>
   itemSlots: Record<string, Slot>
@@ -41,7 +41,7 @@ export function createControlWrap(options: {
         ? h(
             Item,
             {
-              snapshot: meta.snapshot,
+              fl: meta.fl,
               ...meta.itemAttrs,
               ...meta.itemOn,
             },

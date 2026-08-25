@@ -1,12 +1,11 @@
 import type { FormItemRule } from 'element-plus'
+import { resolveFormItemProp, type ItemFl } from 'vue-formless'
 import {
   isEmptyValue,
-  resolveFormItemProp,
   type ControlValidation,
   type IdentityRule,
-  type ItemRenderInput,
   type ValidatePolicy,
-} from 'vue-formless'
+} from './identity-rules'
 
 const TRIGGER: FormItemRule['trigger'] = ['blur', 'change']
 
@@ -14,6 +13,13 @@ function pass(rule: IdentityRule, value: unknown): boolean {
   if (rule.pattern) return rule.pattern.test(String(value ?? ''))
   if (rule.validate) return rule.validate(value)
   return true
+}
+
+function resolveValidatePolicy(validate: unknown): ValidatePolicy {
+  if (validate === 'required' || validate === 'none' || validate === 'optional') {
+    return validate
+  }
+  return 'optional'
 }
 
 /** Compile schema `validation` + policy into ElFormItem `rules`. */
@@ -60,12 +66,14 @@ export function toEpRules(
   return rules.length ? rules : undefined
 }
 
-/** Map a control snapshot to ElFormItem props. Host `prop` is this adapter's encoding. */
-export function toEpItemProps(input: ItemRenderInput): Record<string, unknown> {
+/** Map Item `fl` to ElFormItem props. Host `prop` is this adapter's encoding. */
+export function toEpItemProps(fl: ItemFl): Record<string, unknown> {
+  const validate = resolveValidatePolicy(fl.validate)
+  const validation = fl.validation as ControlValidation | undefined
   return {
-    label: input.label,
-    prop: resolveFormItemProp(input.binding, input.controlKey),
-    rules: toEpRules(input.validation, input.validate),
-    required: input.validate === 'required',
+    label: fl.label,
+    prop: resolveFormItemProp(fl.binding, fl.controlKey),
+    rules: toEpRules(validation, validate),
+    required: validate === 'required',
   }
 }

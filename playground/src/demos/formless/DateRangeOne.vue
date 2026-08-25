@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+defineOptions({
+  formless: {
+    model: ['start', 'end'],
+  },
+})
+
 const start = defineModel<string>('start')
 const end = defineModel<string>('end')
 

@@ -1,34 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { resolveValidatePolicy, isEmptyValue } from './identity-rules'
-import { splitFallthrough, splitSlots } from './split-fallthrough'
+import { splitFallthrough, splitFlAttrs, splitSlots } from './split-fallthrough'
 import type { Slot, Slots } from 'vue'
 
-describe('resolveValidatePolicy', () => {
-  it('defaults to optional', () => {
-    expect(resolveValidatePolicy()).toBe('optional')
-    expect(resolveValidatePolicy(undefined)).toBe('optional')
-  })
-
-  it('passes through validate', () => {
-    expect(resolveValidatePolicy('required')).toBe('required')
-    expect(resolveValidatePolicy('none')).toBe('none')
-    expect(resolveValidatePolicy('optional')).toBe('optional')
-  })
-})
-
-describe('isEmptyValue', () => {
-  it('trims strings and treats nullish / empty array as empty', () => {
-    expect(isEmptyValue('')).toBe(true)
-    expect(isEmptyValue('  ')).toBe(true)
-    expect(isEmptyValue(null)).toBe(true)
-    expect(isEmptyValue([])).toBe(true)
-    expect(isEmptyValue('a')).toBe(false)
-    expect(isEmptyValue(0)).toBe(false)
-  })
-
-  it('uses empty.validate when provided (true = filled)', () => {
-    expect(isEmptyValue('x', { validate: () => false })).toBe(true)
-    expect(isEmptyValue('', { validate: () => true })).toBe(false)
+describe('splitFlAttrs', () => {
+  it('strips fl: prefix into a bag and leaves the rest', () => {
+    const { fl, rest } = splitFlAttrs({
+      placeholder: 'x',
+      'fl:path': 'buyers[0]',
+      'fl:span': 24,
+      'fl:validate': 'required',
+      'item:label-width': 96,
+    })
+    expect(fl).toEqual({ path: 'buyers[0]', span: 24, validate: 'required' })
+    expect(rest).toEqual({ placeholder: 'x', 'item:label-width': 96 })
   })
 })
 

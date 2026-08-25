@@ -14,6 +14,7 @@ import { formContextKey, type FormContext, type FormGridAdapter } from './contex
 import { createFormModelWriter } from './form-model-writer'
 import {
   resolveLayout,
+  type FormLayoutOptions,
   type FormLayoutProp,
 } from './layout'
 import { createControlWrap } from './wrap-control'
@@ -24,9 +25,9 @@ export interface CreateFormViewOptions {
   Row: Component
   /** Column cell (e.g. ElCol). Must accept a numeric `span` prop (24-grid). */
   Col: Component
-  /** Host form shell (e.g. EpForm). Optional; skip wrapping when omitted or `:form="false"`. */
+  /** Host form shell (e.g. EpForm). Optional; skip wrapping when omitted or `:fl:form="false"`. */
   Form?: Component
-  /** Form item shell (e.g. EpItem). Converts `snapshot` internally. */
+  /** Form item shell (e.g. EpItem). Converts `props.fl` internally. */
   Item?: Component
 }
 
@@ -35,21 +36,21 @@ export type { FormLayoutProp, FormLayoutOptions } from './layout'
 export interface FormViewProps {
   modelValue: unknown
   /**
-   * Grid hosting. Default `false` (omit = Context only, matches HTML boolean attrs).
-   * - `true` / `layout`: hosted with defaults (`column: 2`, `gutter: 16`)
+   * Grid hosting. Default `false`.
+   * - `true`: hosted with defaults (`column: 2`, `gutter: 16`)
    * - `{ column, gutter }`: hosted with explicit density (`defaultSpan = 24 / column`)
    */
-  layout?: FormLayoutProp
-  /**
-   * Wrap the factory `Form` (default `true` when `Form` is bound).
-   * Use `:form="false"` for tables / nested layout-only FormViews.
-   */
-  form?: boolean
-  /**
-   * Wrap the factory `Item` per cell (default `true` when `Item` is bound).
-   * Per-control skip is schema `item: false`, not this flag.
-   */
-  item?: boolean
+  'fl:layout'?: FormLayoutProp
+  /** Wrap the factory `Form` (default `true` when `Form` is bound). */
+  'fl:form'?: boolean
+  /** Wrap the factory `Item` per cell (default `true` when `Item` is bound). */
+  'fl:item'?: boolean
+}
+
+export interface FormFl {
+  layout: FormLayoutProp
+  form: boolean
+  item: boolean
 }
 
 function proxyExpose(host: { value: object | null }): object {
@@ -74,15 +75,15 @@ const formViewProps = {
     type: [Object, Array] as PropType<unknown>,
     required: true,
   },
-  layout: {
+  'fl:layout': {
     type: [Boolean, Object] as PropType<FormLayoutProp>,
     default: false,
   },
-  form: {
+  'fl:form': {
     type: Boolean,
     default: true,
   },
-  item: {
+  'fl:item': {
     type: Boolean,
     default: true,
   },
@@ -90,6 +91,13 @@ const formViewProps = {
 
 const formViewEmits = {
   'update:modelValue': (_value: unknown) => true,
+}
+
+function toLayoutProp(value: unknown): FormLayoutProp {
+  if (value === false || value == null) return false
+  if (value === true || value === '') return true
+  if (typeof value === 'object') return value as FormLayoutOptions
+  return true
 }
 
 function provideFormViewContext(options: {
@@ -161,10 +169,10 @@ export function createFormView(options: CreateFormViewOptions): FormViewComponen
         const resolved = provideFormViewContext({
           getModel: () => props.modelValue,
           emitUpdate: (next) => emit('update:modelValue', next),
-          getLayout: () => props.layout as FormLayoutProp,
+          getLayout: () => toLayoutProp(props['fl:layout']),
           adapter,
           Item,
-          isItemEnabled: () => props.item !== false,
+          isItemEnabled: () => props['fl:item'] !== false,
         })!
 
         return (): VNodeChild => {
@@ -173,11 +181,18 @@ export function createFormView(options: CreateFormViewOptions): FormViewComponen
             ? h(adapter.Row, { gutter: resolved.value.gutter }, () => children)
             : children
 
-          if (!Form || props.form === false) return body
+          const formOn = props['fl:form'] !== false
+          if (!Form || !formOn) return body
+
+          const fl: FormFl = {
+            layout: toLayoutProp(props['fl:layout']),
+            form: formOn,
+            item: props['fl:item'] !== false,
+          }
 
           return h(
             Form,
-            { ref: hostForm, ...attrs },
+            { ref: hostForm, fl, modelValue: props.modelValue, ...attrs },
             { default: () => body },
           )
         }
@@ -201,7 +216,7 @@ export const FormView = attachFormViewItem(
       provideFormViewContext({
         getModel: () => props.modelValue,
         emitUpdate: (next) => emit('update:modelValue', next),
-        getLayout: () => props.layout as FormLayoutProp,
+        getLayout: () => toLayoutProp(props['fl:layout']),
       })
       return (): VNodeChild => slots.default?.() ?? null
     },

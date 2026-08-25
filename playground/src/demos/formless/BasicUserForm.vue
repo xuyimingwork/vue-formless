@@ -16,8 +16,6 @@ const form = ref({
   remark: '',
 })
 
-const required = { validate: 'required' as const }
-
 async function onSubmit() {
   await formRef.value?.validate()
   ElMessage.success('校验通过（formless）')
@@ -33,15 +31,15 @@ function onReset() {
     ref="formRef"
     v-model="form"
     label-width="96px"
-    :layout="{ column: 2, gutter: 16 }"
+    :fl:layout="{ column: 2, gutter: 16 }"
   >
-    <User.Name :formless="required" />
-    <User.Gender :formless="required" />
-    <User.Mobile :formless="required" />
+    <User.Name :fl:validate="'required'" />
+    <User.Gender :fl:validate="'required'" />
+    <User.Mobile :fl:validate="'required'" />
     <User.Email />
     <User.IdCard />
     <User.Address />
-    <User.Remark :formless="{ span: 24 }" />
+    <User.Remark :fl:span="24" />
   </FormView>
 
   <div class="pg-actions">

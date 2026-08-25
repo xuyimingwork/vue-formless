@@ -13,6 +13,7 @@
   - 2026-08-19 — `Form` / `Item` 均为适配组件 + slot；内核填 default、决定是否跳过壳。`toItemProps` 不再是 `createFormView` 选项。无公开 `FormLayout`。见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。
   - 2026-08-19 — wrap 把 `snapshot` 交给 Item；实例 `form` / `item` 开关见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。
   - 2026-08-19 — snapshot 给 `binding` + `getValues()`，不预计算宿主 `prop`。编码在适配 Item（与 Form 投影键对齐）。见 [ADR-014](./014-multi-vmodel-host-validation.md)。
+  - 2026-08-25 — 丢掉 `:formless` 袋。通道改为 `fl:` + Form/Item `props.fl`；`:item:` 仍只给 `User.Xxx`。内核不再导出 `identity-rules`。见 [ADR-015](./015-formless-config-groups.md)。
 - **来源**：相对 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md) / [ADR-010](./010-controls-as-semantic-cluster.md) 的后续收口（`component` 接什么、Item 挂在哪、规则与策略如何变成宿主 `rules`、一颗标签如何分流）
 
 ## 背景
@@ -65,7 +66,7 @@ createFormView({
 h(Form?, formAttrs, { default: () =>
   Row?（:layout）→ 字段
 })
-每格 wrap：h(Col?, { span }, () => h(Item?, { snapshot, ...item: }, { default: () => 输入 }))
+每格 wrap：h(Col?, { span }, () => h(Item?, { fl, ...item: }, { default: () => 输入 }))
 ```
 
 - **body 由 formless 渲**：`slots.default` 一定是字段树或输入。适配只 `h(ElForm, …, slots)` / `h(ElFormItem, 转换(snapshot), slots)`，必须转发 default。

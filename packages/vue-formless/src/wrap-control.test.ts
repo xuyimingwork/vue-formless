@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { defineComponent, h, isReactive, reactive, type VNode } from 'vue'
-import type { ItemRenderInput } from './item-adapter'
+import type { ItemFl } from './item-adapter'
 import { createControlWrap } from './wrap-control'
 
 const Item = defineComponent({
@@ -15,17 +15,14 @@ const Col = defineComponent({
   setup: () => () => null,
 })
 
-const snapshot: ItemRenderInput = {
+const fl: ItemFl = {
   controlKey: 'name',
-  label: '姓名',
-  validate: 'optional',
   binding: { models: ['modelValue'], props: ['name'] },
   getValues: () => [undefined],
-  formless: {},
 }
 
 const emptyMeta = {
-  snapshot,
+  fl,
   itemAttrs: {},
   itemOn: {},
   itemSlots: {},
@@ -48,7 +45,7 @@ describe('createControlWrap', () => {
     expect(wrap(body, emptyMeta)).toBe(body)
   })
 
-  it('wraps Item with snapshot, without capturing the Item vnode in default', () => {
+  it('wraps Item with fl, without capturing the Item vnode in default', () => {
     const wrap = createControlWrap({
       Item,
       isLayoutEnabled: () => false,
@@ -57,7 +54,7 @@ describe('createControlWrap', () => {
     const input = h('input')
     const out = wrap(input, emptyMeta) as VNode
     expect(out.type).toBe(Item)
-    expect(out.props?.snapshot).toBe(snapshot)
+    expect(out.props?.fl).toBe(fl)
     expect(slotDefault(out)).toBe(input)
   })
 

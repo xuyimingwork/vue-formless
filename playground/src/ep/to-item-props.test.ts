@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { toEpItemProps, toEpRules } from './to-item-props'
+import type { ItemFl } from 'vue-formless'
 
 function run(
   rules: ReturnType<typeof toEpRules>,
@@ -54,18 +55,17 @@ describe('toEpRules', () => {
 })
 
 describe('toEpItemProps', () => {
-  const mobileSnap = {
+  const mobileFl: ItemFl = {
     controlKey: 'mobile',
     label: '手机',
     validation: mobile,
-    validate: 'required' as const,
+    validate: 'required',
     binding: { models: ['modelValue'], props: ['mobile'] },
     getValues: () => [''],
-    formless: { validate: 'required' as const },
   }
 
-  it('maps snapshot to ElFormItem props', () => {
-    const props = toEpItemProps(mobileSnap)
+  it('maps fl to ElFormItem props', () => {
+    const props = toEpItemProps(mobileFl)
     expect(props.label).toBe('手机')
     expect(props.prop).toBe('mobile')
     expect(props.required).toBe(true)
@@ -73,11 +73,19 @@ describe('toEpItemProps', () => {
     expect((props.rules as unknown[]).length).toBe(2)
   })
 
+  it('defaults missing validate to optional', () => {
+    const props = toEpItemProps({
+      ...mobileFl,
+      validate: undefined,
+    })
+    expect(props.required).toBe(false)
+    expect((props.rules as unknown[]).length).toBe(1)
+  })
+
   it('omits rules when validate is none', () => {
     const props = toEpItemProps({
-      ...mobileSnap,
+      ...mobileFl,
       validate: 'none',
-      formless: { validate: 'none' },
     })
     expect(props.required).toBe(false)
     expect(props.rules).toBeUndefined()
@@ -86,13 +94,13 @@ describe('toEpItemProps', () => {
   it('encodes host prop: one leaf path vs multi-port control key', () => {
     expect(
       toEpItemProps({
-        ...mobileSnap,
+        ...mobileFl,
         binding: { models: ['modelValue'], props: ['name'], path: 'buyers[0]' },
       }).prop,
     ).toBe('buyers.0.name')
     expect(
       toEpItemProps({
-        ...mobileSnap,
+        ...mobileFl,
         controlKey: 'timeRange',
         binding: { models: ['start', 'end'], props: ['startTime', 'endTime'] },
       }).prop,
