@@ -3,7 +3,7 @@
 - **状态**：Accepted
 - **日期**：2026-08-24
 - **修订**：
-  - 2026-08-25 — 落地：无前缀给该层宿主；`fl:` 聚成 Form / Item 的 `props.fl`；丢掉 `:formless` 袋；Form 数据口是顶层 `modelValue`；格上无 `fl:model`；内核删除 `identity-rules`。
+  - 2026-08-25 — extras 的 TS 形状由适配 module augmentation 声明，内核 FormControlProps 只含 path/prop/span/item/layout。
 - **来源**：[ADR-008](./008-form-view-vmodel-and-grid-gcd.md) / [ADR-011](./011-model-and-path.md) / [ADR-012](./012-input-item-and-rule-compile.md) / [ADR-013](./013-one-control-multiple-items.md)。本文钉 **配置怎么写、进哪一层**。不改 `component` 不含 Item、不改写口、不改 `useFormItem` 吃口名。
 
 ## 决策
@@ -66,7 +66,7 @@ formless: {
 
 ### 6. 内核与适配分工
 
-- 内核读核心键：`component`、`model`、`props`、`path`、`prop`、`item`、`layout`。其余 schema 键与 `fl:*` extras **不解释**，原样进 Item `fl`。
+- 内核读核心键：`component`、`model`、`props`、`path`、`prop`、`item`、`layout`。其余 schema 键与 `fl:*` extras **不解释**，原样进 Item `fl`。extras 的 TypeScript 形状由适配 `declare module 'vue-formless'` 扩充（`ControlSchema` / `FormControlProps` / `FormViewItemProps` / `ItemFl`），内核不预声明 `label` / `validate`。
 - 内核 **删除 `identity-rules`**。`validation` / `validate` 是不透明 extras；默认 `'optional'` 和编 `rules` 都在适配（playground `toEpRules`）。
 - Col 只吃内核算出的 `span`；Row 只吃页 `fl:layout` 的 `gutter`。外层这次 wrap 无 Col 则这次不用 `span`。
 

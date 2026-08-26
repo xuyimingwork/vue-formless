@@ -3,6 +3,7 @@ import {
   inject,
   provide,
   type Component,
+  type DefineComponent,
   type InjectionKey,
   type PropType,
   type Slots,
@@ -53,15 +54,21 @@ export interface FormViewItemSlotProps {
   field: Record<string, unknown>
 }
 
+/** Kernel `fl:` keys on `FormView.Item` / `useFormItem()`. Adapter extras via module augmentation. */
+export interface FormViewItemProps {
+  'fl:path'?: string
+  'fl:prop'?: string | string[]
+  'fl:span'?: number
+  'fl:layout'?: boolean
+}
+
 const formCellFlProps = {
   'fl:path': { type: String, default: undefined },
   'fl:prop': { type: [String, Array] as PropType<string | string[]>, default: undefined },
   'fl:span': { type: Number, default: undefined },
-  'fl:label': { default: undefined },
-  'fl:validate': { default: undefined },
 }
 
-function createFormCellComponent(port?: string): Component {
+function createFormCellComponent(port?: string): FormViewItemComponent {
   return defineComponent({
     name: port ? `FormViewItem_${port}` : 'FormViewItem',
     inheritAttrs: false,
@@ -77,8 +84,10 @@ function createFormCellComponent(port?: string): Component {
       return (): VNodeChild =>
         renderFormCell(ctx, runtime, port, slots, attrs as Record<string, unknown>, props)
     },
-  })
+  }) as FormViewItemComponent
 }
+
+export type FormViewItemComponent = DefineComponent<FormViewItemProps>
 
 /** Page-level anonymous cell. Same wrap as `useFormItem()`. */
 export const FormViewItem = createFormCellComponent()
@@ -89,7 +98,7 @@ export const FormViewItem = createFormCellComponent()
  * Port: slice one v-model mouth.
  * Outer `item` / `layout` false hide the factory shell; binding stays on the frame.
  */
-export function useFormItem(port?: string): Component {
+export function useFormItem(port?: string): FormViewItemComponent {
   useFormContext()
   if (port === undefined) return FormViewItem
   return createFormCellComponent(port)

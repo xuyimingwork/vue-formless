@@ -241,9 +241,8 @@ describe('readWidgetFormless', () => {
 describe('createFormControls', () => {
   it('exposes PascalCase components for camelCase control keys', () => {
     const User = createFormControls({
-      name: { label: '姓名' },
+      name: {},
       timeRange: {
-        label: '时间',
         model: ['start', 'end'],
         prop: ['startTime', 'endTime'],
       },
@@ -257,8 +256,8 @@ describe('createFormControls', () => {
 
   it('types PascalCase keys without a string index', () => {
     const User = createFormControls({
-      name: { label: '姓名' },
-      idCard: { label: '证件号' },
+      name: {},
+      idCard: {},
     })
     expectTypeOf(User).toHaveProperty('Name')
     expectTypeOf(User).toHaveProperty('IdCard')

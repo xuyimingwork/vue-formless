@@ -51,6 +51,7 @@ export {
 export {
   useFormItem,
   FormViewItem,
+  type FormViewItemProps,
   type FormViewItemSlotProps,
 } from './use-form-item'
 export type { ItemFl } from './item-adapter'

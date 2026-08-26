@@ -15,7 +15,7 @@ function pass(rule: IdentityRule, value: unknown): boolean {
   return true
 }
 
-function resolveValidatePolicy(validate: unknown): ValidatePolicy {
+function resolveValidatePolicy(validate: ValidatePolicy | undefined): ValidatePolicy {
   if (validate === 'required' || validate === 'none' || validate === 'optional') {
     return validate
   }
@@ -69,7 +69,7 @@ export function toEpRules(
 /** Map Item `fl` to ElFormItem props. Host `prop` is this adapter's encoding. */
 export function toEpItemProps(fl: ItemFl): Record<string, unknown> {
   const validate = resolveValidatePolicy(fl.validate)
-  const validation = fl.validation as ControlValidation | undefined
+  const validation = fl.validation
   return {
     label: fl.label,
     prop: resolveFormItemProp(fl.binding, fl.controlKey),

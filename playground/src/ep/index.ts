@@ -1,3 +1,5 @@
+import './vue-formless-aug'
+
 export { FormView } from './form-view'
 export { EpForm } from './ep-form'
 export { EpItem } from './ep-item'

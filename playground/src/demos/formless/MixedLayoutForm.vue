@@ -32,18 +32,10 @@ async function onSubmit() {
     </FormView>
 
     <p class="pg-section-title">证件与联系</p>
-    <FormView v-model="form" :fl:form="false">
-      <el-row :gutter="16">
-        <el-col :span="24">
-          <User.IdCard />
-        </el-col>
-        <el-col :span="16">
-          <User.Email />
-        </el-col>
-        <el-col :span="8">
-          <User.Address />
-        </el-col>
-      </el-row>
+    <FormView v-model="form" :fl:form="false" :fl:layout="{ column: 3, gutter: 16 }">
+      <User.IdCard :fl:span="24" />
+      <User.Email :fl:span="16" />
+      <User.Address :fl:span="8" />
     </FormView>
 
     <p class="pg-section-title">其他</p>

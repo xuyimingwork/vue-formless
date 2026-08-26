@@ -69,23 +69,18 @@ export interface ControlSchema {
    * Inner `useFormItem(port)` still follows FormView `layout`.
    */
   layout?: boolean
-  /**
-   * Opaque extras (e.g. `label`, `validation`) forwarded to Item `fl`.
-   * Kernel does not interpret them except `label` on the no-widget fallback.
-   */
-  label?: unknown
-  [extra: string]: unknown
 }
 
 /** Loose schema bag. Prefer inferring `S` from an object literal via `createFormControls`. */
 export type FormControlsSchema = Record<string, ControlSchema>
 
+/** Kernel `fl:` keys on `<User.Xxx />`. Adapter extras via module augmentation. */
 export interface FormControlProps {
   'fl:path'?: string
   'fl:prop'?: string | string[]
   'fl:span'?: number
-  'fl:label'?: unknown
-  'fl:validate'?: unknown
+  'fl:item'?: boolean
+  'fl:layout'?: boolean
 }
 
 export type FormControlComponent = DefineComponent<FormControlProps>
@@ -102,8 +97,6 @@ const controlFlProps = {
   'fl:path': { type: String, default: undefined },
   'fl:prop': { type: [String, Array] as PropType<string | string[]>, default: undefined },
   'fl:span': { type: Number, default: undefined },
-  'fl:label': { default: undefined },
-  'fl:validate': { default: undefined },
 }
 
 /**
@@ -167,8 +160,9 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
           ...stripPortBindings(inputAttrs, binding.models),
         }
         const modelBindings = applyControlBinding(ctx.model, binding, ctx.update)
+        const extras = schemaExtras(control as Record<string, unknown>)
         const displayProp = binding.props[0] ?? controlKey
-        const label = typeof tagFl.label === 'string' ? tagFl.label : control.label
+        const label = typeof tagFl.label === 'string' ? tagFl.label : extras.label
 
         const body: VNodeChild = widget
           ? h(
@@ -190,7 +184,7 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
 
         frame = {
           fl: {
-            ...schemaExtras(control as Record<string, unknown>),
+            ...extras,
             ...omitShellKeys(tagFl),
           },
           binding,
