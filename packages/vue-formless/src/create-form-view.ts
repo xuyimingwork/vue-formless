@@ -1,7 +1,8 @@
 import {
-  computed,
   defineComponent,
+  getCurrentInstance,
   h,
+  inject,
   markRaw,
   provide,
   reactive,
@@ -12,6 +13,7 @@ import {
 } from 'vue'
 import { formContextKey, type FormContext, type FormGridAdapter } from './context'
 import { createFormModelWriter } from './form-model-writer'
+import { createFormLayout } from './form-view-layout'
 import {
   resolveLayout,
   type FormLayoutOptions,
@@ -33,16 +35,21 @@ export interface CreateFormViewOptions {
 
 export type { FormLayoutProp, FormLayoutOptions } from './layout'
 
+export type FormFormProp = boolean | 'auto'
+
 export interface FormViewProps {
-  modelValue: unknown
+  modelValue?: unknown
   /**
    * Grid hosting. Default `false`.
    * - `true`: hosted with defaults (`column: 2`, `gutter: 16`)
    * - `{ column, gutter }`: hosted with explicit density (`defaultSpan = 24 / column`)
    */
   'fl:layout'?: FormLayoutProp
-  /** Wrap the factory `Form` (default `true` when `Form` is bound). */
-  'fl:form'?: boolean
+  /**
+   * Wrap the factory `Form`. Default `'auto'`: on at the root, off when nested.
+   * Explicit `true` / `false` win.
+   */
+  'fl:form'?: FormFormProp
   /** Wrap the factory `Item` per cell (default `true` when `Item` is bound). */
   'fl:item'?: boolean
 }
@@ -73,15 +80,15 @@ function proxyExpose(host: { value: object | null }): object {
 const formViewProps = {
   modelValue: {
     type: [Object, Array] as PropType<unknown>,
-    required: true,
+    default: undefined,
   },
   'fl:layout': {
     type: [Boolean, Object] as PropType<FormLayoutProp>,
     default: false,
   },
   'fl:form': {
-    type: Boolean,
-    default: true,
+    type: [Boolean, String] as PropType<FormFormProp>,
+    default: 'auto',
   },
   'fl:item': {
     type: Boolean,
@@ -100,37 +107,68 @@ function toLayoutProp(value: unknown): FormLayoutProp {
   return true
 }
 
+function resolveFormOn(value: FormFormProp, nested: boolean): boolean {
+  if (value === true || value === false) return value
+  return !nested
+}
+
+function hasIncomingVModel(raw: Record<string, unknown> | null | undefined): boolean {
+  if (raw == null) return false
+  return (
+    'modelValue' in raw ||
+    'model-value' in raw ||
+    'onUpdate:modelValue' in raw ||
+    'onUpdate:model-value' in raw
+  )
+}
+
 function provideFormViewContext(options: {
   getModel: () => unknown
-  emitUpdate: (next: unknown) => void
-  getLayout?: () => FormLayoutProp
+  update: FormContext['update']
   adapter?: FormGridAdapter
   Item?: Component
   isItemEnabled?: () => boolean
-}) {
-  const writer = createFormModelWriter(options.getModel, options.emitUpdate)
-  const resolved = options.adapter
-    ? computed(() => resolveLayout(options.getLayout?.()))
-    : undefined
-
+}): void {
   const wrap = createControlWrap({
     Col: options.adapter?.Col,
     Item: options.Item,
-    isLayoutEnabled: () => resolved?.value.enabled ?? false,
+    isLayoutEnabled: () => false,
     isItemEnabled: options.isItemEnabled,
-    getDefaultSpan: () => (resolved?.value.enabled ? resolved.value.defaultSpan : undefined),
+    getDefaultSpan: () => undefined,
   })
 
-  const ctx = reactive({
-    get model() {
-      return options.getModel()
-    },
-    update: writer.update,
-    wrap,
-  }) as FormContext
+  provide(
+    formContextKey,
+    reactive({
+      get model() {
+        return options.getModel()
+      },
+      update: options.update,
+      wrap,
+    }) as FormContext,
+  )
+}
 
-  provide(formContextKey, ctx)
-  return resolved
+function resolveFormViewData(
+  getBoundModel: () => unknown,
+  emitUpdate: (next: unknown) => void,
+): { getModel: () => unknown; update: FormContext['update'] } {
+  const parent = inject(formContextKey, null)
+  const incoming = hasIncomingVModel(getCurrentInstance()?.vnode.props as Record<string, unknown> | null)
+
+  if (incoming) {
+    const writer = createFormModelWriter(getBoundModel, emitUpdate)
+    return { getModel: getBoundModel, update: writer.update }
+  }
+
+  if (parent) {
+    return {
+      getModel: () => parent.model,
+      update: parent.update,
+    }
+  }
+
+  throw new Error('[vue-formless] FormView requires v-model unless nested inside another FormView.')
 }
 
 /**
@@ -155,6 +193,7 @@ export function createFormView(options: CreateFormViewOptions): FormViewComponen
   }
   const Form = options.Form ? markRaw(options.Form) : undefined
   const Item = options.Item ? markRaw(options.Item) : undefined
+  const Layout = createFormLayout({ Row: adapter.Row, Col: adapter.Col, Item })
 
   return attachFormViewItem(
     defineComponent({
@@ -166,22 +205,36 @@ export function createFormView(options: CreateFormViewOptions): FormViewComponen
         const hostForm = ref<object | null>(null)
         expose(proxyExpose(hostForm))
 
-        const resolved = provideFormViewContext({
-          getModel: () => props.modelValue,
-          emitUpdate: (next) => emit('update:modelValue', next),
-          getLayout: () => toLayoutProp(props['fl:layout']),
+        const nested = inject(formContextKey, null) != null
+        const { getModel, update } = resolveFormViewData(
+          () => props.modelValue,
+          (next) => emit('update:modelValue', next),
+        )
+
+        provideFormViewContext({
+          getModel,
+          update,
           adapter,
           Item,
           isItemEnabled: () => props['fl:item'] !== false,
-        })!
+        })
 
         return (): VNodeChild => {
           const children = slots.default?.() ?? null
-          const body = resolved.value.enabled
-            ? h(adapter.Row, { gutter: resolved.value.gutter }, () => children)
+          const layout = resolveLayout(toLayoutProp(props['fl:layout']))
+          const body = layout.enabled
+            ? h(
+                Layout,
+                {
+                  column: layout.column,
+                  gutter: layout.gutter,
+                  item: props['fl:item'] !== false,
+                },
+                () => children,
+              )
             : children
 
-          const formOn = props['fl:form'] !== false
+          const formOn = Form ? resolveFormOn(props['fl:form'] as FormFormProp, nested) : false
           if (!Form || !formOn) return body
 
           const fl: FormFl = {
@@ -192,7 +245,7 @@ export function createFormView(options: CreateFormViewOptions): FormViewComponen
 
           return h(
             Form,
-            { ref: hostForm, fl, modelValue: props.modelValue, ...attrs },
+            { ref: hostForm, fl, modelValue: getModel(), ...attrs },
             { default: () => body },
           )
         }
@@ -213,11 +266,11 @@ export const FormView = attachFormViewItem(
     props: formViewProps,
     emits: formViewEmits,
     setup(props, { slots, emit }) {
-      provideFormViewContext({
-        getModel: () => props.modelValue,
-        emitUpdate: (next) => emit('update:modelValue', next),
-        getLayout: () => toLayoutProp(props['fl:layout']),
-      })
+      const { getModel, update } = resolveFormViewData(
+        () => props.modelValue,
+        (next) => emit('update:modelValue', next),
+      )
+      provideFormViewContext({ getModel, update })
       return (): VNodeChild => slots.default?.() ?? null
     },
   }),

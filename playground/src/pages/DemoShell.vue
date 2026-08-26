@@ -57,7 +57,8 @@ const notes: Record<DemoId, { baseline: string; formless: string; compare: strin
   },
   mixed: {
     baseline: '分组 + 三列 / 24+16+8 / 整行，手写 Col。',
-    formless: '同一套 User.*；外层 FormView 包 Form；内层 `:fl:form="false"` 托管 column:3 / column:1，中间段手写 Row/Col。',
+    formless:
+      '同一套 User.*；外层 FormView 包 Form；内层只写 `:fl:layout` 换密度（`fl:form` auto 关、v-model inherit）。',
     compare: '同一套分组布局，对照托管与逃逸。',
   },
   range: {

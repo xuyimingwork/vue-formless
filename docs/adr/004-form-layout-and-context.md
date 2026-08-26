@@ -12,6 +12,7 @@
   - 2026-08-18 — FormContext 不再下传 `column` / `gutter` / `defaultSpan`；布局密度留在 FormView / `wrap`。
   - 2026-08-18 — 整表 `disabled` / `readonly` 不进 FormContext；宿主表单或输入 attrs 各自管。
   - 2026-08-19 — 校验宿主改为可选适配 `Form`（slot），不由 `createFormControls` 生成，也不再默认外层手写 `el-form`。公开 `FormLayout` 再次否决。实例 `form` / `item` 开关见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。
+  - 2026-08-26 — 嵌套 FormView：`fl:form` 默认 auto、未绑 v-model 则 inherit。实现层可拆内部 Layout；仍不公开。见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。
 - **来源**：动态表单架构设计推演
 
 ## 背景

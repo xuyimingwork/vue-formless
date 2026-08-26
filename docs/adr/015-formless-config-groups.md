@@ -4,6 +4,7 @@
 - **日期**：2026-08-24
 - **修订**：
   - 2026-08-25 — extras 的 TS 形状由适配 module augmentation 声明，内核 FormControlProps 只含 path/prop/span/item/layout。
+  - 2026-08-26 — FormView `:fl:form` 为 `boolean | 'auto'`（默认 auto）；未绑 v-model 的嵌套 FormView inherit 祖先。公开 FormLayout 仍否；内核可拆内部 Layout。
 - **来源**：[ADR-008](./008-form-view-vmodel-and-grid-gcd.md) / [ADR-011](./011-model-and-path.md) / [ADR-012](./012-input-item-and-rule-compile.md) / [ADR-013](./013-one-control-multiple-items.md)。本文钉 **配置怎么写、进哪一层**。不改 `component` 不含 Item、不改写口、不改 `useFormItem` 吃口名。
 
 ## 决策
@@ -15,12 +16,12 @@
 | 组件 | 无前缀 | `fl:` | 另 |
 |------|--------|--------|-----|
 | `User.Xxx` | → `component` | `path` `prop` `span` + boolean `item`/`layout` + extras | `:item:` / `@item:` / `#item:` → 宿主 Item |
-| `FormView` | → 适配 Form | 聚成 Form 的 `props.fl`：`layout`、`form`、`item`。内核也用这三项组树 | **`v-model` → Form 顶层 `modelValue`** |
+| `FormView` | → 适配 Form | 聚成 Form 的 `props.fl`：`layout`、`form`、`item`。内核也用这三项组树。`form` 写入 `fl` 的是解析后的 boolean（`'auto'` 已解开） | **`v-model` → Form 顶层 `modelValue`**。根必须有；嵌套可省略并 inherit |
 | `FormView.Item` | → 适配 Item | `path` `prop` `span` + boolean `layout` + extras。**无 `fl:item`、无 `fl:model`** | 无 `:item:`。选口不在标签上 |
 
 内核 `h(Form, { fl, modelValue, ...attrs })`；`h(Item, { fl, ...itemAttrs })`。`fl` 在适配组件上声明即可。
 
-- **Form `fl`**：只有 `{ layout, form, item }`。数据是顶层 `modelValue`。
+- **Form `fl`**：只有 `{ layout, form, item }`。`form` 是 boolean（auto 已在内核解开）。数据是顶层 `modelValue`。
 - **Item `fl`**：extras + 内核算出的 `controlKey` / `binding` / `getValues`。**不要**放 widget 的 `model` 列表/口名，也不放外层已消费的 `item` / `layout` 壳开关，也不放整表 `modelValue`。
 
 ### 2. 页开能力，子项只能关
@@ -74,7 +75,7 @@ formless: {
 
 - `:fl:model` / 格上改 `model`
 - `v-model:fl`、Form 的 `fl.modelValue`
-- 公开 `FormLayout`
+- 公开 `FormLayout` / `FormView.Layout`（实现层内部 Layout 可以有）
 - 合并 `path` 与 `prop`
 - 无参 `useFormItem()` 在多口时 throw
 

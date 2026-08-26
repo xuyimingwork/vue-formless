@@ -4,6 +4,7 @@ export {
   type CreateFormViewOptions,
   type FormViewComponent,
   type FormViewProps,
+  type FormFormProp,
   type FormFl,
   type FormLayoutProp,
   type FormLayoutOptions,
