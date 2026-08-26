@@ -14,6 +14,7 @@
   - 2026-08-19 — 实例配置：`v-model` / `layout` / `form` / `item`。工厂只绑组件。FormView `ref` expose 内层 Form。
   - 2026-08-19 — 单格跳过壳是 schema `item` / `layout`（与实例同名），不是 `shell`。`FormView.Item` 是临场格。
   - 2026-08-26 — `:fl:form` 默认 `'auto'`（根开、嵌套关）；未绑 v-model 的嵌套 FormView inherit 祖先写口。内核可拆 Layout（`column` / `gutter`），**不**公开 `FormView.Layout`。
+  - 2026-08-26 — 工厂改为 `layout` / `form` / `item` 分组；`form.props` / `item.props` 为对象或函数。Form snapshot 含 `modelValue`，映射由 `form.props` 做。见 [ADR-016](./016-fl-project-and-overlay.md)。
 - **来源**：相对 [ADR-004](./004-form-layout-and-context.md) / [ADR-007](./007-layout-adapter-and-span-priority.md) 的后续澄清（命名、数据口、适配面与占位策略）
 
 ## 背景
@@ -129,20 +130,19 @@ layout?: boolean | {
 </FormView>
 ```
 
-Vue 组件 ref 不会自动变成子组件：FormView `expose` 代理内层 Form 的 ref；适配 `Form` 同样代理宿主实例。内核不知道 `validate` 这些方法名。不包 Form 时代理目标为空。
+Vue 组件 ref 不会自动变成子组件：FormView `expose` 代理内层 Form 的 ref。内核不知道 `validate` 这些方法名。不包 Form 时代理目标为空。
 
 ### 3. 适配公约数：`Row` + `Col(span)` + 可选 `Form` / `Item`
 
-接外部栅格等于只吃**能力公约数**。策略层（密度、补白、换行）由 `FormView` 主控；若把底层 Row/Col 原生 props 全量透传，会与托管算法抢方向盘。Form / Item：内核 **不**写死 `label` / `prop` / `rules` / `model`；适配组件自己转，用 slot 接收内核填好的 default。
+接外部栅格等于只吃**能力公约数**。策略层（密度、补白、换行）由 `FormView` 主控；若把底层 Row/Col 原生 props 全量透传，会与托管算法抢方向盘。Form / Item：内核 **不**写死 `label` / `prop` / `rules` / 宿主 `model`；`item.props` / `form.props` 产出默认值。Col 公约数仍是 `span`。用 slot 接收内核填好的 default。
 
-**挂载方式**：项目级一次 `createFormView({ Row, Col, Form?, Item? })`。`Form` / `Item` 是适配 **组件**，用 Vue slot 接收内核填好的 default；转换（如 `toEpItemProps`）留在适配内部，**不是**工厂选项。不在内核写死某一组件库。栅格模量固定 24。不提供官方 Element 适配包；playground 展示这一次绑定。
+**挂载方式**：项目级一次 `createFormView({ layout?, form?, item? })`。每层是 `{ component, props? }`（`props` 对象或 `(fl) =>`）。内核填 default slot，并把 snapshot 交给 `props` 函数（默认值：静态对象或从 `fl` 算出）。Form 的 `model` 由 `form.props` 从 `fl.modelValue` 映射，可被标签 `:model` 盖掉。不在内核写死 `label` / `rules` / `model`。栅格模量固定 24。不提供官方 Element 适配包；playground 展示这一次绑定。见 [ADR-016](./016-fl-project-and-overlay.md)。
 
 ```ts
 export const FormView = createFormView({
-  Row: ElRow,
-  Col: ElCol,
-  Form: EpForm,   // 可选；内部 h(ElForm, { model: 投影, ...attrs }, slots)
-  Item: EpItem,   // 可选；内部把 snapshot 转成 ElFormItem props，转发 slots
+  layout: { Row: ElRow, Col: ElCol },
+  form: { component: ElForm },
+  item: { component: ElFormItem, props: toEpItemProps },
 })
 ```
 
@@ -151,7 +151,7 @@ export const FormView = createFormView({
 | **span**（24 格占位） | 外部 Col（托管时必须） | `:formless.span` 即 Col 的 `span`；缺省为 `24 / column`。模量钉死 24，不配置 `total` |
 | **Row 容器** | 外部（托管时必须） | 经典栅格下 Col 的 span 依赖行容器；由 FormView 在 Form **内侧**套上 |
 | **Form**（校验容器） | 外部（需要 `validate()` 时） | 内核有则 `h(Form)`，无则字段树原样出门；投影 model 见 [ADR-014](./014-multi-vmodel-host-validation.md) |
-| **Item**（label / 错误） | 外部（校验呈现时） | 内核有则 `h(Item, snapshot, slots)`，无则只渲输入；宿主 `rules` / `label` / `prop` 是适配自己转的，见 [ADR-012](./012-input-item-and-rule-compile.md) |
+| **Item**（label / 错误） | 外部（校验呈现时） | 内核有则 `h(Item, overlay(item.props), slots)`，无则只渲输入；`rules` / `label` / `prop` 由 `item.props` 转，见 [ADR-016](./016-fl-project-and-overlay.md) |
 | **gutter** | `FormView` → Row **可选透传** | Row 有则生效；无则间距能力不可用，**不影响**排版算法 |
 | **换行 / 类 offset / 行末补齐** | `FormView` 算法 | 一律渲染**空白 `Col(span=n)`**，不调用外部 `offset` / `push` / `pull` |
 | **字段级 `xs/sm/md`、任意 Col / FormItem 透传** | 不做默认能力 | 超出公约数时**退出托管**，手写外部栅格（不写 `layout`） |
@@ -160,7 +160,7 @@ export const FormView = createFormView({
 
 ```text
 能渲染「24 格上 span 份」的列格子 + 行容器
-→ createFormView({ Row, Col })
+→ createFormView({ layout: { Row, Col } })
 
 另需表单项（label / 校验）
 → 再加上 Item

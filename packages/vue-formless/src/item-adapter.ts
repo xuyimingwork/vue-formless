@@ -1,8 +1,9 @@
 import type { ResolvedControlBinding } from './control-model'
 
 /**
- * Adapter Item `props.fl`: kernel wiring + opaque extras.
+ * Snapshot for `item.props` / control `props` functions: kernel wiring + opaque extras.
  * Extra fields (`label`, `validate`, …) are typed by the adapter via module augmentation.
+ * Not passed as a host component prop.
  */
 export interface ItemFl {
   controlKey: string

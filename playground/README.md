@@ -1,6 +1,6 @@
 # playground
 
-Element Plus 基线表单 vs `vue-formless` 一比一预演。项目里自己 `createFormView` 绑 Row/Col/Form/Item。
+Element Plus 基线表单 vs `vue-formless` 一比一预演。项目里自己 `createFormView` 绑 layout / form / item。
 
 ```bash
 # 仓库根目录
@@ -14,4 +14,4 @@ pnpm dev
 
 - `src/demos/baseline/*`：纯 Element Plus 手写样板
 - `src/demos/formless/*`：共用 `user.ts` 控件表 + playground 里绑好的 `FormView`
-- `src/ep/*`：Element 适配示例（`createFormView` + `EpForm` / `EpItem`）
+- `src/ep/*`：Element 适配示例（`createFormView` + `toEpItemProps`）

@@ -2,6 +2,8 @@ export {
   createFormView,
   FormView,
   type CreateFormViewOptions,
+  type FormViewLayoutBind,
+  type FormViewHostBind,
   type FormViewComponent,
   type FormViewProps,
   type FormFormProp,
@@ -12,6 +14,7 @@ export {
 export {
   createFormControls,
   type ControlSchema,
+  type CreateFormControlsOptions,
   type ControlNavPath,
   type ControlProp,
   type ControlVModel,
@@ -20,6 +23,7 @@ export {
   type FormControlComponent,
   type NamespacedControls,
 } from './create-form-controls'
+export { overlayProps, resolveProps, type HostProps } from './overlay-props'
 export {
   resolveControlBinding,
   applyControlBinding,

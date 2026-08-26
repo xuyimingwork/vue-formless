@@ -1,12 +1,13 @@
-import { ElCol, ElRow } from 'element-plus'
+import { ElCol, ElForm, ElFormItem, ElRow } from 'element-plus'
 import { createFormView } from 'vue-formless'
-import { EpForm } from './ep-form'
-import { EpItem } from './ep-item'
+import { toEpItemProps } from './to-item-props'
 
-/** Playground bind: Element Row/Col + adapter Form/Item. Not a published adapter. */
+/** Playground bind: Element Row/Col/Form/Item. Not a published adapter. */
 export const FormView = createFormView({
-  Row: ElRow,
-  Col: ElCol,
-  Form: EpForm,
-  Item: EpItem,
+  layout: { Row: ElRow, Col: ElCol },
+  form: {
+    component: ElForm,
+    props: (fl) => ({ model: fl.modelValue }),
+  },
+  item: { component: ElFormItem, props: toEpItemProps },
 })

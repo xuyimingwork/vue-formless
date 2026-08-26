@@ -14,6 +14,7 @@
   - 2026-08-19 — wrap 把 `snapshot` 交给 Item；实例 `form` / `item` 开关见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。
   - 2026-08-19 — snapshot 给 `binding` + `getValues()`，不预计算宿主 `prop`。编码在适配 Item（与 Form 投影键对齐）。见 [ADR-014](./014-multi-vmodel-host-validation.md)。
   - 2026-08-25 — 丢掉 `:formless` 袋。通道改为 `fl:` + Form/Item `props.fl`；`:item:` 仍只给 `User.Xxx`。内核不再导出 `identity-rules`。见 [ADR-015](./015-formless-config-groups.md)。
+  - 2026-08-26 — Form/Item 不再吃 `props.fl`。转化是 `item.props` / control `props`（对象或函数）；覆盖见 [ADR-016](./016-fl-project-and-overlay.md)。
 - **来源**：相对 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md) / [ADR-010](./010-controls-as-semantic-cluster.md) 的后续收口（`component` 接什么、Item 挂在哪、规则与策略如何变成宿主 `rules`、一颗标签如何分流）
 
 ## 背景
@@ -53,26 +54,25 @@ agency: { label: '机构', component: AgencySelect }
 
 ```ts
 createFormView({
-  Row: ElRow,
-  Col: ElCol,
-  Form: EpForm,  // 可选
-  Item: EpItem,  // 可选
+  layout: { Row: ElRow, Col: ElCol },
+  form: { component: ElForm },
+  item: { component: ElFormItem, props: toEpItemProps },
 })
 ```
 
-`Form`、`Item` 是适配 **组件**，不是裸 `ElForm` / `ElFormItem`。内核：
+`form.component` / `item.component` 可以是裸宿主。内核：
 
 ```text
-h(Form?, formAttrs, { default: () =>
+h(Form?, { ...form.props(fl), ...attrs }, { default: () =>
   Row?（:layout）→ 字段
 })
-每格 wrap：h(Col?, { span }, () => h(Item?, { fl, ...item: }, { default: () => 输入 }))
+每格 wrap：h(Col?, { span }, () => h(Item?, { ...item.props(fl), ...item: }, { default: () => 输入 }))
 ```
 
 - **body 由 formless 渲**：`slots.default` 一定是字段树或输入。适配只 `h(ElForm, …, slots)` / `h(ElFormItem, 转换(snapshot), slots)`，必须转发 default。
 - **无 Form / 无 Item / 无 Col**：内核 **不** `h()` 那一层（工厂不传、`:form="false"` / `:item="false"`、schema `item` / `layout` 为 false、不开 `layout`）。不要在适配里 `if` 丢掉 default。
 - Control **不** `h(Item)` / `h(Col)` / `h(Form)`。Item/Col/Form 不得放进深 `reactive` 的 FormContext。
-- 内核 **不**写死 `label` / `prop` / `rules`；转换留在 `EpItem` 内部（原 `toItemProps` / `toEpRules`），**不是**工厂第二参数。snapshot 给 `controlKey`、`binding`、`getValues()`、`validation` / `validate`；宿主 `prop` 由 Item 编码（与 Form 投影键必须一致，见 [ADR-014](./014-multi-vmodel-host-validation.md)）。
+- 内核 **不**写死 `label` / `prop` / `rules`；转换是工厂 `item.props`（playground `toEpItemProps` / `toEpRules`）。snapshot 给 `controlKey`、`binding`、`getValues()`、`validation` / `validate`；宿主 `prop` 由 `item.props` 编码（与 Form 投影键必须一致，见 [ADR-014](./014-multi-vmodel-host-validation.md)）。见 [ADR-016](./016-fl-project-and-overlay.md)。
 - `:item:` attrs 盖在适配转换结果上（协议见 §5）。
 
 有 `Form` 时页面 **不**手写 `el-form`；`validate()` / `resetFields()` 走 FormView expose。整表 `disabled` 是落到 `Form` 的 attrs。无 `Form`（表格、非表单）字段树照渲。

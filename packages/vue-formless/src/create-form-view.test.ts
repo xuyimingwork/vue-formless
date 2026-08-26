@@ -28,23 +28,29 @@ const Item = defineComponent({
   },
 })
 
-function makeForm(onSetup?: (props: { fl?: unknown; modelValue?: unknown }) => void) {
+function makeForm(onSetup?: (props: { model?: unknown; fl?: unknown }) => void) {
   return defineComponent({
     name: 'DummyForm',
     inheritAttrs: false,
     props: {
-      fl: { type: Object as PropType<{ form: boolean; item: boolean; layout: unknown }>, default: undefined },
-      modelValue: { type: [Object, Array], default: undefined },
+      model: { type: [Object, Array] as PropType<unknown>, default: undefined },
     },
-    setup(props, { slots }) {
-      onSetup?.(props)
+    setup(props, { slots, attrs }) {
+      onSetup?.({ model: props.model, fl: attrs.fl })
       return () => h('form', slots.default?.())
     },
   })
 }
 
-function View(onForm?: (props: { fl?: unknown; modelValue?: unknown }) => void) {
-  return createFormView({ Row, Col, Form: makeForm(onForm), Item })
+function View(onForm?: (props: { model?: unknown; fl?: unknown }) => void) {
+  return createFormView({
+    layout: { Row, Col },
+    form: {
+      component: makeForm(onForm),
+      props: (fl) => ({ model: fl.modelValue }),
+    },
+    item: { component: Item },
+  })
 }
 
 function Writer(prop = 'name', value: unknown = 'Bob') {
@@ -90,7 +96,7 @@ describe('createFormView', () => {
   it('wraps Form at the root by default and skips it for nested auto', async () => {
     const forms: unknown[] = []
     const FormView = View((props) => {
-      forms.push(props.fl)
+      forms.push(props)
     })
     await render(
       h(FormView, { modelValue: {} }, () =>
@@ -98,13 +104,13 @@ describe('createFormView', () => {
       ),
     )
     expect(forms).toHaveLength(1)
-    expect(forms[0]).toMatchObject({ form: true, item: true })
+    expect(forms[0]).toMatchObject({ fl: undefined, model: {} })
   })
 
   it('still wraps Form when nested :fl:form="true"', async () => {
     const forms: unknown[] = []
     const FormView = View((props) => {
-      forms.push(props.fl)
+      forms.push(props)
     })
     await render(
       h(FormView, { modelValue: {} }, () =>
@@ -112,13 +118,13 @@ describe('createFormView', () => {
       ),
     )
     expect(forms).toHaveLength(2)
-    expect(forms[1]).toMatchObject({ form: true })
+    expect(forms[1]).toMatchObject({ fl: undefined })
   })
 
   it('does not wrap Form when root :fl:form="false"', async () => {
     const forms: unknown[] = []
     const FormView = View((props) => {
-      forms.push(props.fl)
+      forms.push(props)
     })
     await render(h(FormView, { modelValue: {}, 'fl:form': false }, () => h(Writer())))
     expect(forms).toHaveLength(0)
@@ -203,5 +209,58 @@ describe('createFormView', () => {
     await nextTick()
     expect(emit).toHaveBeenCalledTimes(1)
     expect(emit.mock.calls[0]![0]).toEqual({ name: 'Bob' })
+  })
+
+  it('maps form.props from fl.modelValue and lets tag attrs overlay', async () => {
+    const seen: unknown[] = []
+    const Form = defineComponent({
+      inheritAttrs: false,
+      props: {
+        model: { type: [Object, Array] as PropType<unknown>, default: undefined },
+        labelWidth: { type: String, default: undefined },
+        extra: { type: String, default: undefined },
+      },
+      setup(props, { slots }) {
+        seen.push({ model: props.model, labelWidth: props.labelWidth, extra: props.extra })
+        return () => h('form', slots.default?.())
+      },
+    })
+    const FormView = createFormView({
+      layout: { Row, Col },
+      form: {
+        component: Form,
+        props: (fl) => ({ model: fl.modelValue, extra: 'from-fl', labelWidth: '80px' }),
+      },
+    })
+    await render(
+      h(FormView, { modelValue: { name: 'Ada' }, labelWidth: '96px' }, () => h(Writer())),
+    )
+    expect(seen).toHaveLength(1)
+    expect(seen[0]).toEqual({ model: { name: 'Ada' }, labelWidth: '96px', extra: 'from-fl' })
+  })
+
+  it('lets an explicit :model overlay form.props', async () => {
+    const seen: unknown[] = []
+    const Form = defineComponent({
+      inheritAttrs: false,
+      props: {
+        model: { type: [Object, Array] as PropType<unknown>, default: undefined },
+      },
+      setup(props, { slots }) {
+        seen.push(props.model)
+        return () => h('form', slots.default?.())
+      },
+    })
+    const FormView = createFormView({
+      layout: { Row, Col },
+      form: {
+        component: Form,
+        props: (fl) => ({ model: fl.modelValue }),
+      },
+    })
+    const a = { name: 'Ada' }
+    const b = { name: 'Bob' }
+    await render(h(FormView, { modelValue: a, model: b }, () => h(Writer())))
+    expect(seen).toEqual([b])
   })
 })

@@ -1,8 +1,9 @@
 import { h, markRaw, type Component, type Slot, type VNodeChild } from 'vue'
 import type { ItemFl } from './item-adapter'
 import { GRID_TOTAL } from './layout'
+import { overlayProps, resolveProps, type HostProps } from './overlay-props'
 
-/** Input Control hands to FormView's wrap: Item `fl` + host fallthrough. */
+/** Input Control hands to FormView's wrap: Item snapshot + host fallthrough. */
 export interface WrapControlMeta {
   span?: number
   /**
@@ -27,6 +28,7 @@ export type WrapControl = (body: VNodeChild, meta: WrapControlMeta) => VNodeChil
 export function createControlWrap(options: {
   Col?: Component
   Item?: Component
+  itemProps?: HostProps<ItemFl>
   isLayoutEnabled: () => boolean
   isItemEnabled?: () => boolean
   getDefaultSpan: () => number | undefined
@@ -40,11 +42,11 @@ export function createControlWrap(options: {
       Item && (options.isItemEnabled?.() ?? true) && meta.item !== false
         ? h(
             Item,
-            {
-              fl: meta.fl,
-              ...meta.itemAttrs,
-              ...meta.itemOn,
-            },
+            overlayProps(
+              resolveProps(options.itemProps, meta.fl),
+              meta.itemAttrs,
+              meta.itemOn,
+            ),
             {
               ...meta.itemSlots,
               default: () => input,

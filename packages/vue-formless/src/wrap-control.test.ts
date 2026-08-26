@@ -45,17 +45,30 @@ describe('createControlWrap', () => {
     expect(wrap(body, emptyMeta)).toBe(body)
   })
 
-  it('wraps Item with fl, without capturing the Item vnode in default', () => {
+  it('wraps Item with resolved props, without capturing the Item vnode in default', () => {
     const wrap = createControlWrap({
       Item,
+      itemProps: (cell) => ({ label: String(cell.controlKey) }),
       isLayoutEnabled: () => false,
       getDefaultSpan: () => undefined,
     })
     const input = h('input')
     const out = wrap(input, emptyMeta) as VNode
     expect(out.type).toBe(Item)
-    expect(out.props?.fl).toBe(fl)
+    expect(out.props?.fl).toBeUndefined()
+    expect(out.props?.label).toBe('name')
     expect(slotDefault(out)).toBe(input)
+  })
+
+  it('lets itemAttrs overlay itemProps', () => {
+    const wrap = createControlWrap({
+      Item,
+      itemProps: { label: 'from-fl' },
+      isLayoutEnabled: () => false,
+      getDefaultSpan: () => undefined,
+    })
+    const out = wrap(h('input'), { ...emptyMeta, itemAttrs: { label: 'from-tag' } }) as VNode
+    expect(out.props?.label).toBe('from-tag')
   })
 
   it('skips Item when isItemEnabled is false', () => {

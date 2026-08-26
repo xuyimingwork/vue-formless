@@ -14,6 +14,7 @@ import {
   type ControlNavPath,
   type ControlProp,
   type ControlVModel,
+  type ResolvedControlBinding,
 } from './control-model'
 import { getIn } from './model-path'
 import { useFormContext } from './context'
@@ -24,6 +25,8 @@ import {
   schemaExtras,
   stripPortBindings,
 } from './fl-config'
+import type { ItemFl } from './item-adapter'
+import { overlayProps, resolveProps, type HostProps } from './overlay-props'
 import { splitFallthrough, splitFlAttrs, splitSlots } from './split-fallthrough'
 import {
   provideControlRuntime,
@@ -33,6 +36,7 @@ import {
 
 export type { ControlNavPath, ControlProp, ControlVModel }
 export type { ItemFl } from './item-adapter'
+export type { HostProps } from './overlay-props'
 export type { WrapControl, WrapControlMeta } from './wrap-control'
 
 export interface ControlSchema {
@@ -41,8 +45,8 @@ export interface ControlSchema {
    * Widget may also declare static `formless: { model, item, layout }`.
    */
   component?: Component
-  /** Default props merged into the input (not v-model). */
-  props?: Record<string, unknown>
+  /** Input defaults: static object, or derived from the cell snapshot. */
+  props?: HostProps<ItemFl>
   /**
    * v-model names on the widget (ADR-011). Default `'modelValue'`.
    * Locked with the component; tag cannot override. Prefer widget `formless.model`.
@@ -69,6 +73,11 @@ export interface ControlSchema {
    * Inner `useFormItem(port)` still follows FormView `layout`.
    */
   layout?: boolean
+}
+
+export interface CreateFormControlsOptions {
+  /** Defaults for every control in this cluster (static or from the cell snapshot). */
+  props?: HostProps<ItemFl>
 }
 
 /** Loose schema bag. Prefer inferring `S` from an object literal via `createFormControls`. */
@@ -105,6 +114,7 @@ const controlFlProps = {
  */
 export function createFormControls<S extends { [K in keyof S]: ControlSchema }>(
   schema: S,
+  options?: CreateFormControlsOptions,
 ): NamespacedControls<S> {
   const normalized = normalizeSchema(schema)
   const result = {} as NamespacedControls<S>
@@ -114,13 +124,21 @@ export function createFormControls<S extends { [K in keyof S]: ControlSchema }>(
     if (!item) continue
     const pascalKey = camelToPascal(controlKey) as CamelToPascal<typeof controlKey> &
       keyof NamespacedControls<S>
-    result[pascalKey] = createNamespacedControl(controlKey, item) as NamespacedControls<S>[typeof pascalKey]
+    result[pascalKey] = createNamespacedControl(
+      controlKey,
+      item,
+      options,
+    ) as NamespacedControls<S>[typeof pascalKey]
   }
 
   return result
 }
 
-function createNamespacedControl(controlKey: string, control: ControlSchema): FormControlComponent {
+function createNamespacedControl(
+  controlKey: string,
+  control: ControlSchema,
+  cluster?: CreateFormControlsOptions,
+): FormControlComponent {
   const widgetFormless = readWidgetFormless(control.component)
   const lockedModel = widgetFormless.model ?? control.model
   const schemaSkipItem = control.item === false || widgetFormless.item === false
@@ -155,14 +173,16 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
         const { itemSlots, inputSlots } = splitSlots(slots)
         const { itemAttrs, itemOn, inputAttrs } = splitFallthrough(rest)
 
-        const mergedProps = {
-          ...control.props,
-          ...stripPortBindings(inputAttrs, binding.models),
-        }
-        const modelBindings = applyControlBinding(ctx.model, binding, ctx.update)
         const extras = schemaExtras(control as Record<string, unknown>)
+        const snapshot = inputSnapshot(ctx, controlKey, binding, extras, tagFl)
+        const mergedProps = overlayProps(
+          resolveProps(cluster?.props, snapshot),
+          resolveProps(control.props, snapshot),
+          stripPortBindings(inputAttrs, binding.models),
+        )
+        const modelBindings = applyControlBinding(ctx.model, binding, ctx.update)
         const displayProp = binding.props[0] ?? controlKey
-        const label = typeof tagFl.label === 'string' ? tagFl.label : extras.label
+        const label = typeof snapshot.label === 'string' ? snapshot.label : undefined
 
         const body: VNodeChild = widget
           ? h(
@@ -199,6 +219,22 @@ function createNamespacedControl(controlKey: string, control: ControlSchema): Fo
       }
     },
   }) as FormControlComponent
+}
+
+function inputSnapshot(
+  ctx: ReturnType<typeof useFormContext>,
+  controlKey: string,
+  binding: ResolvedControlBinding,
+  extras: Record<string, unknown>,
+  tagFl: Record<string, unknown>,
+): ItemFl {
+  return {
+    ...extras,
+    ...omitShellKeys(tagFl),
+    controlKey,
+    binding,
+    getValues: () => binding.props.map((p) => getIn(ctx.model, binding.path, p)),
+  }
 }
 
 function normalizeSchema<S extends { [K in keyof S]: ControlSchema }>(schema: S): S {

@@ -19,21 +19,32 @@ import {
   type FormLayoutOptions,
   type FormLayoutProp,
 } from './layout'
+import type { ItemFl } from './item-adapter'
+import { overlayProps, resolveProps, type HostProps } from './overlay-props'
 import { createControlWrap } from './wrap-control'
 import { attachFormViewItem, FormViewItem } from './use-form-item'
 
-export interface CreateFormViewOptions {
-  /** Row container (e.g. ElRow). Required together with Col for hosted layout. */
+export interface FormViewLayoutBind {
   Row: Component
-  /** Column cell (e.g. ElCol). Must accept a numeric `span` prop (24-grid). */
   Col: Component
-  /** Host form shell (e.g. EpForm). Optional; skip wrapping when omitted or `:fl:form="false"`. */
-  Form?: Component
-  /** Form item shell (e.g. EpItem). Converts `props.fl` internally. */
-  Item?: Component
+}
+
+export interface FormViewHostBind<TFl> {
+  component: Component
+  props?: HostProps<TFl>
+}
+
+export interface CreateFormViewOptions {
+  /** Row + Col for hosted grid. Omit to skip Col wrap even when `:fl:layout` is on. */
+  layout?: FormViewLayoutBind
+  /** Host form shell. Omit or `:fl:form="false"` skips wrapping. */
+  form?: FormViewHostBind<FormFl>
+  /** Host item shell. `props` are defaults (static or from the cell snapshot). */
+  item?: FormViewHostBind<ItemFl>
 }
 
 export type { FormLayoutProp, FormLayoutOptions } from './layout'
+export type { HostProps } from './overlay-props'
 
 export type FormFormProp = boolean | 'auto'
 
@@ -46,11 +57,11 @@ export interface FormViewProps {
    */
   'fl:layout'?: FormLayoutProp
   /**
-   * Wrap the factory `Form`. Default `'auto'`: on at the root, off when nested.
+   * Wrap the factory `form`. Default `'auto'`: on at the root, off when nested.
    * Explicit `true` / `false` win.
    */
   'fl:form'?: FormFormProp
-  /** Wrap the factory `Item` per cell (default `true` when `Item` is bound). */
+  /** Wrap the factory `item` per cell (default `true` when `item.component` is bound). */
   'fl:item'?: boolean
 }
 
@@ -58,6 +69,8 @@ export interface FormFl {
   layout: FormLayoutProp
   form: boolean
   item: boolean
+  /** FormView write-model; map to the host via `form.props` (e.g. `{ model: fl.modelValue }`). */
+  modelValue: unknown
 }
 
 function proxyExpose(host: { value: object | null }): object {
@@ -127,11 +140,13 @@ function provideFormViewContext(options: {
   update: FormContext['update']
   adapter?: FormGridAdapter
   Item?: Component
+  itemProps?: HostProps<ItemFl>
   isItemEnabled?: () => boolean
 }): void {
   const wrap = createControlWrap({
     Col: options.adapter?.Col,
     Item: options.Item,
+    itemProps: options.itemProps,
     isLayoutEnabled: () => false,
     isItemEnabled: options.isItemEnabled,
     getDefaultSpan: () => undefined,
@@ -171,29 +186,40 @@ function resolveFormViewData(
   throw new Error('[vue-formless] FormView requires v-model unless nested inside another FormView.')
 }
 
+function resolveLayoutBind(layout: FormViewLayoutBind | undefined): FormGridAdapter | undefined {
+  if (layout == null) return undefined
+  if (layout.Row == null || layout.Col == null) {
+    throw new Error('[vue-formless] createFormView layout requires both Row and Col.')
+  }
+  return {
+    Row: markRaw(layout.Row),
+    Col: markRaw(layout.Col),
+  }
+}
+
 /**
- * Bind external Row/Col (and optional Form/Item) once; returns a FormView (ADR-008 / ADR-012).
+ * Bind host layout / form / item once; returns a FormView (ADR-008 / ADR-016).
  *
  * Host shells stay in this closure. Cells go through `useFormItem` / `FormView.Item`, which call `wrap`.
  *
  * @example
  * ```ts
  * export const FormView = createFormView({
- *   Row: ElRow,
- *   Col: ElCol,
- *   Form: EpForm,
- *   Item: EpItem,
+ *   layout: { Row: ElRow, Col: ElCol },
+ *   form: { component: ElForm, props: (fl) => ({ model: fl.modelValue }) },
+ *   item: { component: ElFormItem, props: toEpItemProps },
  * })
  * ```
  */
-export function createFormView(options: CreateFormViewOptions): FormViewComponent {
-  const adapter: FormGridAdapter = {
-    Row: markRaw(options.Row),
-    Col: markRaw(options.Col),
-  }
-  const Form = options.Form ? markRaw(options.Form) : undefined
-  const Item = options.Item ? markRaw(options.Item) : undefined
-  const Layout = createFormLayout({ Row: adapter.Row, Col: adapter.Col, Item })
+export function createFormView(options: CreateFormViewOptions = {}): FormViewComponent {
+  const adapter = resolveLayoutBind(options.layout)
+  const Form = options.form?.component ? markRaw(options.form.component) : undefined
+  const formProps = options.form?.props
+  const Item = options.item?.component ? markRaw(options.item.component) : undefined
+  const itemProps = options.item?.props
+  const Layout = adapter
+    ? createFormLayout({ Row: adapter.Row, Col: adapter.Col, Item, itemProps })
+    : undefined
 
   return attachFormViewItem(
     defineComponent({
@@ -216,23 +242,25 @@ export function createFormView(options: CreateFormViewOptions): FormViewComponen
           update,
           adapter,
           Item,
+          itemProps,
           isItemEnabled: () => props['fl:item'] !== false,
         })
 
         return (): VNodeChild => {
           const children = slots.default?.() ?? null
           const layout = resolveLayout(toLayoutProp(props['fl:layout']))
-          const body = layout.enabled
-            ? h(
-                Layout,
-                {
-                  column: layout.column,
-                  gutter: layout.gutter,
-                  item: props['fl:item'] !== false,
-                },
-                () => children,
-              )
-            : children
+          const body =
+            layout.enabled && Layout
+              ? h(
+                  Layout,
+                  {
+                    column: layout.column,
+                    gutter: layout.gutter,
+                    item: props['fl:item'] !== false,
+                  },
+                  () => children,
+                )
+              : children
 
           const formOn = Form ? resolveFormOn(props['fl:form'] as FormFormProp, nested) : false
           if (!Form || !formOn) return body
@@ -241,11 +269,15 @@ export function createFormView(options: CreateFormViewOptions): FormViewComponen
             layout: toLayoutProp(props['fl:layout']),
             form: formOn,
             item: props['fl:item'] !== false,
+            modelValue: getModel(),
           }
 
           return h(
             Form,
-            { ref: hostForm, fl, modelValue: getModel(), ...attrs },
+            {
+              ref: hostForm,
+              ...overlayProps(resolveProps(formProps, fl), attrs as Record<string, unknown>),
+            },
             { default: () => body },
           )
         }
@@ -257,7 +289,7 @@ export function createFormView(options: CreateFormViewOptions): FormViewComponen
 export type FormViewComponent = Component & { Item: typeof FormViewItem }
 
 /**
- * Context-only FormView (no Row/Col/Form/Item). Prefer `createFormView({ Row, Col })`.
+ * Context-only FormView (no Row/Col/Form/Item). Prefer `createFormView({ layout: { Row, Col } })`.
  */
 export const FormView = attachFormViewItem(
   defineComponent({

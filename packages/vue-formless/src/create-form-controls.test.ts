@@ -1,5 +1,6 @@
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
-import { defineComponent } from 'vue'
+import { createSSRApp, defineComponent, h, type VNode } from 'vue'
+import { renderToString } from 'vue/server-renderer'
 import { camelToPascal, pascalToCamel } from './case'
 import {
   applyControlBinding,
@@ -267,8 +268,65 @@ describe('createFormControls', () => {
 describe('FormView.Item', () => {
   it('is attached on createFormView and the context-only FormView', () => {
     const Dummy = defineComponent({ setup: () => () => null })
-    const View = createFormView({ Row: Dummy, Col: Dummy })
+    const View = createFormView({ layout: { Row: Dummy, Col: Dummy } })
     expect(View.Item).toBe(FormViewItem)
     expect(FormView.Item).toBe(FormViewItem)
+  })
+})
+
+describe('createFormControls props overlay', () => {
+  const Dummy = defineComponent({ setup: () => () => null })
+  const Passthrough = defineComponent({
+    inheritAttrs: false,
+    setup(_, { slots }) {
+      return () => slots.default?.() ?? null
+    },
+  })
+
+  async function render(vnode: VNode): Promise<string> {
+    return renderToString(createSSRApp({ render: () => vnode }))
+  }
+
+  it('merges cluster, control, then tag; functions see label', async () => {
+    const seen: Record<string, unknown>[] = []
+    const Input = defineComponent({
+      inheritAttrs: false,
+      setup(_, { attrs }) {
+        seen.push({ ...attrs })
+        return () => h('input')
+      },
+    })
+    const User = createFormControls(
+      {
+        name: {
+          label: '姓名',
+          component: Input,
+          props: (fl) => ({
+            placeholder: typeof fl.label === 'string' ? `请填写${fl.label}` : undefined,
+          }),
+        },
+        mobile: {
+          label: '手机',
+          component: Input,
+          props: { placeholder: '11 位手机号' },
+        },
+      },
+      { props: { clearable: true } },
+    )
+    const View = createFormView({
+      layout: { Row: Dummy, Col: Dummy },
+      item: { component: Passthrough },
+    })
+    await render(
+      h(View, { modelValue: { name: '', mobile: '' } }, () => [
+        h(User.Name),
+        h(User.Mobile),
+        h(User.Name, { placeholder: '姓名' }),
+      ]),
+    )
+    expect(seen).toHaveLength(3)
+    expect(seen[0]).toMatchObject({ placeholder: '请填写姓名', clearable: true })
+    expect(seen[1]).toMatchObject({ placeholder: '11 位手机号', clearable: true })
+    expect(seen[2]).toMatchObject({ placeholder: '姓名', clearable: true })
   })
 })
