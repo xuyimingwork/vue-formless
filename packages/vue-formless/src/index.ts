@@ -15,7 +15,6 @@ export {
   createFormControls,
   type ControlSchema,
   type CreateFormControlsOptions,
-  type ControlNavPath,
   type ControlProp,
   type ControlVModel,
   type FormControlsSchema,

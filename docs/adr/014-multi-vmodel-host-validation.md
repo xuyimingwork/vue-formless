@@ -48,7 +48,7 @@ timeRange: {
 - 这场 `:formless.validate`
 - **已经取好的值**：单口是标量；多口是与已绑定 `prop` 对齐的列表（下称口值）
 
-叶子名、`path`、`getIn(form, 'startTime')` 只活在内核：按 binding `getIn(model, path, prop[i])`。口值随 DTO 现取（投影 getter 或 `() => values`），不能在 Item 首次渲染时拍死。
+叶子名、`getIn(form, prop)` 只活在内核：按 binding `getIn(model, prop[i])`。口值随 DTO 现取（投影 getter 或 `() => values`），不能在 Item 首次渲染时拍死。
 
 `empty.validate` / `format.validate` 的参数仍是 `unknown`（标量或列表）。怎样算空、怎样算区间合法，写在 **簇的 `validation` 里**，由控件作者解释这对值，不由 Element 适配解释字段名。
 

@@ -5,7 +5,8 @@
 - **修订**：
   - 2026-08-25 — extras 的 TS 形状由适配 module augmentation 声明，内核 FormControlProps 只含 path/prop/span/item/layout。
   - 2026-08-26 — FormView `:fl:form` 为 `boolean | 'auto'`（默认 auto）；未绑 v-model 的嵌套 FormView inherit 祖先。公开 FormLayout 仍否；内核可拆内部 Layout。
-  - 2026-08-26 — 宿主不再吃 `props.fl`。extras + snapshot 只进 `form.props` / `item.props` / control `props` 函数。见 [ADR-016](./016-fl-project-and-overlay.md)。
+  - 2026-08-27 — 适配只扩 `ControlSchema`；`ItemFl` / `fl:*` 标签 props 从 extras 推导。
+  - 2026-08-27 — 去掉独立 `path`；位置只写 `prop`。见 [ADR-011](./011-model-and-path.md)。
 - **来源**：[ADR-008](./008-form-view-vmodel-and-grid-gcd.md) / [ADR-011](./011-model-and-path.md) / [ADR-012](./012-input-item-and-rule-compile.md) / [ADR-013](./013-one-control-multiple-items.md)。本文钉 **配置怎么写、进哪一层**。不改 `component` 不含 Item、不改写口、不改 `useFormItem` 吃口名。
 
 ## 决策
@@ -16,9 +17,9 @@
 
 | 组件 | 无前缀 | `fl:` | 另 |
 |------|--------|--------|-----|
-| `User.Xxx` | → `component` | `path` `prop` `span` + boolean `item`/`layout` + extras | `:item:` / `@item:` / `#item:` → 宿主 Item |
+| `User.Xxx` | → `component` | `prop` `span` + boolean `item`/`layout` + extras | `:item:` / `@item:` / `#item:` → 宿主 Item |
 | `FormView` | → 适配 Form | 组树仍用 `layout` / `form` / `item`。`form.props` 从 snapshot（含 `modelValue`）产出默认宿主 props | **`v-model` 是 FormView 写口**。根必须有；嵌套可省略并 inherit。无前缀 `:model` 盖 `form.props` |
-| `FormView.Item` | → 适配 Item | `path` `prop` `span` + boolean `layout` + extras。**无 `fl:item`、无 `fl:model`** | 无 `:item:`。选口不在标签上 |
+| `FormView.Item` | → 适配 Item | `prop` `span` + boolean `layout` + extras。**无 `fl:item`、无 `fl:model`** | 无 `:item:`。选口不在标签上 |
 
 内核 `h(Form, overlay(form.props(snapshot), attrs))`；`h(Item, overlay(item.props(snapshot), itemAttrs))`。Snapshot 只进 `props` 函数，不是宿主 prop。
 
@@ -46,10 +47,10 @@ wrap 仍是 `Col? → Item? → body`。FormView 打开某项能力后，下面�
 - 标签上 **没有 `fl:model`**。控件内 `v-model="start"` 是控件自己的口（工厂已焊到 FormView）。
 - 页面 `<FormView.Item><Input v-model="form.xxx" /></FormView.Item>` **禁止**。
 
-### 4. path / prop（不重开 [ADR-011](./011-model-and-path.md)）
+### 4. prop（不重开 [ADR-011](./011-model-and-path.md)）
 
-- `prop`：叶子；`path`：导航。表格只盖 `:fl:path`。
-- **有值才盖** schema：`undefined` = 没写；**空字符串算有值**。
+- `prop`：从 FormView 根到叶子的位置（可含 `buyers[0].name`）。表格盖 `:fl:prop`。
+- **有值才盖** schema：`undefined` = 没写。
 - **`prop` 不允许空字符串**（非法，不能用来盖）。
 
 ### 5. 控件静态 `formless`
@@ -68,7 +69,7 @@ formless: {
 
 ### 6. 内核与适配分工
 
-- 内核读核心键：`component`、`model`、`props`、`path`、`prop`、`item`、`layout`。其余 schema 键与 `fl:*` extras **不解释**，进 Item/Input 转化函数的 snapshot。extras 的 TypeScript 形状由适配 `declare module 'vue-formless'` 扩充（`ControlSchema` / `FormControlProps` / `FormViewItemProps` / `ItemFl`），内核不预声明 `label` / `validate`。见 [ADR-016](./016-fl-project-and-overlay.md)。
+- 内核读核心键：`component`、`model`、`props`、`prop`、`item`、`layout`。其余 schema 键与 `fl:*` extras **不解释**，进 Item/Input 转化函数的 snapshot。extras 只扩 `ControlSchema`；`ItemFl` / `FormControlProps` / `FormViewItemProps` 从 extras 推导（`label` → snapshot `label` 与 `:fl:label`）。内核不预声明 `label` / `validate`。见 [ADR-016](./016-fl-project-and-overlay.md)。
 - 内核 **删除 `identity-rules`**。`validation` / `validate` 是不透明 extras；默认 `'optional'` 和编 `rules` 都在适配（playground `toEpRules`）。
 - Col 只吃内核算出的 `span`；Row 只吃页 `fl:layout` 的 `gutter`。外层这次 wrap 无 Col 则这次不用 `span`。
 
@@ -77,9 +78,8 @@ formless: {
 - `:fl:model` / 格上改 `model`
 - `v-model:fl`、Form 的 `fl.modelValue`
 - 公开 `FormLayout` / `FormView.Layout`（实现层内部 Layout 可以有）
-- 合并 `path` 与 `prop`
 - 无参 `useFormItem()` 在多口时 throw
 
 ## 关联
 
-写口 [008](./008-form-view-vmodel-and-grid-gcd.md)；`model`/`prop`/`path` [011](./011-model-and-path.md)；输入与 Item [012](./012-input-item-and-rule-compile.md)；一 control 多格 [013](./013-one-control-multiple-items.md)；多口校验 [014](./014-multi-vmodel-host-validation.md)。
+写口 [008](./008-form-view-vmodel-and-grid-gcd.md)；`model`/`prop` [011](./011-model-and-path.md)；输入与 Item [012](./012-input-item-and-rule-compile.md)；一 control 多格 [013](./013-one-control-multiple-items.md)；多口校验 [014](./014-multi-vmodel-host-validation.md)。

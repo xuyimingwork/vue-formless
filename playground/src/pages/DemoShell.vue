@@ -42,8 +42,8 @@ const notes: Record<DemoId, { baseline: string; formless: string; compare: strin
   basic: {
     baseline: 'ElForm + Row/Col + FormItem，每个字段自己写 v-model。',
     formless:
-      '共用 User 控件表；模板只摆控件。FormView 自带 Form；:fl:layout="{ column: 2 }"，备注 :fl:span="24"，必填 :fl:validate="\'required\'"。',
-    compare: '同一套字段与校验，对照模板密度。',
+      '共用 User 控件表；模板只摆控件。FormView 自带 Form；:fl:layout="{ column: 2 }"，备注 :fl:span="24"。',
+    compare: '同一套字段，对照模板密度。',
   },
   filter: {
     baseline: '四格筛选，手写 Col span=6。',

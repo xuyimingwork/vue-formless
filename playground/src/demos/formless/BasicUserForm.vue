@@ -33,9 +33,9 @@ function onReset() {
     label-width="96px"
     :fl:layout="{ column: 2, gutter: 16 }"
   >
-    <User.Name :fl:validate="'required'" />
-    <User.Gender :fl:validate="'required'" />
-    <User.Mobile :fl:validate="'required'" />
+    <User.Name />
+    <User.Gender />
+    <User.Mobile />
     <User.Email />
     <User.IdCard />
     <User.Address />

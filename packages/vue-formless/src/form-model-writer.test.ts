@@ -35,8 +35,8 @@ describe('createFormModelWriter', () => {
     const emit = vi.fn()
     const { update } = createFormModelWriter(() => order, emit)
 
-    update('name', 'Bob', 'buyers[0]')
-    update('gender', 'm', 'buyers[0]')
+    update('buyers[0].name', 'Bob')
+    update('buyers[0].gender', 'm')
     await nextTick()
 
     expect(emit).toHaveBeenCalledTimes(1)

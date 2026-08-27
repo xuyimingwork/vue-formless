@@ -27,7 +27,6 @@ describe('resolveControlBinding', () => {
     expect(resolveControlBinding('name')).toEqual({
       models: ['modelValue'],
       props: ['name'],
-      path: undefined,
     })
   })
 
@@ -35,7 +34,6 @@ describe('resolveControlBinding', () => {
     expect(resolveControlBinding('title', { prop: 'name' })).toEqual({
       models: ['modelValue'],
       props: ['name'],
-      path: undefined,
     })
   })
 
@@ -48,7 +46,6 @@ describe('resolveControlBinding', () => {
     ).toEqual({
       models: ['start', 'end'],
       props: ['startTime', 'endTime'],
-      path: undefined,
     })
   })
 
@@ -62,21 +59,19 @@ describe('resolveControlBinding', () => {
     ).toEqual({
       models: ['start', 'end'],
       props: ['from', 'to'],
-      path: undefined,
     })
   })
 
-  it('path override sets navigation only', () => {
+  it('prop override can be a nested location', () => {
     expect(
       resolveControlBinding(
         'name',
         { prop: 'name' },
-        { path: 'buyers[0]' },
+        { prop: 'buyers[0].name' },
       ),
     ).toEqual({
       models: ['modelValue'],
-      props: ['name'],
-      path: 'buyers[0]',
+      props: ['buyers[0].name'],
     })
   })
 
@@ -90,7 +85,6 @@ describe('resolveControlBinding', () => {
     ).toEqual({
       models: ['modelValue', 'option'],
       props: ['vendorId'],
-      path: undefined,
     })
   })
 
@@ -103,7 +97,6 @@ describe('resolveControlBinding', () => {
     ).toEqual({
       models: ['modelValue', 'option'],
       props: ['name'],
-      path: undefined,
     })
   })
 
@@ -114,16 +107,6 @@ describe('resolveControlBinding', () => {
         prop: ['name', 'option'],
       }),
     ).toThrow(/prop cannot be longer than model/)
-  })
-
-  it('keeps empty-string path as a cover value', () => {
-    expect(
-      resolveControlBinding('name', { path: 'buyers[0]' }, { path: '' }),
-    ).toEqual({
-      models: ['modelValue'],
-      props: ['name'],
-      path: '',
-    })
   })
 
   it('throws on empty-string prop', () => {
@@ -152,17 +135,16 @@ describe('applyControlBinding', () => {
     expect(bindings.end).toBe('b')
     ;(bindings['onUpdate:start'] as (v: string) => void)('x')
     expect(form.startTime).toBe('a')
-    expect(update).toHaveBeenCalledWith('startTime', 'x', undefined)
+    expect(update).toHaveBeenCalledWith('startTime', 'x')
   })
 
-  it('reads through navigation path', () => {
+  it('reads a nested prop location', () => {
     const form = { buyers: [{ name: 'Ada' }] }
     const bindings = applyControlBinding(
       form,
       {
         models: ['modelValue'],
-        props: ['name'],
-        path: 'buyers[0]',
+        props: ['buyers[0].name'],
       },
       vi.fn(),
     )
@@ -186,13 +168,13 @@ describe('applyControlBinding', () => {
 })
 
 describe('resolveFormItemProp', () => {
-  it('uses navigation + sole prop, otherwise control key (Element helper)', () => {
+  it('uses the sole prop, otherwise control key (Element helper)', () => {
     expect(
       resolveFormItemProp({ models: ['modelValue'], props: ['title'] }, 'name'),
     ).toBe('title')
     expect(
       resolveFormItemProp(
-        { models: ['modelValue'], props: ['name'], path: 'buyers[0]' },
+        { models: ['modelValue'], props: ['buyers[0].name'] },
         'name',
       ),
     ).toBe('buyers.0.name')
@@ -208,15 +190,13 @@ describe('resolveFormItemProp', () => {
 describe('bindingForPort', () => {
   const pair = {
     models: ['start', 'end'],
-    props: ['fromTime', 'toTime'],
-    path: 'buyers[0]',
+    props: ['buyers[0].fromTime', 'buyers[0].toTime'],
   }
 
   it('slices one v-model port to its leaf', () => {
     expect(bindingForPort(pair, 'end')).toEqual({
       models: ['end'],
-      props: ['toTime'],
-      path: 'buyers[0]',
+      props: ['buyers[0].toTime'],
     })
   })
 

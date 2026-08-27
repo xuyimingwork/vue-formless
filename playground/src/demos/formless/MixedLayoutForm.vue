@@ -26,7 +26,7 @@ async function onSubmit() {
   <FormView ref="formRef" v-model="form" label-width="96px">
     <p class="pg-section-title">基本信息</p>
     <FormView :fl:layout="{ column: 3, gutter: 16 }">
-      <User.Name :fl:validate="'required'" />
+      <User.Name />
       <User.Gender />
       <User.Mobile />
     </FormView>

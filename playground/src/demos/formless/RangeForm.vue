@@ -38,12 +38,12 @@ function onReset() {
     label-width="96px"
     :fl:layout="{ column: 3, gutter: 16 }"
   >
-    <User.Name :fl:validate="'required'" />
-    <User.Gender :fl:validate="'required'" />
+    <User.Name />
+    <User.Gender />
     <User.Mobile />
-    <Range.DateRangeOne :fl:validate="'required'" :fl:span="16" />
+    <Range.DateRangeOne :fl:span="16" />
     <User.Email />
-    <Range.DateRangeTwo :fl:validate="'required'" />
+    <Range.DateRangeTwo />
     <User.IdCard />
     <User.Address />
     <FormView.Item :fl:prop="'remark'" label="备注" :fl:span="24" v-slot="{ field }">

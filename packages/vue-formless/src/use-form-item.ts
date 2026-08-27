@@ -13,13 +13,12 @@ import {
   applyControlBinding,
   bindingForPort,
   resolveControlBinding,
-  type ControlNavPath,
   type ControlProp,
   type ResolvedControlBinding,
 } from './control-model'
 import { useFormContext } from './context'
 import { declaredFl, omitShellKeys } from './fl-config'
-import type { ItemFl } from './item-adapter'
+import type { FormViewItemProps, ItemFl } from './item-adapter'
 import { getIn } from './model-path'
 import { splitFallthrough, splitFlAttrs, splitSlots } from './split-fallthrough'
 import type { WrapControlMeta } from './wrap-control'
@@ -54,16 +53,9 @@ export interface FormViewItemSlotProps {
   field: Record<string, unknown>
 }
 
-/** Kernel `fl:` keys on `FormView.Item` / `useFormItem()`. Adapter extras via module augmentation. */
-export interface FormViewItemProps {
-  'fl:path'?: string
-  'fl:prop'?: string | string[]
-  'fl:span'?: number
-  'fl:layout'?: boolean
-}
+export type { FormViewItemProps } from './item-adapter'
 
 const formCellFlProps = {
-  'fl:path': { type: String, default: undefined },
   'fl:prop': { type: [String, Array] as PropType<string | string[]>, default: undefined },
   'fl:span': { type: Number, default: undefined },
 }
@@ -173,7 +165,7 @@ function resolveCellFl(
       ...tagExtras,
       controlKey: runtime.controlKey,
       binding,
-      getValues: () => binding.props.map((p) => getIn(ctx.model, binding.path, p)),
+      getValues: () => binding.props.map((p) => getIn(ctx.model, p)),
     }
     if (span !== undefined) fl.span = span
     return { binding, span, fl }
@@ -183,7 +175,6 @@ function resolveCellFl(
   if (prop === '') {
     throw new Error('[vue-formless] fl:prop cannot be an empty string')
   }
-  const path = tagFl.path as string | undefined
   const controlKey =
     typeof prop === 'string'
       ? prop
@@ -192,17 +183,16 @@ function resolveCellFl(
         : ''
   const binding =
     prop === undefined
-      ? { models: ['modelValue'] as string[], props: [] as string[], path }
+      ? { models: ['modelValue'] as string[], props: [] as string[] }
       : resolveControlBinding(controlKey || 'field', {
           prop: prop as ControlProp,
-          path: path as ControlNavPath | undefined,
         })
   const span = typeof tagFl.span === 'number' ? tagFl.span : undefined
   const fl: ItemFl = {
     ...tagExtras,
     controlKey,
     binding,
-    getValues: () => binding.props.map((p) => getIn(ctx.model, binding.path, p)),
+    getValues: () => binding.props.map((p) => getIn(ctx.model, p)),
   }
   if (span !== undefined) fl.span = span
   return { binding, span, fl }

@@ -46,7 +46,7 @@ FormView + User.Xxx  ≈  （可选）行容器 + 列格子 + 表单项 + 控件
 
 3. **`User.Xxx`**  
    - 从 FormContext 取得运行时数据，输入 vnode 交给 `wrap`  
-   - 读 `getIn(model, path, prop)`，写 `update(prop, value, path)`，由 FormView emit  
+   - 读 `getIn(model, prop)`，写 `update(prop, value)`，由 FormView emit  
    - 负责字段级绑定；无前缀插槽透传给输入；列宽以 `:formless.span` 覆盖页级缺省
 
 4. **校验 / 表单宿主**  

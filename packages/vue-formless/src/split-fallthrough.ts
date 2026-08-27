@@ -22,7 +22,7 @@ export function splitSlots(slots: Slots): {
   return { itemSlots, inputSlots }
 }
 
-/** `:fl:path` → `{ path }`; leftover attrs unchanged. */
+/** `:fl:prop` → `{ prop }`; leftover attrs unchanged. */
 export function splitFlAttrs(attrs: Record<string, unknown>): {
   fl: Record<string, unknown>
   rest: Record<string, unknown>

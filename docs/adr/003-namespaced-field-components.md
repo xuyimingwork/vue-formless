@@ -5,7 +5,7 @@
 - **修订**：
   - 2026-08-14 — schema 键小驼峰，命名空间组件自动大驼峰；默认绑定可被渲染期覆盖。label/rules 注入目标后改为适配层 Item（2026-08-18，ADR-012）。
   - 2026-08-17 — 标签按控件命名（`Agency` 而非 `AgencyId`）；工厂推荐名 `createFormControls`。见 [ADR-009](./009-controls-as-protagonist.md)。
-  - 2026-08-18 — 绑定拆成 `model` + `prop` + `path`。见 [ADR-011](./011-model-and-path.md)。
+  - 2026-08-27 — 取消独立 `path`；位置只写 `prop`。见 [ADR-011](./011-model-and-path.md)。
   - 2026-08-18 — `component` 只接输入；label / Item props 进适配层 `toItemProps`。见 [ADR-012](./012-input-item-and-rule-compile.md)。
 - **来源**：动态表单架构设计推演
 
@@ -49,10 +49,10 @@ export const User = createFormControls({
 要点：
 
 - Schema / model 键为**小驼峰**；暴露给模板的组件名为**大驼峰**（`name` → `Name`，`idCard` → `IdCard`），由工厂自动转换
-- `createFormControls` 建立控件 → **输入** `component` / 默认 props / 默认 label / `model`（v-model 口）/ `prop`（叶子键）/ `path`（导航）/ `validation`；`markRaw` 在工厂内处理。联动、本场策略、布局不进这张表（[ADR-010](./010-controls-as-semantic-cluster.md)）
+- `createFormControls` 建立控件 → **输入** `component` / 默认 props / 默认 label / `model`（v-model 口）/ `prop`（位置）/ `validation`；`markRaw` 在工厂内处理。联动、本场策略、布局不进这张表（[ADR-010](./010-controls-as-semantic-cluster.md)）
 - `component` 不含 FormItem；label 与校验投影进适配层 Item，见 [ADR-012](./012-input-item-and-rule-compile.md)
-- `model` / `prop` / `path` 见 [ADR-011](./011-model-and-path.md)；省略则 `modelValue` ↔ 控件键
-- 渲染期用 `:formless` 覆盖同名键（`label` / `prop` / `path`）及此场键（`validate` / `span`）；**不可**覆盖 `component` / `model` / `validation`；不把规则体写进模板
+- `model` / `prop` 见 [ADR-011](./011-model-and-path.md)；省略则 `modelValue` ↔ 控件键
+- 渲染期用 `:fl:prop` 覆盖位置，及 extras / `span`；**不可**覆盖 `component` / `model`；不把规则体写进模板
 - 顶层 attrs / 事件 / 无前缀插槽给 `component`；Item 用 `:item:xxx` / `@item:xxx` / `` #[`item:xxx`] ``（ADR-012）
 - 按需 `defineComponent`（创建簇时生成 PascalCase 属性）；泛型把 schema 键映射为 PascalCase 组件类型
 

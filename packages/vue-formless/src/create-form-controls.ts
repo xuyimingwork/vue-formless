@@ -2,7 +2,6 @@ import {
   defineComponent,
   h,
   markRaw,
-  type Component,
   type DefineComponent,
   type PropType,
   type VNodeChild,
@@ -11,9 +10,7 @@ import { camelToPascal, type CamelToPascal } from './case'
 import {
   applyControlBinding,
   resolveControlBinding,
-  type ControlNavPath,
   type ControlProp,
-  type ControlVModel,
   type ResolvedControlBinding,
 } from './control-model'
 import { getIn } from './model-path'
@@ -25,7 +22,11 @@ import {
   schemaExtras,
   stripPortBindings,
 } from './fl-config'
-import type { ItemFl } from './item-adapter'
+import type {
+  ControlSchema,
+  FormControlProps,
+  ItemFl,
+} from './item-adapter'
 import { overlayProps, resolveProps, type HostProps } from './overlay-props'
 import { splitFallthrough, splitFlAttrs, splitSlots } from './split-fallthrough'
 import {
@@ -34,46 +35,14 @@ import {
   type ControlFrame,
 } from './use-form-item'
 
-export type { ControlNavPath, ControlProp, ControlVModel }
-export type { ItemFl } from './item-adapter'
+export type { ControlProp, ControlVModel } from './control-model'
+export type {
+  ControlSchema,
+  FormControlProps,
+  ItemFl,
+} from './item-adapter'
 export type { HostProps } from './overlay-props'
 export type { WrapControl, WrapControlMeta } from './wrap-control'
-
-export interface ControlSchema {
-  /**
-   * Input widget only (no FormItem). Receives v-model bindings from formless.
-   * Widget may also declare static `formless: { model, item, layout }`.
-   */
-  component?: Component
-  /** Input defaults: static object, or derived from the cell snapshot. */
-  props?: HostProps<ItemFl>
-  /**
-   * v-model names on the widget (ADR-011). Default `'modelValue'`.
-   * Locked with the component; tag cannot override. Prefer widget `formless.model`.
-   */
-  model?: ControlVModel
-  /**
-   * Leaf key(s) on the node reached by `path` (ADR-011). Default: control key.
-   * Overridable via `:fl:prop`. Empty string is illegal.
-   */
-  prop?: ControlProp
-  /**
-   * Navigation path from FormView root (ADR-011). Scalar string, e.g. `buyers[0]`, `[2]`.
-   * Overridable via `:fl:path`. Empty string is a value.
-   */
-  path?: ControlNavPath
-  /**
-   * Outer wrap only: skip Item even when FormView `item` is on.
-   * Same name as FormView; FormView is the default, this can only turn off.
-   * Either schema or widget `formless.item: false` skips.
-   */
-  item?: boolean
-  /**
-   * Outer wrap only: skip Col even when FormView `layout` is on.
-   * Inner `useFormItem(port)` still follows FormView `layout`.
-   */
-  layout?: boolean
-}
 
 export interface CreateFormControlsOptions {
   /** Defaults for every control in this cluster (static or from the cell snapshot). */
@@ -82,15 +51,6 @@ export interface CreateFormControlsOptions {
 
 /** Loose schema bag. Prefer inferring `S` from an object literal via `createFormControls`. */
 export type FormControlsSchema = Record<string, ControlSchema>
-
-/** Kernel `fl:` keys on `<User.Xxx />`. Adapter extras via module augmentation. */
-export interface FormControlProps {
-  'fl:path'?: string
-  'fl:prop'?: string | string[]
-  'fl:span'?: number
-  'fl:item'?: boolean
-  'fl:layout'?: boolean
-}
 
 export type FormControlComponent = DefineComponent<FormControlProps>
 
@@ -103,7 +63,6 @@ export type NamespacedControls<S> = {
 }
 
 const controlFlProps = {
-  'fl:path': { type: String, default: undefined },
   'fl:prop': { type: [String, Array] as PropType<string | string[]>, default: undefined },
   'fl:span': { type: Number, default: undefined },
 }
@@ -162,10 +121,9 @@ function createNamespacedControl(
         const tagFl = { ...attrFl, ...declaredFl(controlProps as Record<string, unknown>) }
         const binding = resolveControlBinding(
           controlKey,
-          { model: lockedModel, prop: control.prop, path: control.path },
+          { model: lockedModel, prop: control.prop },
           {
             prop: tagFl.prop as ControlProp | undefined,
-            path: tagFl.path as ControlNavPath | undefined,
           },
         )
         const widget = control.component
@@ -198,7 +156,7 @@ function createNamespacedControl(
               { class: 'vue-formless-control', 'data-control': controlKey },
               [
                 label ? h('label', { class: 'vue-formless-control__label' }, String(label)) : null,
-                String(getIn(ctx.model, binding.path, displayProp) ?? ''),
+                String(getIn(ctx.model, displayProp) ?? ''),
               ],
             )
 
@@ -233,7 +191,7 @@ function inputSnapshot(
     ...omitShellKeys(tagFl),
     controlKey,
     binding,
-    getValues: () => binding.props.map((p) => getIn(ctx.model, binding.path, p)),
+    getValues: () => binding.props.map((p) => getIn(ctx.model, p)),
   }
 }
 

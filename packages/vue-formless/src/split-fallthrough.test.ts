@@ -6,12 +6,12 @@ describe('splitFlAttrs', () => {
   it('strips fl: prefix into a bag and leaves the rest', () => {
     const { fl, rest } = splitFlAttrs({
       placeholder: 'x',
-      'fl:path': 'buyers[0]',
+      'fl:prop': 'buyers[0].name',
       'fl:span': 24,
       'fl:validate': 'required',
       'item:label-width': 96,
     })
-    expect(fl).toEqual({ path: 'buyers[0]', span: 24, validate: 'required' })
+    expect(fl).toEqual({ prop: 'buyers[0].name', span: 24, validate: 'required' })
     expect(rest).toEqual({ placeholder: 'x', 'item:label-width': 96 })
   })
 })

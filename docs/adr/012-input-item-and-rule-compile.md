@@ -98,7 +98,7 @@ mobile: {
 
 一个控件绑两端时，区间约束仍写在该 control 的 `validation` 上。多口时宿主 `value` 与口值 getter 见 [ADR-014](./014-multi-vmodel-host-validation.md)。
 
-**运行时（`:formless`）**：这场怎么用。覆盖静态同名键（`label` / `prop` / `path`）+ 仅此场（`validate` / `span`）：
+**运行时（`:fl:`）**：这场怎么用。覆盖静态同名键（`label` / `prop`）+ 仅此场（`span`）：
 
 | `:formless.validate` | 含义 |
 |----------------------|------|
@@ -130,7 +130,7 @@ mobile: {
 
 | 能力 | 通道 | 覆盖 |
 |------|------|------|
-| 改接线 / 文案 | `:formless` 同名键 | `label`、`prop`、`path` |
+| 改接线 / 文案 | `:fl:` 同名键 | `label`、`prop` |
 | 此场策略 / 布局 | `:formless` 仅运行时键 | `validate`、`span`（`bare` 暂无） |
 | 改输入自己的面 | 顶层 attrs / `@blur` / 无前缀槽 | `placeholder`、`#append`、`#item` |
 | Item 面 | `:item:xxx` / `@item:xxx` / `` #[`item:xxx`] `` | Item 的 props / 事件 / 槽 |

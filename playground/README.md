@@ -14,4 +14,4 @@ pnpm dev
 
 - `src/demos/baseline/*`：纯 Element Plus 手写样板
 - `src/demos/formless/*`：共用 `user.ts` 控件表 + playground 里绑好的 `FormView`
-- `src/ep/*`：Element 适配示例（`createFormView` + `toEpItemProps`）
+- `src/ep/*`：Element 适配示例（`createFormView` 绑 layout / form / item）

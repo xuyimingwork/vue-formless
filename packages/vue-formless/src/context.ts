@@ -11,7 +11,8 @@ export interface FormContext {
   /** Current FormView `modelValue` (parent snapshot; do not mutate). */
   model: unknown
   /** Report a field write; FormView patches and emits `update:modelValue`. */
-  update: (prop: string, value: unknown, path?: string) => void
+  /** Report a field write; FormView patches and emits `update:modelValue`. */
+  update: (prop: string, value: unknown) => void
   /**
    * FormView-owned shell: Col? → Item? → body.
    * Used by `useFormItem` / `FormView.Item`, not by widget authors.

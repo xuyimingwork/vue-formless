@@ -1,36 +1,36 @@
 /**
- * Parse navigation path strings (ADR-011): scalar string with `[index]` segments.
- * Examples: `buyers[0]`, `[2]`, `buyer`
+ * Parse `prop` location strings: object keys and `[index]` segments.
+ * Examples: `name`, `buyers[0].name`, `[2].title`
  */
 export type PathSegment =
   | { type: 'key'; key: string }
   | { type: 'index'; index: number }
 
-export function parsePath(path: string): PathSegment[] {
-  if (!path) return []
+export function parsePath(prop: string): PathSegment[] {
+  if (!prop) return []
   const segments: PathSegment[] = []
   let i = 0
-  while (i < path.length) {
-    if (path[i] === '.') {
+  while (i < prop.length) {
+    if (prop[i] === '.') {
       i++
       continue
     }
-    if (path[i] === '[') {
-      const close = path.indexOf(']', i + 1)
+    if (prop[i] === '[') {
+      const close = prop.indexOf(']', i + 1)
       if (close === -1) {
-        throw new Error(`Invalid path "${path}": unclosed bracket`)
+        throw new Error(`Invalid path "${prop}": unclosed bracket`)
       }
-      const raw = path.slice(i + 1, close)
+      const raw = prop.slice(i + 1, close)
       const index = Number(raw)
       if (!Number.isInteger(index) || String(index) !== raw || index < 0) {
-        throw new Error(`Invalid path "${path}": index must be a non-negative integer`)
+        throw new Error(`Invalid path "${prop}": index must be a non-negative integer`)
       }
       segments.push({ type: 'index', index })
       i = close + 1
     } else {
-      const match = /^[a-zA-Z_$][a-zA-Z0-9_$]*/.exec(path.slice(i))
+      const match = /^[a-zA-Z_$][a-zA-Z0-9_$]*/.exec(prop.slice(i))
       if (!match) {
-        throw new Error(`Invalid path "${path}" at position ${i}`)
+        throw new Error(`Invalid path "${prop}" at position ${i}`)
       }
       segments.push({ type: 'key', key: match[0] })
       i += match[0].length
@@ -51,68 +51,70 @@ function getNode(root: unknown, segments: PathSegment[]): unknown {
   return node
 }
 
-export function getIn(root: unknown, path: string | undefined, prop: string): unknown {
-  const node = path ? getNode(root, parsePath(path)) : root
-  if (node == null || typeof node !== 'object' || Array.isArray(node)) {
-    return undefined
+function readLeaf(parent: unknown, leaf: PathSegment): unknown {
+  if (leaf.type === 'key') {
+    if (parent == null || typeof parent !== 'object' || Array.isArray(parent)) {
+      return undefined
+    }
+    return (parent as Record<string, unknown>)[leaf.key]
   }
-  return (node as Record<string, unknown>)[prop]
+  if (!Array.isArray(parent)) return undefined
+  return parent[leaf.index]
+}
+
+export function getIn(root: unknown, prop: string): unknown {
+  const segments = parsePath(prop)
+  if (segments.length === 0) return undefined
+  const leaf = segments[segments.length - 1]!
+  const parent = getNode(root, segments.slice(0, -1))
+  return readLeaf(parent, leaf)
 }
 
 function setAt(
   current: unknown,
   segments: PathSegment[],
   depth: number,
-  prop: string,
   value: unknown,
 ): unknown {
-  if (depth === segments.length) {
+  const seg = segments[depth]!
+  const isLeaf = depth === segments.length - 1
+
+  if (seg.type === 'key') {
     if (Array.isArray(current)) {
-      throw new Error(`Cannot set prop "${prop}" on an array node`)
+      throw new Error(`Cannot set "${seg.key}" on an array node`)
     }
     const base =
-      current != null && typeof current === 'object' && !Array.isArray(current)
+      current != null && typeof current === 'object'
         ? (current as Record<string, unknown>)
         : {}
-    return { ...base, [prop]: value }
-  }
-
-  const seg = segments[depth]!
-  if (seg.type === 'key') {
-    const obj =
-      current != null && typeof current === 'object' && !Array.isArray(current)
-        ? (current as Record<string, unknown>)
-        : {}
+    if (isLeaf) return { ...base, [seg.key]: value }
     return {
-      ...obj,
-      [seg.key]: setAt(obj[seg.key], segments, depth + 1, prop, value),
+      ...base,
+      [seg.key]: setAt(base[seg.key], segments, depth + 1, value),
     }
   }
 
   const arr = Array.isArray(current) ? [...current] : []
-  arr[seg.index] = setAt(arr[seg.index], segments, depth + 1, prop, value)
+  if (isLeaf) {
+    arr[seg.index] = value
+    return arr
+  }
+  arr[seg.index] = setAt(arr[seg.index], segments, depth + 1, value)
   return arr
 }
 
-/** Immutable write: `path` navigates to a node, `prop` is the leaf key on that node. */
-export function setIn(
-  root: unknown,
-  path: string | undefined,
-  prop: string,
-  value: unknown,
-): unknown {
-  const segments = path ? parsePath(path) : []
-  return setAt(root, segments, 0, prop, value)
+/** Immutable write at a full `prop` location (`buyers[0].name`). Arrays are cloned. */
+export function setIn(root: unknown, prop: string, value: unknown): unknown {
+  const segments = parsePath(prop)
+  if (segments.length === 0) {
+    throw new Error('Cannot set an empty prop')
+  }
+  return setAt(root, segments, 0, value)
 }
 
 /** Dot-notation path for ElFormItem `prop` (e.g. `buyers.0.name`). */
-export function formItemProp(path: string | undefined, prop: string): string {
-  const parts: string[] = []
-  if (path) {
-    for (const seg of parsePath(path)) {
-      parts.push(seg.type === 'key' ? seg.key : String(seg.index))
-    }
-  }
-  parts.push(prop)
-  return parts.join('.')
+export function formItemProp(prop: string): string {
+  return parsePath(prop)
+    .map((seg) => (seg.type === 'key' ? seg.key : String(seg.index)))
+    .join('.')
 }

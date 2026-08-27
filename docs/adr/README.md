@@ -16,7 +16,7 @@
 | [008](./008-form-view-vmodel-and-grid-gcd.md) | FormView、`v-model` 与栅格适配公约数 | Accepted（修订） |
 | [009](./009-controls-as-protagonist.md) | 控件主角、页级控件表与列表上下文 | Accepted（修订） |
 | [010](./010-controls-as-semantic-cluster.md) | `createFormControls` 是语义输入簇，不是表单 schema | Accepted（修订） |
-| [011](./011-model-and-path.md) | `model`、`prop`（叶子）与 `path`（导航串） | Accepted（修订） |
+| [011](./011-model-and-path.md) | `model` 与 `prop`（位置） | Accepted（修订） |
 | [012](./012-input-item-and-rule-compile.md) | 输入、Item 与校验合成 | Accepted（修订） |
 | [013](./013-one-control-multiple-items.md) | 一颗 control、多格 Item | Accepted（修订） |
 | [014](./014-multi-vmodel-host-validation.md) | 多口 control 与宿主校验 | Accepted（修订） |
@@ -29,9 +29,9 @@
 001 关注点分层
  ├── 002 模型进 Schema，布局留 Template
  ├── 005 配置单元 = 控件（View-Model）
- │    └── 009 控件主角；createFormControls；页级声明；列表一层 FormView + :path
+ │    └── 009 控件主角；createFormControls；页级声明；列表一层 FormView + :fl:prop
  │         └── 010 工厂 = 语义输入簇；validation + 标签策略；不配联动 / 布局
- │              ├── 011 model = v-model 口；prop = 叶子键；path = 导航（buyers[0]）
+ │              ├── 011 model = v-model 口；prop = 从根到叶子的位置
  │              │    └── 014 多口：Form 投影；host prop 由适配编码；validate 在 FormView
  │              └── 012 component = 输入；Form/Item 适配组件 + slot；内核决定跳过壳
  │                   ├── 013 control ≠ Item 基数；默认 `useFormItem()`；Two = schema item/layout false + `useFormItem(口名)`

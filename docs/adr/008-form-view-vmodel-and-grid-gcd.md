@@ -71,7 +71,7 @@ ADR-004 中的 `FormLayout` 名称由本文废止为推荐对外名；**也不**
 理由：
 
 - `<User.Name />` **不**在页面模板上绑 `v-model`。ElForm 的 `:model` 只给校验/重置用，真正写入在每个输入的 `v-model="form.xxx"`。Formless 收掉这些口之后，作者能指认的写入点只剩 `FormView` 的 `v-model`。
-- 因此 **FormView 必须是改动真实发生的位置**：控件经 Context `update(prop, value, path?)` 上报，FormView `emit('update:modelValue', next)`，由父级 `v-model` 赋值。
+- 因此 **FormView 必须是改动真实发生的位置**：控件经 Context `update(prop, value)` 上报，FormView `emit('update:modelValue', next)`，由父级 `v-model` 赋值。
 - 根上单向 `:model` 对齐的是 Element 的校验袋，不是本库的写口；已否。
 
 实现约定：

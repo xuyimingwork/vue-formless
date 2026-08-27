@@ -13,22 +13,16 @@ export const User = createFormControls(
     name: {
       label: '姓名',
       component: ElInput,
-      validation: { empty: { message: '请输入姓名' } },
     },
     gender: {
       label: '性别',
       component: ElSelect,
       props: { options: genderOptions },
-      validation: { empty: { message: '请选择性别' } },
     },
     mobile: {
       label: '手机',
       component: ElInput,
       props: { placeholder: '11 位手机号' },
-      validation: {
-        empty: { message: '请输入手机号' },
-        format: { pattern: /^1\d{10}$/, message: '手机号格式不正确' },
-      },
     },
     email: {
       label: '邮箱',
@@ -53,7 +47,7 @@ export const User = createFormControls(
   },
   {
     props: (fl) => ({
-      placeholder: typeof fl.label === 'string' ? `请填写${fl.label}` : undefined,
+      placeholder: fl.label ? `请填写${fl.label}` : undefined,
     }),
   },
 )

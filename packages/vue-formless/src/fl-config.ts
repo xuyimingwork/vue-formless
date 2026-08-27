@@ -3,7 +3,6 @@ const SCHEMA_CORE_KEYS = new Set([
   'component',
   'props',
   'model',
-  'path',
   'prop',
   'item',
   'layout',
@@ -51,7 +50,7 @@ export function readWidgetFormless(component: unknown): WidgetFormless {
   return omitUndefined({ model, item, layout }) as WidgetFormless
 }
 
-/** Kernel `fl:*` declared as component props (`fl:path` → `path`). */
+/** Kernel `fl:*` declared as component props (`fl:prop` → `prop`). */
 export function declaredFl(props: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(props)) {

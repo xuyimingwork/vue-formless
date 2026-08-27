@@ -50,7 +50,7 @@ User.Name / User.Agency    ← 本层：有业务名、默认绑哪、属于这�
 
 | 在 controls 里 | 不在 controls 里 |
 |----------------|------------------|
-| 谁、怎么画（输入 `component` / 默认 `props`）、控件口（`model`）、默认叶子（`prop`）、默认导航（`path`）、默认 `label` | 控件间联动、**本场策略**、跨控件规则、布局（span / Col） |
+| 谁、怎么画（输入 `component` / 默认 `props`）、控件口（`model`）、默认位置（`prop`）、默认 `label` | 控件间联动、**本场策略**、跨控件规则、布局（span / Col） |
 | **`validation`：这个输入会什么**（空值怎么判、格式对不对、文案） | |
 
 控件上**要写** `validation`，因为那是语义输入的一部分（手机号知道号段、姓名知道 trim 后才算填了）。形状 **不是** ElForm `RuleItem[]`，**不得**写 `required: true`、`trigger`。不要叫 `rules`（以免像宿主）。控件表**不决定**这场怎么跑它们。标签不得覆盖 `validation` 或 `component`。
