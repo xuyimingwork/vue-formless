@@ -1,8 +1,6 @@
 export interface FormLayoutOptions {
   /** Columns per row → default Col span = GRID_TOTAL / column. */
   column?: number
-  /** Passed through to Row when supported. */
-  gutter?: number
 }
 
 /** FormView `:fl:layout` is a boolean switch. Density is factory / `:row:*`. */
@@ -11,10 +9,9 @@ export type FormLayoutProp = boolean
 /** Host Col span modulus (Element / Ant Design 24-grid). Not a bind-time option. */
 export const GRID_TOTAL = 24
 
-/** Kernel density when factory and tag omit fields. Project taste lives in createFormView. */
+/** Kernel column when factory and tag omit it. Gutter is a Row attr on FormView, not occupancy. */
 export const DEFAULT_LAYOUT: Required<FormLayoutOptions> = {
   column: 1,
-  gutter: 0,
 }
 
 /** Author-facing Col width: omit / `'Nx'` / `'max'` / absolute 1–24. */

@@ -45,6 +45,9 @@ export type { HostProps } from './overlay-props'
 
 export type FormFormProp = boolean | 'auto'
 
+/** Row gutter when factory `layout.gutter` and `:row:gutter` are omitted. */
+const DEFAULT_GUTTER = 0
+
 export interface FormViewProps {
   modelValue?: unknown
   /**
@@ -227,7 +230,7 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
     bind ? { Row: bind.Row, Col: bind.Col } : {},
   )
   const factoryColumn = bind?.column ?? DEFAULT_LAYOUT.column
-  const factoryGutter = bind?.gutter ?? DEFAULT_LAYOUT.gutter
+  const factoryGutter = bind?.gutter ?? DEFAULT_GUTTER
 
   return attachFormViewItem(
     defineComponent({
@@ -321,7 +324,7 @@ export const FormView = attachFormViewItem(
         LayoutView: defaultLayoutView,
         getLayoutDensity: () => ({
           column: props['row:column'] ?? DEFAULT_LAYOUT.column,
-          gutter: props['row:gutter'] ?? DEFAULT_LAYOUT.gutter,
+          gutter: props['row:gutter'] ?? DEFAULT_GUTTER,
         }),
       })
       return (): VNodeChild =>
@@ -330,7 +333,7 @@ export const FormView = attachFormViewItem(
           {
             disabled: !isFlLayoutOn(props['fl:layout']),
             column: props['row:column'] ?? DEFAULT_LAYOUT.column,
-            gutter: props['row:gutter'] ?? DEFAULT_LAYOUT.gutter,
+            gutter: props['row:gutter'] ?? DEFAULT_GUTTER,
           },
           () => slots.default?.() ?? null,
         )

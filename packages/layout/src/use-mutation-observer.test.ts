@@ -2,7 +2,7 @@
  * @vitest-environment happy-dom
  */
 import { describe, expect, it } from 'vitest'
-import { createApp, defineComponent, getCurrentInstance, h, nextTick, onMounted } from 'vue'
+import { createApp, defineComponent, getCurrentInstance, h, nextTick, onMounted, ref } from 'vue'
 import { useMutationObserver } from './use-mutation-observer'
 
 describe('useMutationObserver', () => {
@@ -41,6 +41,32 @@ describe('useMutationObserver', () => {
     child.appendChild(document.createElement('span'))
     await new Promise((r) => setTimeout(r, 0))
     expect(hits.n).toBe(afterAdd)
+
+    app.unmount()
+    el.remove()
+  })
+
+  it('accepts a ref target', async () => {
+    const hits = { n: 0 }
+    const row = ref<Element | null>(null)
+    const Root = defineComponent({
+      setup() {
+        useMutationObserver(row, () => {
+          hits.n += 1
+        })
+        return () => h('div', { ref: row, class: 'row' })
+      },
+    })
+    const el = document.createElement('div')
+    document.body.appendChild(el)
+    const app = createApp(Root)
+    app.mount(el)
+    await nextTick()
+    expect(row.value).toBeInstanceOf(Element)
+
+    row.value!.appendChild(document.createElement('div'))
+    await new Promise((r) => setTimeout(r, 0))
+    expect(hits.n).toBeGreaterThan(0)
 
     app.unmount()
     el.remove()

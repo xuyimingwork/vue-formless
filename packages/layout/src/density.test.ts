@@ -66,7 +66,7 @@ describe('takePlaceBlanks', () => {
 })
 
 describe('DEFAULT_LAYOUT', () => {
-  it('is one column and zero gutter', () => {
-    expect(DEFAULT_LAYOUT).toEqual({ column: 1, gutter: 0 })
+  it('is one column', () => {
+    expect(DEFAULT_LAYOUT).toEqual({ column: 1 })
   })
 })
