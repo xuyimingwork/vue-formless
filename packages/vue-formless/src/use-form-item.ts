@@ -28,8 +28,9 @@ export interface ControlFrame {
   /** Extras + span (no `item` / `layout` / `model`). */
   fl: Record<string, unknown>
   binding: ResolvedControlBinding
-  skipOuterItem: boolean
-  skipOuterLayout: boolean
+  wrapItem: boolean
+  wrapCol: boolean
+  extraRow: boolean
   itemAttrs: Record<string, unknown>
   itemOn: Record<string, unknown>
   itemSlots: WrapControlMeta['itemSlots']
@@ -88,7 +89,7 @@ export const FormViewItem = createFormCellComponent()
  * One cell: Col? → Item? → default slot.
  * No arg: this control's full binding (factory outer wrap).
  * Port: slice one v-model mouth.
- * Outer `item` / `layout` false hide the factory shell; binding stays on the frame.
+ * Outer wrap follows the merged shell (ADR-017); binding stays on the frame.
  */
 export function useFormItem(port?: string): FormViewItemComponent {
   useFormContext()
@@ -125,14 +126,22 @@ function renderFormCell(
     wrapItemSlots = { ...frame.itemSlots, ...itemSlots }
   }
 
-  const skipItem = outer && runtime ? runtime.getFrame().skipOuterItem : undefined
-  const skipCol =
-    tagFl.layout === false || (outer && runtime?.getFrame().skipOuterLayout === true)
+  const skipCol = tagFl.layout === false
+  let wrapItem: boolean | undefined
+  let wrapCol: boolean | undefined
+  let innerRow = false
+  if (outer && runtime) {
+    const frame = runtime.getFrame()
+    wrapItem = frame.wrapItem
+    wrapCol = frame.wrapCol
+    innerRow = frame.extraRow
+  }
 
   return ctx.wrap(inner, {
     span: resolved.span,
-    item: skipItem ? false : undefined,
-    layout: skipCol ? false : undefined,
+    item: wrapItem === false ? false : wrapItem === true ? true : undefined,
+    layout: skipCol || wrapCol === false ? false : wrapCol === true ? true : undefined,
+    innerRow,
     fl: resolved.fl,
     itemAttrs: wrapItemAttrs,
     itemOn: wrapItemOn,

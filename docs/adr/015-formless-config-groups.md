@@ -7,6 +7,7 @@
   - 2026-08-26 — FormView `:fl:form` 为 `boolean | 'auto'`（默认 auto）；未绑 v-model 的嵌套 FormView inherit 祖先。公开 FormLayout 仍否；内核可拆内部 Layout。
   - 2026-08-27 — 适配只扩 `ControlSchema`；`ItemFl` / `fl:*` 标签 props 从 extras 推导。
   - 2026-08-27 — 去掉独立 `path`；位置只写 `prop`。见 [ADR-011](./011-model-and-path.md)。
+  - 2026-09-01 — 壳合并改为 FormView < 内部 < 外部；外部 `true` 可开回 Item。`'self'` + 标签 `true` 见 [ADR-017](./017-composite-item-self.md)。
 - **来源**：[ADR-008](./008-form-view-vmodel-and-grid-gcd.md) / [ADR-011](./011-model-and-path.md) / [ADR-012](./012-input-item-and-rule-compile.md) / [ADR-013](./013-one-control-multiple-items.md)。本文钉 **配置怎么写、进哪一层**。不改 `component` 不含 Item、不改写口、不改 `useFormItem` 吃口名。
 
 ## 决策
@@ -26,17 +27,17 @@
 - **Form snapshot**：`{ layout, form, item, modelValue }`。`form` 是 boolean（auto 已在内核解开）。`modelValue` 是 FormView 写口数据；映射到宿主 `model` 是 `form.props` 的默认值。
 - **Item snapshot**：extras + 内核算出的 `controlKey` / `binding` / `getValues`。**不要**放 widget 的 `model` 列表/口名，也不放外层已消费的 `item` / `layout` 壳开关，也不放整表数据。
 
-### 2. 页开能力，子项只能关
+### 2. 页开能力，外部可再开
 
-wrap 仍是 `Col? → Item? → body`。FormView 打开某项能力后，下面的格默认都开；schema / 控件静态 `formless` / `User.Xxx` 只能再关。页没开栅格时，标签 `true` 不能单独把某一格的 Col 开回来。
+wrap 仍是 `Col? → Item? → body`。FormView 给出缺省；内部 `formless` / schema 盖一层；**标签 `:fl:item` / `:fl:layout` 最高**（没写 ≠ `true`）。内部 `false` + 标签 `true` 按 true 包 Item。组合体 `'self'` 见 [ADR-017](./017-composite-item-self.md)。
 
 | 层 | `item` | `layout` |
 |----|--------|----------|
 | FormView | `:fl:item`（工厂有 Item 时默认开） | `:fl:layout`：`false` / `true` / `{ column, gutter }`（密度只在这里） |
-| schema 或控件静态 `formless` | 显式 `item: false` 关工厂那一次 Item | 显式 `layout: false` 关工厂那一次 Col |
+| schema 或控件静态 `formless` | `false` 关工厂 Item；`'self'` 见 [017](./017-composite-item-self.md) | 显式 `layout: false` 关工厂那一次 Col |
 | `User.Xxx` | `:fl:item="false"` 这一场再关 | `:fl:layout="false"` 这一场再关 Col。**不是**密度对象 |
 
-工厂始终 `useFormItem()` 一次（无参 = 当前 control 的整份接线）。`item: false` / `layout: false` 只把这一层壳藏掉，**不是没绑定**。内层 `useFormItem('start')` 从同一份接线按口切开，壳跟页，不继承外层那两个 `false`。
+工厂始终 `useFormItem()` 一次（无参 = 当前 control 的整份接线）。`item: false` / `layout: false` 只把这一层壳藏掉；`item: 'self'` 两层都藏。**不是没绑定**。内层 `useFormItem('start')` 从同一份接线按口切开，壳跟页，不继承外层 `'self'` / `false`。
 
 `FormView.Item` 不要 `:fl:item`，也不要 `:item:`。格上可以有 boolean `:fl:layout`（页已开栅格时关 Col）。
 
@@ -59,13 +60,12 @@ wrap 仍是 `Col? → Item? → body`。FormView 打开某项能力后，下面�
 
 ```ts
 formless: {
-  item: false,
-  layout: false,
+  item: 'self',
   model: ['start', 'end'],
 }
 ```
 
-与 schema 合并：`model` 以控件为准；`item` / `layout` 任一方 `false` 即关。控件上声明了就不强制 schema 再抄一遍。
+与 schema 合并：`model` 以控件为准；`item: false` 关工厂 Item（可留 Col）；`item: 'self'` 关工厂整次包（Item+Col）。控件上声明了就不强制 schema 再抄一遍。组合体通道见 [ADR-017](./017-composite-item-self.md)。
 
 ### 6. 内核与适配分工
 

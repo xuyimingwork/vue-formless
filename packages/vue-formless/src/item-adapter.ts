@@ -39,14 +39,13 @@ export interface ControlSchema {
    */
   prop?: ControlProp
   /**
-   * Outer wrap only: skip Item even when FormView `item` is on.
-   * Same name as FormView; FormView is the default, this can only turn off.
-   * Either schema or widget `formless.item: false` skips.
+   * Outer wrap: FormView default, then this, then tag `:fl:item`.
+   * `'self'`: widget lays out cells via `useFormItem(port)` (ADR-017).
    */
-  item?: boolean
+  item?: boolean | 'self'
   /**
-   * Outer wrap only: skip Col even when FormView `layout` is on.
-   * Inner `useFormItem(port)` still follows FormView `layout`.
+   * Outer wrap: skip Col even when FormView `layout` is on.
+   * Tag `:fl:layout` can turn Col back on. Inner `useFormItem(port)` follows the page.
    */
   layout?: boolean
 }

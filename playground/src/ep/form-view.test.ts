@@ -1,7 +1,8 @@
 import { describe, expect, expectTypeOf, it } from 'vitest'
 import './vue-formless-aug'
 import { toEpItemProps } from './form-view'
-import type { FormControlProps, FormViewItemProps, ItemFl } from 'vue-formless'
+import { User } from '../demos/formless/user'
+import type { ComponentPublicProps, FormControlProps, FormViewItemProps, ItemFl } from 'vue-formless'
 
 describe('toEpItemProps', () => {
   const mobileFl: ItemFl = {
@@ -42,5 +43,17 @@ describe('ControlSchema extras inference', () => {
     expectTypeOf<FormControlProps['fl:label']>().toEqualTypeOf<string | undefined>()
     expectTypeOf<FormViewItemProps>().toHaveProperty('fl:label')
     expectTypeOf<FormViewItemProps['fl:label']>().toEqualTypeOf<string | undefined>()
+  })
+})
+
+describe('namespaced control widget props', () => {
+  it('exposes ElInput props on User.Remark', () => {
+    type RemarkProps = ComponentPublicProps<typeof User.Remark>
+    expectTypeOf<RemarkProps>().toHaveProperty('placeholder')
+    expectTypeOf<RemarkProps>().toHaveProperty('rows')
+    expectTypeOf<RemarkProps>().toHaveProperty('type')
+    expectTypeOf<RemarkProps>().toHaveProperty('fl:span')
+    expectTypeOf<RemarkProps>().toHaveProperty('fl:label')
+    expectTypeOf<RemarkProps>().not.toHaveProperty('modelValue')
   })
 })

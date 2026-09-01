@@ -10,10 +10,6 @@ declare module '*.vue' {
 
 declare module 'vue' {
   interface ComponentCustomOptions {
-    formless?: {
-      model?: string | string[]
-      item?: boolean
-      layout?: boolean
-    }
+    formless?: import('vue-formless').WidgetFormless
   }
 }

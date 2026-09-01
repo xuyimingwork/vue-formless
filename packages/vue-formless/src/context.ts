@@ -11,13 +11,16 @@ export interface FormContext {
   /** Current FormView `modelValue` (parent snapshot; do not mutate). */
   model: unknown
   /** Report a field write; FormView patches and emits `update:modelValue`. */
-  /** Report a field write; FormView patches and emits `update:modelValue`. */
   update: (prop: string, value: unknown) => void
   /**
    * FormView-owned shell: Col? → Item? → body.
    * Used by `useFormItem` / `FormView.Item`, not by widget authors.
    */
   wrap: WrapControl
+  /** This FormView / Layout layer's Item switch. */
+  isItemEnabled: () => boolean
+  /** True inside hosted layout (Row/Col wrap is available). */
+  isLayoutEnabled: () => boolean
 }
 
 export const formContextKey: InjectionKey<FormContext> = Symbol('vue-formless.formContext')

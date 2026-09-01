@@ -14,7 +14,5 @@ export const Range = createFormControls({
     component: DateRangeTwo,
     model: ['start', 'end'],
     prop: ['fromTime', 'toTime'],
-    item: false,
-    layout: false,
   },
 })

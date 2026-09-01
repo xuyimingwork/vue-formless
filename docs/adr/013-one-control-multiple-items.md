@@ -6,6 +6,7 @@
   - 2026-08-19 — 多口在宿主上怎么校验拆到 [ADR-014](./014-multi-vmodel-host-validation.md)；本文只保留壳的次数。
   - 2026-08-19 — 宿主 Item `prop` 的编码（一格控件键 vs 两格叶子路径）是适配层约定，不是内核 snapshot 字段。
   - 2026-08-19 — 关掉外层壳用 schema `item: false` + `layout: false`（与 FormView 同名，只覆盖缺省）；工厂走 `useFormItem()`；页面临场格是 `FormView.Item`（真 props，不是 `:formless`）。`shell` 废止。
+  - 2026-08-31 — 组合体关壳改为控件 `formless.item: 'self'`（一次去掉外层 Item+Col）；与业务 `item: false`（不要表单项、可留 Col）分开。见 [ADR-017](./017-composite-item-self.md)。
 - **来源**：相对 [ADR-012](./012-input-item-and-rule-compile.md) / [ADR-011](./011-model-and-path.md) / [ADR-010](./010-controls-as-semantic-cluster.md)。日期范围要两套 `col-item-picker` 时，012 的「一颗 control 只 wrap 一次」把身份和壳焊死了。
 
 ## 背景
@@ -61,23 +62,20 @@ TwoInput 是例外：1 control、**N 次**同一颗壳。
 | `validation` | 一份（空值 + 区间） | 一样 |
 | 写入 | `v-model:start/end` → 工厂 `update` → FormView `emit` | 一样 |
 | **Item 次数** | 1（工厂 `useFormItem()`） | 2（widget `useFormItem('start'/'end')`） |
-| widget 里 | 一颗 daterange picker，**不**调 Item | `item: false` + `layout: false`，两次 Item，各包一个 picker；**fragment 根**（不要再套 Row） |
+| widget 里 | 一颗 daterange picker，**不**调 Item | `item: 'self'`，两次 Item，各包一个 picker；**fragment 根**（不要再套 Row） |
 | Item 上的宿主 `prop` | 适配编码（Element 一格多口常用控件键，见 [ADR-014](./014-multi-vmodel-host-validation.md)） | 适配按口派生叶子路径（`fromTime` / `buyers.0.fromTime`） |
 
 「底层一样」= `useFormItem` / `FormView.Item` 都走 FormView 闭包里的 `wrap`（Col + 同一颗适配 Item）。不是两种 Item 组件。
 
-OneInput **不要**在 `.vue` 里再取 Item：工厂已经 `useFormItem()`。Two **必须**关掉外层 `item` / `layout`，否则整颗外面还有一层 Col+Item。
+OneInput **不要**在 `.vue` 里再取 Item：工厂已经 `useFormItem()`。Two **必须** `item: 'self'`（见 [ADR-017](./017-composite-item-self.md)），否则整颗外面还有一层 Col+Item。
 
 ### 3. Two：关掉外层壳，按口取壳
 
-Schema 用与 FormView **同名**的开关（身份：这个 widget 自己铺格）。FormView 是这页缺省；control 只能往「关」盖。**不要**把 `item` / `layout` 放进 `:formless`。
+组合体在控件上自述 `item: 'self'`（[ADR-017](./017-composite-item-self.md)），不要在 schema 再抄 `item` / `layout`。FormView 是这页缺省；`'self'` 关掉工厂那一次整格。**不要**把 `item` / `layout` 放进标签 `:fl:` 当这场袋子。
 
 ```ts
 dateRange: {
-  component: DateRangeTwo,
-  item: false,
-  layout: false,
-  model: ['start', 'end'],
+  component: DateRangeTwo, // formless.item: 'self' + model
   prop: ['fromTime', 'toTime'],
   validation: {
     empty: { message: '请选择日期范围' },
@@ -86,7 +84,7 @@ dateRange: {
 }
 ```
 
-工厂：总是 `useFormItem()`（无参）。schema 未关时这一次 wrap 与 012 相同；`item: false` / `layout: false` 时这一次是透传，并把 binding / `validation` / `:formless` **provide** 给 widget。内层 `useFormItem('start')` **仍走 FormView 缺省**（不会跟着外层一起关）。
+工厂：总是 `useFormItem()`（无参）。未 `'self'` 时这一次 wrap 与 012 相同；`item: 'self'` 时这一次是透传，并把 binding / extras **provide** 给 widget。内层 `useFormItem('start')` **仍走 FormView 缺省**（不继承 `'self'`）。标签显式 `:fl:item="true"` 时工厂再包外层 Item（页开 layout 则为 `Col → Item → Row`），内层格进这颗 Row（[ADR-017](./017-composite-item-self.md) 第 4 档）。
 
 Widget **不得** `inject` 整份 form `model`，也不得自己调 `update`。读写真值只走 `defineModel('start')` / `defineModel('end')`。
 
@@ -166,5 +164,5 @@ const EndItem = useFormItem('end')
 ## 后果
 
 - **正向**：`<User.DateRange />` 仍是一个名字、一份 `validate`、一份区间规则；OneInput / TwoInput 只是壳的次数；012 的输入/Item 分缝对复合体仍然成立。
-- **代价**：`item: false` + `layout: false` + `useFormItem('start')` 是新的作者面；宿主 `prop` 按壳粒度由适配分叉（一格常用控件键、两格按口），须与 Form 投影键一致，见 [ADR-014](./014-multi-vmodel-host-validation.md)。
+- **代价**：`item: 'self'` + `useFormItem('start')` 是新的作者面；宿主 `prop` 按壳粒度由适配分叉（一格常用控件键、两格按口），须与 Form 投影键一致，见 [ADR-014](./014-multi-vmodel-host-validation.md)。
 - **关联**：Item 合成见 [ADR-012](./012-input-item-and-rule-compile.md)（一 control 一 wrap 由本文修订）；绑定见 [ADR-011](./011-model-and-path.md)；多口宿主校验见 [ADR-014](./014-multi-vmodel-host-validation.md)；区间写在 control 上见 [ADR-010](./010-controls-as-semantic-cluster.md)；写口见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)；控件单元见 [ADR-005](./005-view-model-as-unit.md)。

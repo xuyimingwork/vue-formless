@@ -10,8 +10,14 @@ const SCHEMA_CORE_KEYS = new Set([
 
 export interface WidgetFormless {
   model?: string | string[]
-  item?: boolean
+  item?: boolean | 'self'
   layout?: boolean
+}
+
+declare module 'vue' {
+  interface ComponentCustomOptions {
+    formless?: WidgetFormless
+  }
 }
 
 export function omitUndefined(

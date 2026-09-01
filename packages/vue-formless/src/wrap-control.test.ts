@@ -92,6 +92,42 @@ describe('createControlWrap', () => {
     expect(wrap(body, { ...emptyMeta, item: false })).toBe(body)
   })
 
+  it('forces Item when meta.item is true even if the page left it off', () => {
+    const wrap = createControlWrap({
+      Item,
+      isLayoutEnabled: () => false,
+      isItemEnabled: () => false,
+      getDefaultSpan: () => undefined,
+    })
+    const out = wrap(h('input'), { ...emptyMeta, item: true }) as VNode
+    expect(out.type).toBe(Item)
+  })
+
+  it('wraps Col → Item → Row → body when innerRow is set', () => {
+    const Row = defineComponent({
+      name: 'DummyRow',
+      props: { gutter: { type: Number, default: 0 } },
+      setup: () => () => null,
+    })
+    const wrap = createControlWrap({
+      Row,
+      Col,
+      Item,
+      isLayoutEnabled: () => true,
+      getDefaultSpan: () => 12,
+      getGutter: () => 16,
+    })
+    const input = h('input')
+    const col = wrap(input, { ...emptyMeta, span: 24, innerRow: true }) as VNode
+    expect(col.type).toBe(Col)
+    const item = slotDefault(col)
+    expect(item.type).toBe(Item)
+    const row = slotDefault(item)
+    expect(row.type).toBe(Row)
+    expect(row.props?.gutter).toBe(16)
+    expect(slotDefault(row)).toBe(input)
+  })
+
   it('skips Col this wrap when meta.layout is false', () => {
     const wrap = createControlWrap({
       Col,

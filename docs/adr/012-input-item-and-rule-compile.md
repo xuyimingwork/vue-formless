@@ -8,7 +8,7 @@
   - 2026-08-18 — Item 原生 props 走 `:item:xxx`，盖在 `toItemProps` 上。
   - 2026-08-18 — Control 只渲染输入，壳由 FormView 注入的 `wrap` 包；Item/Col 不进 FormContext。
   - 2026-08-18 — 整表 `disabled` 走宿主表单；FormView 不再广播 `readonly` / `disabled`。
-  - 2026-08-19 — 「一颗 control 只 wrap 一次」由 [ADR-013](./013-one-control-multiple-items.md) 修订：默认仍如此；复合体 schema `item: false` + `layout: false` 可多次 `useFormItem`。
+  - 2026-08-19 — 「一颗 control 只 wrap 一次」由 [ADR-013](./013-one-control-multiple-items.md) 修订：默认仍如此；复合体可多次 `useFormItem`。关壳见 [ADR-017](./017-composite-item-self.md) `item: 'self'`。
   - 2026-08-19 — 多口 control 的宿主校验见 [ADR-014](./014-multi-vmodel-host-validation.md)。
   - 2026-08-19 — `Form` / `Item` 均为适配组件 + slot；内核填 default、决定是否跳过壳。`toItemProps` 不再是 `createFormView` 选项。无公开 `FormLayout`。见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。
   - 2026-08-19 — wrap 把 `snapshot` 交给 Item；实例 `form` / `item` 开关见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。

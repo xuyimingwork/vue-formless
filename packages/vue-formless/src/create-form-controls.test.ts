@@ -8,10 +8,10 @@ import {
   resolveControlBinding,
   resolveFormItemProp,
 } from './control-model'
-import { createFormControls } from './create-form-controls'
+import { createFormControls, type ComponentPublicProps } from './create-form-controls'
 import { readWidgetFormless } from './fl-config'
 import { createFormView, FormView } from './create-form-view'
-import { FormViewItem } from './use-form-item'
+import { FormViewItem, useFormItem } from './use-form-item'
 
 describe('case', () => {
   it('converts camelCase ↔ PascalCase', () => {
@@ -215,6 +215,11 @@ describe('readWidgetFormless', () => {
         formless: { item: false, layout: false, model: ['start', 'end'] },
       }),
     ).toEqual({ item: false, layout: false, model: ['start', 'end'] })
+    expect(
+      readWidgetFormless({
+        formless: { item: 'self', model: ['start', 'end'] },
+      }),
+    ).toEqual({ item: 'self', model: ['start', 'end'] })
     expect(readWidgetFormless({})).toEqual({})
   })
 })
@@ -243,6 +248,44 @@ describe('createFormControls', () => {
     expectTypeOf(User).toHaveProperty('Name')
     expectTypeOf(User).toHaveProperty('IdCard')
   })
+
+  it('forwards widget public props onto the namespaced tag', () => {
+    const Input = defineComponent({
+      props: {
+        placeholder: { type: String, default: '' },
+        rows: { type: Number, default: 2 },
+        modelValue: { type: String, default: '' },
+      },
+      setup: () => () => null,
+    })
+    const User = createFormControls({
+      remark: { component: Input },
+    })
+    type RemarkProps = ComponentPublicProps<typeof User.Remark>
+    expectTypeOf<RemarkProps>().toHaveProperty('placeholder')
+    expectTypeOf<RemarkProps>().toHaveProperty('rows')
+    expectTypeOf<RemarkProps>().toHaveProperty('fl:span')
+    expectTypeOf<RemarkProps>().not.toHaveProperty('modelValue')
+    expectTypeOf<RemarkProps>().not.toHaveProperty('onUpdate:modelValue')
+  })
+
+  it('locks schema model ports on the tag', () => {
+    const Range = defineComponent({
+      props: {
+        start: { type: String, default: '' },
+        end: { type: String, default: '' },
+        format: { type: String, default: '' },
+      },
+      setup: () => () => null,
+    })
+    const Fields = createFormControls({
+      time: { component: Range, model: ['start', 'end'] },
+    })
+    type TimeProps = ComponentPublicProps<typeof Fields.Time>
+    expectTypeOf<TimeProps>().toHaveProperty('format')
+    expectTypeOf<TimeProps>().not.toHaveProperty('start')
+    expectTypeOf<TimeProps>().not.toHaveProperty('end')
+  })
 })
 
 describe('FormView.Item', () => {
@@ -262,9 +305,47 @@ describe('createFormControls props overlay', () => {
       return () => slots.default?.() ?? null
     },
   })
+  const DummyRow = defineComponent({
+    props: { gutter: Number },
+    setup: (p, { slots }) => () =>
+      h('div', { class: 'row', 'data-gutter': String(p.gutter ?? '') }, slots.default?.()),
+  })
+  const DummyCol = defineComponent({
+    props: { span: Number },
+    setup: (p, { slots }) => () =>
+      h('div', { class: 'col', 'data-span': String(p.span ?? '') }, slots.default?.()),
+  })
+  const DummyItem = defineComponent({
+    inheritAttrs: false,
+    props: { label: { type: String, default: '' } },
+    setup: (p, { slots }) => () =>
+      h('div', { class: 'item', 'data-label': p.label }, slots.default?.()),
+  })
+  const Two = defineComponent({
+    formless: { item: 'self' as const, model: ['start', 'end'] },
+    props: {
+      start: { default: undefined },
+      end: { default: undefined },
+    },
+    setup() {
+      const Start = useFormItem('start')
+      const End = useFormItem('end')
+      return () => [
+        h(Start, { label: '开始' }, () => h('input', { class: 's' })),
+        h(End, { label: '结束' }, () => h('input', { class: 'e' })),
+      ]
+    },
+  })
 
   async function render(vnode: VNode): Promise<string> {
     return renderToString(createSSRApp({ render: () => vnode }))
+  }
+
+  function shellView() {
+    return createFormView({
+      layout: { Row: DummyRow, Col: DummyCol },
+      item: { component: DummyItem, props: (fl) => ({ label: fl.label }) },
+    })
   }
 
   it('merges cluster, control, then tag; functions see label', async () => {
@@ -308,5 +389,109 @@ describe('createFormControls props overlay', () => {
     expect(seen[0]).toMatchObject({ placeholder: '请填写姓名', clearable: true })
     expect(seen[1]).toMatchObject({ placeholder: '11 位手机号', clearable: true })
     expect(seen[2]).toMatchObject({ placeholder: '姓名', clearable: true })
+  })
+
+  it('throws when widget self conflicts with schema item false', () => {
+    const Two = defineComponent({
+      formless: { item: 'self' },
+      setup: () => () => null,
+    })
+    expect(() =>
+      createFormControls({
+        range: { component: Two, item: false },
+      }),
+    ).toThrow(/conflicts/)
+  })
+
+  it('does not wrap a self widget in an outer Item', async () => {
+    const Fields = createFormControls({
+      range: { component: Two, prop: ['fromTime', 'toTime'] },
+    })
+    const html = await render(
+      h(
+        shellView(),
+        { modelValue: { fromTime: '', toTime: '' }, 'fl:layout': true },
+        () => h(Fields.Range),
+      ),
+    )
+    expect(html.match(/class="item"/g)?.length).toBe(2)
+    expect(html).toContain('data-label="开始"')
+    expect(html).toContain('data-label="结束"')
+    expect(html).toContain('class="s"')
+    expect(html).toContain('class="e"')
+  })
+
+  it('wraps self plus explicit fl:item in Col-Item-Row', async () => {
+    const Fields = createFormControls({
+      range: { label: '签证', component: Two, prop: ['fromTime', 'toTime'] },
+    })
+    const html = await render(
+      h(
+        shellView(),
+        { modelValue: { fromTime: '', toTime: '' }, 'fl:layout': true },
+        () => h(Fields.Range, { 'fl:item': true, 'fl:span': 24 }),
+      ),
+    )
+    expect(html.match(/class="item"/g)?.length).toBe(3)
+    expect(html).toContain('data-label="签证"')
+    expect(html).toContain('data-gutter="16"')
+    expect(html).toContain('data-span="24"')
+  })
+
+  it('skips Item for internal false but keeps Col', async () => {
+    const Input = defineComponent({
+      inheritAttrs: false,
+      setup: () => () => h('input', { class: 'agency' }),
+    })
+    const Fields = createFormControls({
+      list: { component: Input, item: false },
+    })
+    const html = await render(
+      h(
+        shellView(),
+        { modelValue: { list: '' }, 'fl:layout': true },
+        () => h(Fields.List),
+      ),
+    )
+    expect(html).toContain('class="col"')
+    expect(html).not.toContain('class="item"')
+    expect(html).toContain('class="agency"')
+  })
+
+  it('lets the tag wrap Item over internal false', async () => {
+    const Input = defineComponent({
+      inheritAttrs: false,
+      setup: () => () => h('input', { class: 'agency' }),
+    })
+    const Fields = createFormControls({
+      list: { label: '机构', component: Input, item: false },
+    })
+    const html = await render(
+      h(
+        shellView(),
+        { modelValue: { list: '' }, 'fl:layout': true },
+        () => h(Fields.List, { 'fl:item': true }),
+      ),
+    )
+    expect(html).toContain('class="item"')
+    expect(html).toContain('data-label="机构"')
+    expect(html).toContain('class="col"')
+  })
+
+  it('wraps only outer Item when self plus fl:item and layout is off', async () => {
+    const Fields = createFormControls({
+      range: { label: '签证', component: Two, prop: ['fromTime', 'toTime'] },
+    })
+    const html = await render(
+      h(
+        shellView(),
+        { modelValue: { fromTime: '', toTime: '' } },
+        () => h(Fields.Range, { 'fl:item': true }),
+      ),
+    )
+    expect(html.match(/class="item"/g)?.length).toBe(3)
+    expect(html).toContain('data-label="签证"')
+    expect(html).not.toContain('class="col"')
+    expect(html).not.toContain('data-gutter')
   })
 })

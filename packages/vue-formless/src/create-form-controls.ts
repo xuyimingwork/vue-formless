@@ -2,6 +2,7 @@ import {
   defineComponent,
   h,
   markRaw,
+  type Component,
   type DefineComponent,
   type PropType,
   type VNodeChild,
@@ -15,6 +16,11 @@ import {
 } from './control-model'
 import { getIn } from './model-path'
 import { useFormContext } from './context'
+import {
+  mergeInternalItem,
+  mergeInternalLayout,
+  resolveControlShell,
+} from './control-shell'
 import {
   declaredFl,
   omitShellKeys,
@@ -34,6 +40,7 @@ import {
   useFormItem,
   type ControlFrame,
 } from './use-form-item'
+import type { WidgetTagProps } from './widget-props'
 
 export type { ControlProp, ControlVModel } from './control-model'
 export type {
@@ -43,6 +50,18 @@ export type {
 } from './item-adapter'
 export type { HostProps } from './overlay-props'
 export type { WrapControl, WrapControlMeta } from './wrap-control'
+export type {
+  ComponentPublicProps,
+  LockedVModelKeys,
+  WidgetTagProps,
+} from './widget-props'
+export {
+  mergeInternalItem,
+  mergeInternalLayout,
+  resolveControlShell,
+  type ControlItemSetting,
+  type ResolvedControlShell,
+} from './control-shell'
 
 export interface CreateFormControlsOptions {
   /** Defaults for every control in this cluster (static or from the cell snapshot). */
@@ -52,26 +71,37 @@ export interface CreateFormControlsOptions {
 /** Loose schema bag. Prefer inferring `S` from an object literal via `createFormControls`. */
 export type FormControlsSchema = Record<string, ControlSchema>
 
-export type FormControlComponent = DefineComponent<FormControlProps>
+/**
+ * Constraint for `createFormControls` only. `component` stays `unknown` so object
+ * literals keep `typeof ElInput` instead of widening to Vue's `Component`.
+ */
+type ControlSchemaInput = Omit<ControlSchema, 'component'> & {
+  component?: unknown
+}
+
+export type FormControlComponent<P = {}> = DefineComponent<FormControlProps & P>
 
 /**
  * PascalCase control tags. `S` must not be `Record<string, _>` or `keyof` collapses
  * to `string` and Volar/TS lose `User.Name` / `User.IdCard` as named keys.
+ * Tag props are `fl:*` plus the widget's public props (v-model ports locked).
  */
 export type NamespacedControls<S> = {
-  [K in keyof S & string as CamelToPascal<K>]: FormControlComponent
+  [K in keyof S & string as CamelToPascal<K>]: FormControlComponent<WidgetTagProps<S[K]>>
 }
 
 const controlFlProps = {
   'fl:prop': { type: [String, Array] as PropType<string | string[]>, default: undefined },
   'fl:span': { type: Number, default: undefined },
+  'fl:item': { type: Boolean, default: undefined },
+  'fl:layout': { type: Boolean, default: undefined },
 }
 
 /**
  * Build a static namespaced control table (ADR-009).
  * Schema keys are camelCase control names → `<User.TimeRange />`.
  */
-export function createFormControls<S extends { [K in keyof S]: ControlSchema }>(
+export function createFormControls<const S extends { [K in keyof S]: ControlSchemaInput }>(
   schema: S,
   options?: CreateFormControlsOptions,
 ): NamespacedControls<S> {
@@ -95,13 +125,13 @@ export function createFormControls<S extends { [K in keyof S]: ControlSchema }>(
 
 function createNamespacedControl(
   controlKey: string,
-  control: ControlSchema,
+  control: ControlSchemaInput,
   cluster?: CreateFormControlsOptions,
 ): FormControlComponent {
   const widgetFormless = readWidgetFormless(control.component)
   const lockedModel = widgetFormless.model ?? control.model
-  const schemaSkipItem = control.item === false || widgetFormless.item === false
-  const schemaSkipLayout = control.layout === false || widgetFormless.layout === false
+  const internalItem = mergeInternalItem(widgetFormless.item, control.item)
+  const internalLayout = mergeInternalLayout(widgetFormless.layout, control.layout)
 
   return defineComponent({
     name: `Control_${camelToPascal(controlKey)}`,
@@ -126,12 +156,24 @@ function createNamespacedControl(
             prop: tagFl.prop as ControlProp | undefined,
           },
         )
-        const widget = control.component
+        const widget = control.component as Component | undefined
 
         const { itemSlots, inputSlots } = splitSlots(slots)
         const { itemAttrs, itemOn, inputAttrs } = splitFallthrough(rest)
 
         const extras = schemaExtras(control as Record<string, unknown>)
+        const tagItem =
+          tagFl.item === true ? true : tagFl.item === false ? false : undefined
+        const tagLayout =
+          tagFl.layout === true ? true : tagFl.layout === false ? false : undefined
+        const shell = resolveControlShell({
+          pageItem: ctx.isItemEnabled(),
+          pageLayoutOn: ctx.isLayoutEnabled(),
+          internalItem,
+          internalLayout,
+          tagItem,
+          tagLayout,
+        })
         const snapshot = inputSnapshot(ctx, controlKey, binding, extras, tagFl)
         const mergedProps = overlayProps(
           resolveProps(cluster?.props, snapshot),
@@ -166,8 +208,9 @@ function createNamespacedControl(
             ...omitShellKeys(tagFl),
           },
           binding,
-          skipOuterItem: schemaSkipItem || tagFl.item === false,
-          skipOuterLayout: schemaSkipLayout || tagFl.layout === false,
+          wrapItem: shell.wrapItem,
+          wrapCol: shell.wrapCol,
+          extraRow: shell.extraRow,
           itemAttrs,
           itemOn,
           itemSlots,
@@ -195,14 +238,18 @@ function inputSnapshot(
   }
 }
 
-function normalizeSchema<S extends { [K in keyof S]: ControlSchema }>(schema: S): S {
-  const out: Record<string, ControlSchema> = { ...(schema as Record<string, ControlSchema>) }
+function normalizeSchema<S extends { [K in keyof S]: ControlSchemaInput }>(schema: S): S {
+  const out: Record<string, ControlSchemaInput> = {
+    ...(schema as Record<string, ControlSchemaInput>),
+  }
   for (const key of Object.keys(out)) {
     const item = out[key]
     if (!item) continue
     out[key] = {
       ...item,
-      component: item.component ? markRaw(item.component) : item.component,
+      component: item.component && typeof item.component === 'object'
+        ? markRaw(item.component)
+        : item.component,
     }
   }
   return out as S

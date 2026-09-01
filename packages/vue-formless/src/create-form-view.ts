@@ -151,6 +151,7 @@ function provideFormViewContext(options: {
     isItemEnabled: options.isItemEnabled,
     getDefaultSpan: () => undefined,
   })
+  const isItemEnabled = options.isItemEnabled ?? (() => true)
 
   provide(
     formContextKey,
@@ -160,6 +161,8 @@ function provideFormViewContext(options: {
       },
       update: options.update,
       wrap,
+      isItemEnabled,
+      isLayoutEnabled: () => false,
     }) as FormContext,
   )
 }

@@ -13,14 +13,22 @@ export {
 } from './create-form-view'
 export {
   createFormControls,
+  mergeInternalItem,
+  mergeInternalLayout,
+  resolveControlShell,
   type ControlSchema,
   type CreateFormControlsOptions,
   type ControlProp,
   type ControlVModel,
+  type ControlItemSetting,
+  type ResolvedControlShell,
   type FormControlsSchema,
   type FormControlProps,
   type FormControlComponent,
   type NamespacedControls,
+  type ComponentPublicProps,
+  type WidgetTagProps,
+  type LockedVModelKeys,
 } from './create-form-controls'
 export { overlayProps, resolveProps, type HostProps } from './overlay-props'
 export {
@@ -59,4 +67,5 @@ export {
   type FormViewItemSlotProps,
 } from './use-form-item'
 export type { ItemFl } from './item-adapter'
+export type { WidgetFormless } from './fl-config'
 export type { WrapControl, WrapControlMeta } from './wrap-control'

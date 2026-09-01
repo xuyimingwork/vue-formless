@@ -31,12 +31,14 @@ export function createFormLayout(options: {
       const parent = useFormContext()
       const safeColumn = props.column > 0 ? props.column : DEFAULT_LAYOUT.column
       const wrap = createControlWrap({
+        Row,
         Col,
         Item,
         itemProps: options.itemProps,
         isLayoutEnabled: () => true,
         isItemEnabled: () => props.item !== false,
         getDefaultSpan: () => Math.max(1, Math.floor(GRID_TOTAL / safeColumn)),
+        getGutter: () => props.gutter,
       })
 
       provide(
@@ -47,6 +49,8 @@ export function createFormLayout(options: {
           },
           update: parent.update,
           wrap,
+          isItemEnabled: () => props.item !== false,
+          isLayoutEnabled: () => true,
         }) as FormContext,
       )
 

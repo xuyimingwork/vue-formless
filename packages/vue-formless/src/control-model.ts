@@ -6,8 +6,8 @@
  */
 import { formItemProp, getIn } from './model-path'
 
-export type ControlVModel = string | string[]
-export type ControlProp = string | string[]
+export type ControlVModel = string | readonly string[]
+export type ControlProp = string | readonly string[]
 
 export interface ControlBindingOverrides {
   prop?: ControlProp
@@ -19,7 +19,7 @@ export interface ResolvedControlBinding {
 }
 
 export function toBindingList(value: ControlVModel | ControlProp): string[] {
-  return Array.isArray(value) ? [...value] : [value]
+  return typeof value === 'string' ? [value] : [...value]
 }
 
 export function resolveControlBinding(

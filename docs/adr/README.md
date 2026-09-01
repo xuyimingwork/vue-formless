@@ -22,6 +22,7 @@
 | [014](./014-multi-vmodel-host-validation.md) | 多口 control 与宿主校验 | Accepted（修订） |
 | [015](./015-formless-config-groups.md) | Formless 配置通道 | Accepted |
 | [016](./016-fl-project-and-overlay.md) | fl → 宿主 props | Accepted |
+| [017](./017-composite-item-self.md) | 组合体 control、`item: 'self'` 与自述 | Accepted |
 
 ## 决策关系（简图）
 
@@ -34,7 +35,8 @@
  │              ├── 011 model = v-model 口；prop = 从根到叶子的位置
  │              │    └── 014 多口：Form 投影；host prop 由适配编码；validate 在 FormView
  │              └── 012 component = 输入；Form/Item 适配组件 + slot；内核决定跳过壳
- │                   ├── 013 control ≠ Item 基数；默认 `useFormItem()`；Two = schema item/layout false + `useFormItem(口名)`
+ │                   ├── 013 control ≠ Item 基数；默认 `useFormItem()`；组合体见 017 `item: 'self'`
+ │                   ├── 017 叶子 vs `'self'`；FormView < 内部 < 外部；`'self'`+标签 true 则内层 Row
  │                   ├── 015 配置通道：无前缀宿主 / `fl:` 语义；写口仍是 v-model
  │                   └── 016 fl → 默认 props：对象或函数；近的赢；仅 Input v-model 锁死
  ├── 003 模板表达 = <User.Agency /> / <User.Name />
