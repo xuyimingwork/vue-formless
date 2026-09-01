@@ -24,7 +24,7 @@ import {
   useLayoutRuntime,
   type ColPlace,
   type ColSpanSpec,
-} from './layout'
+} from '@vue-formless/layout'
 import { declaredFl, omitShellKeys } from './fl-config'
 import type { FormViewItemProps, ItemFl } from './item-adapter'
 import { getIn } from './model-path'

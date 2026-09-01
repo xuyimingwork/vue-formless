@@ -5,6 +5,7 @@ export default defineConfig({
   resolve: {
     alias: {
       'vue-formless': fileURLToPath(new URL('../packages/vue-formless/src/index.ts', import.meta.url)),
+      '@vue-formless/layout': fileURLToPath(new URL('../packages/layout/src/index.ts', import.meta.url)),
     },
   },
   test: {

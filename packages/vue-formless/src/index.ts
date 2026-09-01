@@ -57,7 +57,7 @@ export {
   type CreateLayoutViewOptions,
   type LayoutViewProps,
   type LayoutItemProps,
-} from './layout'
+} from '@vue-formless/layout'
 export { camelToPascal, pascalToCamel, type CamelToPascal } from './case'
 export {
   useFormContext,

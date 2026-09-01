@@ -10,6 +10,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(root, 'src'),
+      '@vue-formless/layout': path.resolve(root, '../layout/src/index.ts'),
     },
   },
   test: {

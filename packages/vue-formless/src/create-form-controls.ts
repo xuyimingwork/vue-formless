@@ -37,7 +37,7 @@ import {
   type ControlFrame,
 } from './use-form-item'
 import type { WidgetTagProps } from './widget-props'
-import { toOptionalNumber, type ColPlace, type ColSpanSpec } from './layout'
+import { toOptionalNumber, type ColPlace, type ColSpanSpec } from '@vue-formless/layout'
 
 export type { ControlProp, ControlVModel } from './control-model'
 export type {
