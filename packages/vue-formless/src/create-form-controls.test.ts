@@ -209,15 +209,20 @@ describe('bindingForPort', () => {
 })
 
 describe('readWidgetFormless', () => {
-  it('reads model / item / layout from the component static bag', () => {
+  it('reads model / item from the component static bag', () => {
     expect(
       readWidgetFormless({
-        formless: { item: false, layout: false, model: ['start', 'end'] },
+        formless: { item: false, model: ['start', 'end'] },
       }),
-    ).toEqual({ item: false, layout: false, model: ['start', 'end'] })
+    ).toEqual({ item: false, model: ['start', 'end'] })
     expect(
       readWidgetFormless({
         formless: { item: 'self', model: ['start', 'end'] },
+      }),
+    ).toEqual({ item: 'self', model: ['start', 'end'] })
+    expect(
+      readWidgetFormless({
+        formless: { item: 'self', layout: false, model: ['start', 'end'] },
       }),
     ).toEqual({ item: 'self', model: ['start', 'end'] })
     expect(readWidgetFormless({})).toEqual({})

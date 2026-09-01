@@ -15,6 +15,7 @@
   - 2026-08-19 — snapshot 给 `binding` + `getValues()`，不预计算宿主 `prop`。编码在适配 Item（与 Form 投影键对齐）。见 [ADR-014](./014-multi-vmodel-host-validation.md)。
   - 2026-08-25 — 丢掉 `:formless` 袋。通道改为 `fl:` + Form/Item `props.fl`；`:item:` 仍只给 `User.Xxx`。内核不再导出 `identity-rules`。见 [ADR-015](./015-formless-config-groups.md)。
   - 2026-08-26 — Form/Item 不再吃 `props.fl`。转化是 `item.props` / control `props`（对象或函数）；覆盖见 [ADR-016](./016-fl-project-and-overlay.md)。
+  - 2026-09-01 — 无 Col：不开 FormView `:fl:layout`，或 `'self'` 外层；不再用 schema `layout: false`。
 - **来源**：相对 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md) / [ADR-010](./010-controls-as-semantic-cluster.md) 的后续收口（`component` 接什么、Item 挂在哪、规则与策略如何变成宿主 `rules`、一颗标签如何分流）
 
 ## 背景
@@ -70,7 +71,7 @@ h(Form?, { ...form.props(fl), ...attrs }, { default: () =>
 ```
 
 - **body 由 formless 渲**：`slots.default` 一定是字段树或输入。适配只 `h(ElForm, …, slots)` / `h(ElFormItem, 转换(snapshot), slots)`，必须转发 default。
-- **无 Form / 无 Item / 无 Col**：内核 **不** `h()` 那一层（工厂不传、`:form="false"` / `:item="false"`、schema `item` / `layout` 为 false、不开 `layout`）。不要在适配里 `if` 丢掉 default。
+- **无 Form / 无 Item / 无 Col**：内核 **不** `h()` 那一层（工厂不传、`:form="false"` / `:item="false"`、schema `item: false` / `'self'`、不开 `layout`）。不要在适配里 `if` 丢掉 default。
 - Control **不** `h(Item)` / `h(Col)` / `h(Form)`。Item/Col/Form 不得放进深 `reactive` 的 FormContext。
 - 内核 **不**写死 `label` / `prop` / `rules`；转换是工厂 `item.props`（playground `toEpItemProps` / `toEpRules`）。snapshot 给 `controlKey`、`binding`、`getValues()`、`validation` / `validate`；宿主 `prop` 由 `item.props` 编码（与 Form 投影键必须一致，见 [ADR-014](./014-multi-vmodel-host-validation.md)）。见 [ADR-016](./016-fl-project-and-overlay.md)。
 - `:item:` attrs 盖在适配转换结果上（协议见 §5）。

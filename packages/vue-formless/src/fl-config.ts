@@ -5,13 +5,13 @@ const SCHEMA_CORE_KEYS = new Set([
   'model',
   'prop',
   'item',
+  // leftover schema `layout` must not leak into Item snapshot extras
   'layout',
 ])
 
 export interface WidgetFormless {
   model?: string | string[]
   item?: boolean | 'self'
-  layout?: boolean
 }
 
 declare module 'vue' {
@@ -52,8 +52,8 @@ export function readWidgetFormless(component: unknown): WidgetFormless {
   if (component == null || typeof component !== 'object') return {}
   const bag = (component as { formless?: unknown }).formless
   if (bag == null || typeof bag !== 'object') return {}
-  const { model, item, layout } = bag as WidgetFormless
-  return omitUndefined({ model, item, layout }) as WidgetFormless
+  const { model, item } = bag as WidgetFormless
+  return omitUndefined({ model, item }) as WidgetFormless
 }
 
 /** Kernel `fl:*` declared as component props (`fl:prop` → `prop`). */

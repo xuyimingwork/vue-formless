@@ -14,12 +14,10 @@ describe('ControlSchema extras', () => {
       'fl:prop'?: string | string[]
       'fl:span'?: number
       'fl:item'?: boolean
-      'fl:layout'?: boolean
     }>()
     expectTypeOf<FormViewItemProps>().toEqualTypeOf<{
       'fl:prop'?: string | string[]
       'fl:span'?: number
-      'fl:layout'?: boolean
     }>()
   })
 

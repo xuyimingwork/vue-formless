@@ -13,7 +13,6 @@ export type ControlSchemaKernelKey =
   | 'model'
   | 'prop'
   | 'item'
-  | 'layout'
 
 /**
  * Control identity. Adapter extras (e.g. `label`) via `declare module 'vue-formless'`.
@@ -22,7 +21,7 @@ export type ControlSchemaKernelKey =
 export interface ControlSchema {
   /**
    * Input widget only (no FormItem). Receives v-model bindings from formless.
-   * Widget may also declare static `formless: { model, item, layout }`.
+   * Widget may also declare static `formless: { model, item }`.
    */
   component?: Component
   /** Input defaults: static object, or derived from the cell snapshot. */
@@ -43,11 +42,6 @@ export interface ControlSchema {
    * `'self'`: widget lays out cells via `useFormItem(port)` (ADR-017).
    */
   item?: boolean | 'self'
-  /**
-   * Outer wrap: skip Col even when FormView `layout` is on.
-   * Tag `:fl:layout` can turn Col back on. Inner `useFormItem(port)` follows the page.
-   */
-  layout?: boolean
 }
 
 /** Adapter fields on ControlSchema (everything except kernel keys). */
@@ -75,12 +69,10 @@ export type FormControlProps = {
   'fl:prop'?: string | string[]
   'fl:span'?: number
   'fl:item'?: boolean
-  'fl:layout'?: boolean
 } & FlExtraProps<ControlSchemaExtras>
 
 /** Kernel `fl:` keys on `FormView.Item` / `useFormItem()`. Schema extras are prefixed automatically. */
 export type FormViewItemProps = {
   'fl:prop'?: string | string[]
   'fl:span'?: number
-  'fl:layout'?: boolean
 } & FlExtraProps<ControlSchemaExtras>

@@ -12,8 +12,8 @@ export interface WrapControlMeta {
    */
   item?: boolean
   /**
-   * This wrap only. `false` skips Col even when FormView `layout` is on.
-   * `true` forces Col when layout hosting is on. Omit = follow FormView.
+   * Internal skip for this wrap (pure `'self'` outer). Omit = follow the Row host.
+   * Not a public tag/schema switch.
    */
   layout?: boolean
   /**
@@ -71,10 +71,7 @@ export function createControlWrap(options: {
       : input
 
     const wrapCol =
-      Col &&
-      options.isLayoutEnabled() &&
-      meta.layout !== false &&
-      (meta.layout === true || meta.layout === undefined)
+      Col && options.isLayoutEnabled() && meta.layout !== false
 
     if (!wrapCol) return withItem
 

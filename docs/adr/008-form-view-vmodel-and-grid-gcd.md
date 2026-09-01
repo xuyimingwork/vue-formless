@@ -13,6 +13,7 @@
   - 2026-08-19 — 可选 `Form` 适配（slot，内核填 default）；组树 `Form? → Row? → 字段`。栅格仍是 `:layout`，**再次否决**拆出公开的 `FormLayout`（简单表会 FormView / ElForm / FormLayout 套娃）。`toItemProps` 不再是工厂选项，见 [ADR-012](./012-input-item-and-rule-compile.md)。
   - 2026-08-19 — 实例配置：`v-model` / `layout` / `form` / `item`。工厂只绑组件。FormView `ref` expose 内层 Form。
   - 2026-08-19 — 单格跳过壳是 schema `item` / `layout`（与实例同名），不是 `shell`。`FormView.Item` 是临场格。
+  - 2026-09-01 — 单格关 Col 不再走 schema / 标签 `layout`；Col 只跟 FormView `:fl:layout`（`'self'` 外层除外）。见 [ADR-017](./017-composite-item-self.md)。
   - 2026-08-26 — `:fl:form` 默认 `'auto'`（根开、嵌套关）；未绑 v-model 的嵌套 FormView inherit 祖先写口。内核可拆 Layout（`column` / `gutter`），**不**公开 `FormView.Layout`。
   - 2026-08-26 — 工厂改为 `layout` / `form` / `item` 分组；`form.props` / `item.props` 为对象或函数。Form snapshot 含 `modelValue`，映射由 `form.props` 做。见 [ADR-016](./016-fl-project-and-overlay.md)。
 - **来源**：相对 [ADR-004](./004-form-layout-and-context.md) / [ADR-007](./007-layout-adapter-and-span-priority.md) 的后续澄清（命名、数据口、适配面与占位策略）
@@ -169,7 +170,7 @@ export const FormView = createFormView({
 → 再加上 Form
 ```
 
-`gutter` 不是接入门槛；空白 Col 是托管布局的统一占位手段。无 Item 则不套表单项；无 Form 则不套宿主表单。`component` 始终是输入（ADR-012）。包不包 Form / Item / Col **只由 formless 决定**（工厂有没有组件、实例 `form` / `item` / `:layout`、schema `item` / `layout`），适配必须渲 `slots.default`。
+`gutter` 不是接入门槛；空白 Col 是托管布局的统一占位手段。无 Item 则不套表单项；无 Form 则不套宿主表单。`component` 始终是输入（ADR-012）。包不包 Form / Item / Col **只由 formless 决定**（工厂有没有组件、实例 `form` / `item` / `:layout`、schema `item` / `'self'`），适配必须渲 `slots.default`。
 
 ### 4. 主路径一层嵌套；拆原语仅用于逃逸
 

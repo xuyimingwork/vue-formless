@@ -6,6 +6,7 @@
   - 2026-08-19 — 多口在宿主上怎么校验拆到 [ADR-014](./014-multi-vmodel-host-validation.md)；本文只保留壳的次数。
   - 2026-08-19 — 宿主 Item `prop` 的编码（一格控件键 vs 两格叶子路径）是适配层约定，不是内核 snapshot 字段。
   - 2026-08-19 — 关掉外层壳用 schema `item: false` + `layout: false`（与 FormView 同名，只覆盖缺省）；工厂走 `useFormItem()`；页面临场格是 `FormView.Item`（真 props，不是 `:formless`）。`shell` 废止。
+  - 2026-09-01 — 关 Col 不再写 schema / 标签 `layout`；组合体 `'self'` 外层不包 Col，密度只在 FormView。见 [ADR-017](./017-composite-item-self.md)。
   - 2026-08-31 — 组合体关壳改为控件 `formless.item: 'self'`（一次去掉外层 Item+Col）；与业务 `item: false`（不要表单项、可留 Col）分开。见 [ADR-017](./017-composite-item-self.md)。
 - **来源**：相对 [ADR-012](./012-input-item-and-rule-compile.md) / [ADR-011](./011-model-and-path.md) / [ADR-010](./010-controls-as-semantic-cluster.md)。日期范围要两套 `col-item-picker` 时，012 的「一颗 control 只 wrap 一次」把身份和壳焊死了。
 
@@ -71,7 +72,7 @@ OneInput **不要**在 `.vue` 里再取 Item：工厂已经 `useFormItem()`。Tw
 
 ### 3. Two：关掉外层壳，按口取壳
 
-组合体在控件上自述 `item: 'self'`（[ADR-017](./017-composite-item-self.md)），不要在 schema 再抄 `item` / `layout`。FormView 是这页缺省；`'self'` 关掉工厂那一次整格。**不要**把 `item` / `layout` 放进标签 `:fl:` 当这场袋子。
+组合体在控件上自述 `item: 'self'`（[ADR-017](./017-composite-item-self.md)），不要在 schema 再抄 `item`。FormView 是这页缺省；`'self'` 关掉工厂那一次整格。**不要**把 `item` 放进标签 `:fl:` 当这场袋子（显式 `:fl:item="true"` 开回外层 Item 除外）。
 
 ```ts
 dateRange: {
@@ -130,7 +131,7 @@ const EndItem = useFormItem('end')
 | 层 | 写哪 | 有什么 |
 |----|------|--------|
 | 页 | FormView | `v-model`、`layout`、`form`、`item`；其余 attrs → Form |
-| 身份 | ControlSchema | `component` / `props` / `label` / `validation`；`model` / `prop` / `path`；`item` / `layout`（只关外层） |
+| 身份 | ControlSchema | `component` / `props` / `label` / `validation`；`model` / `prop` / `path`；`item`（关 Item；`'self'` 关外层整格） |
 | 这场 | control 上的 `:formless` | `label` / `prop` / `path` / `validate` / `span`。**没有** `item` / `layout` |
 | 格 | `FormView.Item` / `useFormItem` 返回值 | 真 props：`label` / `span` / `prop` / `path` / `validate` |
 
@@ -152,7 +153,7 @@ const EndItem = useFormItem('end')
 1. **拆成 `StartDate` / `EndDate` 两颗 control**：DOM 两格最省事；身份和区间校验裂开；已否为 DateRange 的默认。真是两个独立时间点再用。
 2. **只支持 OneInput**：双口 `model`/`prop` 够用；中后台两格 label/红字覆盖不到；已否为唯一形态。
 3. **schema `ports: []` 由工厂展开两格**：widget 保持「纯输入」；复合结构（中间插 `~`、第三格、不规则 span）表达力差，工厂开始像迷你表单 schema，与 010 冲突；已否为 v1。
-4. **`:formless.bare` 当主开关**：策略袋和「我是复合体」拧在一起；已否。用 schema `item` / `layout`。
+4. **`:formless.bare` 当主开关**：策略袋和「我是复合体」拧在一起；已否。用 schema `item` / `'self'`。
 5. **`useFormView()` 把 `model` / `update` 交给 widget**：可就地改、可按叶子键自己写，绕过 FormView 写口；已否。hook 只取壳。
 6. **`useFormItem(prop)` 参数当叶子键（`startTime`）**：换绑 / `path` 时 Item 对不上；已否。参数是 **口名** `start`。
 7. **通用 `Item` + `port('start')` 在模板拼 `:formless`**：和 `useFormItem('start')` 同一件事，绑的时机更晚、更啰嗦；口级糖收在 hook。格上用 `label` / `span`，不把 `:formless` 套到格上。

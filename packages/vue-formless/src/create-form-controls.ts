@@ -16,11 +16,7 @@ import {
 } from './control-model'
 import { getIn } from './model-path'
 import { useFormContext } from './context'
-import {
-  mergeInternalItem,
-  mergeInternalLayout,
-  resolveControlShell,
-} from './control-shell'
+import { mergeInternalItem, resolveControlShell } from './control-shell'
 import {
   declaredFl,
   omitShellKeys,
@@ -57,7 +53,6 @@ export type {
 } from './widget-props'
 export {
   mergeInternalItem,
-  mergeInternalLayout,
   resolveControlShell,
   type ControlItemSetting,
   type ResolvedControlShell,
@@ -94,7 +89,6 @@ const controlFlProps = {
   'fl:prop': { type: [String, Array] as PropType<string | string[]>, default: undefined },
   'fl:span': { type: Number, default: undefined },
   'fl:item': { type: Boolean, default: undefined },
-  'fl:layout': { type: Boolean, default: undefined },
 }
 
 /**
@@ -131,7 +125,6 @@ function createNamespacedControl(
   const widgetFormless = readWidgetFormless(control.component)
   const lockedModel = widgetFormless.model ?? control.model
   const internalItem = mergeInternalItem(widgetFormless.item, control.item)
-  const internalLayout = mergeInternalLayout(widgetFormless.layout, control.layout)
 
   return defineComponent({
     name: `Control_${camelToPascal(controlKey)}`,
@@ -164,15 +157,11 @@ function createNamespacedControl(
         const extras = schemaExtras(control as Record<string, unknown>)
         const tagItem =
           tagFl.item === true ? true : tagFl.item === false ? false : undefined
-        const tagLayout =
-          tagFl.layout === true ? true : tagFl.layout === false ? false : undefined
         const shell = resolveControlShell({
           pageItem: ctx.isItemEnabled(),
           pageLayoutOn: ctx.isLayoutEnabled(),
           internalItem,
-          internalLayout,
           tagItem,
-          tagLayout,
         })
         const snapshot = inputSnapshot(ctx, controlKey, binding, extras, tagFl)
         const mergedProps = overlayProps(

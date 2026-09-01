@@ -126,7 +126,6 @@ function renderFormCell(
     wrapItemSlots = { ...frame.itemSlots, ...itemSlots }
   }
 
-  const skipCol = tagFl.layout === false
   let wrapItem: boolean | undefined
   let wrapCol: boolean | undefined
   let innerRow = false
@@ -140,7 +139,7 @@ function renderFormCell(
   return ctx.wrap(inner, {
     span: resolved.span,
     item: wrapItem === false ? false : wrapItem === true ? true : undefined,
-    layout: skipCol || wrapCol === false ? false : wrapCol === true ? true : undefined,
+    layout: wrapCol === false ? false : wrapCol === true ? true : undefined,
     innerRow,
     fl: resolved.fl,
     itemAttrs: wrapItemAttrs,

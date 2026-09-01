@@ -5,6 +5,7 @@
 - **修订**：
   - 2026-08-31 — 初版：`item: 'self'`；标签壳通道无效。
   - 2026-09-01 — **外部 `:fl:item` 高于内部**（含内部 `false` + 标签 `true` 按 true）。`'self'` + 标签显式 `true` 时工厂多一颗内层 Row。本文含改造清单。
+  - 2026-09-01 — 收掉控件 / 格级 boolean `layout`。Col 只跟 FormView `:fl:layout`；第 4 档内层 Row 同此。
 - **来源**：[ADR-012](./012-input-item-and-rule-compile.md) / [ADR-013](./013-one-control-multiple-items.md) / [ADR-015](./015-formless-config-groups.md)。013 的「一颗 control、N 格 Item」仍成立；关壳与合并顺序以本文为准。
 
 ## 背景
@@ -17,17 +18,19 @@
 
 ## 决策
 
-### 1. 三层来源；外部最高
+### 1. 三层来源；外部最高（只合 `item`）
 
-| 层 | 写哪 | `item` 取值 | `layout` 取值 |
-|----|------|-------------|---------------|
-| FormView | `:fl:item` / `:fl:layout` | boolean（有 Item 适配则默认开） | `false` / `true` / `{ column, gutter }` |
-| 内部 | `defineOptions.formless` 或 schema | `true` / `false` / `'self'`；省略 = 未写 | boolean；省略 = 未写 |
-| 外部 | 标签 `:fl:item` / `:fl:layout` | **boolean**；**没写 ≠ true** | boolean；没写 ≠ true |
+| 层 | 写哪 | `item` 取值 |
+|----|------|-------------|
+| FormView | `:fl:item` | boolean（有 Item 适配则默认开） |
+| 内部 | `defineOptions.formless` 或 schema | `true` / `false` / `'self'`；省略 = 未写 |
+| 外部 | 标签 `:fl:item` | **boolean**；**没写 ≠ true** |
+
+FormView `:fl:layout` 是页级栅格（密度对象 / `true` / 关），**不是**控件壳通道。控件袋、schema、标签、格上都没有 boolean `layout`。
 
 标签没有 `:fl:item="'self'"`。`'self'` 只出现在内部。
 
-合并（item 与 layout **分别**合并，layout 没有 `'self'`）：
+合并（只合 `item`）：
 
 ```text
 结果 = FormView
@@ -39,12 +42,14 @@
 
 内部 `'self'` 的含义：控件会自己 `useFormItem(口名)` 铺格。未被子项外部 `true` 盖过时，工厂 **不要** 外层 Item，也 **不要** 外层 Col（cell 已含 Col）。不必再写 `layout: false`。
 
+包不包 Col：页开了 `:fl:layout` 则包（`'self'` 外层除外）。没有「这一格关 Col」。
+
 ### 2. 四种结果形态
 
 | # | 条件（合并后） | 外层 Item | 外层 Col | 内层 Row |
 |---|----------------|-----------|----------|----------|
 | 1 | 跟页（内部未写 `'self'`/`false`，外部未写） | 页开则包 | 页开 layout 则包 | 无 |
-| 2 | 不要 Item（内部 `false`，外部没写成 `true`） | 不包 | 仍可跟页 / 内部 layout | 无 |
+| 2 | 不要 Item（内部 `false`，外部没写成 `true`） | 不包 | 跟页 | 无 |
 | 3 | 自己铺格（内部 `'self'`，外部没写成 `true`） | 不包 | 不包 | 无；格进 **页 Row** |
 | 4 | 自己铺格 + 外面还要 Item（内部 `'self'` **且** 外部 **显式** `:fl:item="true"`） | 包 | 页开 layout 则包 | **有**；格进这颗 Row |
 
@@ -61,7 +66,7 @@
 
 页没开 layout（没有 Row 适配或本层 `isLayoutEnabled === false`）：第 4 档只包外层 Item，**不**插内层 Row、**不**包外层 Col（内层 `useFormItem` 本就不会包 Col）。
 
-内层 `useFormItem(口名)` **不继承** `'self'`：壳跟 **页** 的 item/layout（以及该格自己的 `:fl:layout`）。
+内层 `useFormItem(口名)` **不继承** `'self'`：Item 跟 **页**（以及该格自己的 extras）；Col 跟页有没有 Row。格上没有 `:fl:layout`。
 
 ### 3. 控件自述；簇不抄壳
 
@@ -88,7 +93,6 @@ dateRangeTwo: {
 | 标签 | 第 3 档（纯 `'self'`） | 第 4 档（`'self'` + `:fl:item="true"`） | 其它 |
 |------|------------------------|----------------------------------------|------|
 | `:fl:item` | 未写则保持 `'self'`；写了就按 §1 覆盖 | 正是本档的开关 | 覆盖内部 |
-| `:fl:layout` | 无外层 Col，写了可忽略或 warn | 盖外层 Col | 覆盖内部 |
 | `:fl:span` | **无效**（无外层 Col） | 外层 Col | 外层 Col |
 | `:item:` / `@item:` / `#item:` | **无效** | 外层 Item | 外层 Item |
 | `:fl:prop` / `:fl:validate` | 有效（身份） | 有效 | 有效 |
@@ -102,7 +106,7 @@ dateRangeTwo: {
 ## 不纳入
 
 - 簇上两个组件槽；`useFormField` / `cell` / `wrap: false` 主词
-- `layout: 'self'`
+- `layout: 'self'`；控件 / 格上 boolean `:fl:layout`
 - `:item:start:xxx`
 - 标签 `:fl:item="'self'"`
 - 用嵌套 FormView 当第 4 档的实现（工厂插 Row 即可）
@@ -117,10 +121,10 @@ dateRangeTwo: {
 1. `WidgetFormless.item`、`ControlSchema.item`：`boolean | 'self'`。
 2. `FormControlProps['fl:item']` 仍是 `boolean`。
 3. 抽出 `resolveControlShell({ pageItem, pageLayoutOn, internal, tag })`（建议 `packages/vue-formless/src/control-shell.ts`）：
-   - 输入：页 item 开否、页 layout 开否、内部 `item`/`layout`、标签 `item`/`layout`（`undefined` = 没写）。
+   - 输入：页 item 开否、页 layout 开否、内部 `item`、标签 `item`（`undefined` = 没写）。无内部/标签 `layout`。
    - 输出：`wrapItem`、`wrapCol`、`extraRow`、`self`（内部是否 `'self'`，供通道/测试）。
-   - item 轴：`itemMerged = tag.item ?? internal.item ?? pageItem`，但 `'self'` 只能来自内部：若 `tag.item === undefined` 且内部为 `'self'`，则 `itemMerged = 'self'`；若 `tag.item === true` 且内部为 `'self'` → `wrapItem: true`、`extraRow: true`（且 `pageLayoutOn` 时 `wrapCol: true`，再被 `tag.layout`/`internal.layout` 盖 Col）；若 `tag.item === false` → `wrapItem: false`，内部 `'self'` 时 `wrapCol: false`。
-   - layout 轴（无 `'self'`）：`layoutOff = tag.layout === false || (tag.layout === undefined && internal.layout === false) || !pageLayoutOn`；纯 `'self'` 时强制 `wrapCol: false`。
+   - item 轴：`itemMerged = tag.item ?? internal.item ?? pageItem`，但 `'self'` 只能来自内部：若 `tag.item === undefined` 且内部为 `'self'`，则 `itemMerged = 'self'`；若 `tag.item === true` 且内部为 `'self'` → `wrapItem: true`、`extraRow: true`（且 `pageLayoutOn` 时 `wrapCol: true`）；若 `tag.item === false` → `wrapItem: false`，内部 `'self'` 时 `wrapCol: false`。
+   - Col：`wrapCol = pageLayoutOn`，纯 `'self'` 时强制 `false`。`extraRow = self && tagItem === true && pageLayoutOn`。
 4. 内部控件 vs schema：`widget.item ?? schema.item`；`'self'` 与 `false` 同时出现 throw。
 5. `readWidgetFormless` 认出 `'self'`。
 
@@ -131,7 +135,7 @@ dateRangeTwo: {
 3. FormLayout 的 `createControlWrap` 传入 `Row`。
 4. `ControlFrame`：用 `wrapItem`/`wrapCol`/`extraRow` 替代或并存 `skipOuterItem`/`skipOuterLayout`。无参 `useFormItem()` 把 `extraRow` 传进 `wrap`。
 5. 纯 `'self'`：`itemAttrs` 不要丢（第 4 档还要用）；第 3 档无宿主，开发态可对 `:item:` / `:fl:span` warn。
-6. 有参 `useFormItem`：继续 `skipItem` 不跟外层 `'self'`；Col 跟页。
+6. 有参 `useFormItem`：Item 不跟外层 `'self'`；Col 跟页 Row。
 
 ### C. 行为对照（必写测试）
 

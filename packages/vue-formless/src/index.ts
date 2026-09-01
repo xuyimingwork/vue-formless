@@ -14,7 +14,6 @@ export {
 export {
   createFormControls,
   mergeInternalItem,
-  mergeInternalLayout,
   resolveControlShell,
   type ControlSchema,
   type CreateFormControlsOptions,

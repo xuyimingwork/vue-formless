@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  mergeInternalItem,
-  mergeInternalLayout,
-  resolveControlShell,
-} from './control-shell'
+import { mergeInternalItem, resolveControlShell } from './control-shell'
 
 const pageOn = { pageItem: true, pageLayoutOn: true }
 
@@ -18,15 +14,6 @@ describe('mergeInternalItem', () => {
   it('throws when self and false are both written', () => {
     expect(() => mergeInternalItem('self', false)).toThrow(/conflicts/)
     expect(() => mergeInternalItem(false, 'self')).toThrow(/conflicts/)
-  })
-})
-
-describe('mergeInternalLayout', () => {
-  it('treats either false as off', () => {
-    expect(mergeInternalLayout(false, true)).toBe(false)
-    expect(mergeInternalLayout(undefined, false)).toBe(false)
-    expect(mergeInternalLayout(true, undefined)).toBe(true)
-    expect(mergeInternalLayout(undefined, undefined)).toBeUndefined()
   })
 })
 
@@ -169,37 +156,6 @@ describe('resolveControlShell', () => {
       wrapCol: true,
       extraRow: false,
       self: false,
-    })
-  })
-
-  it('lets the tag turn Col back on over internal layout false', () => {
-    expect(
-      resolveControlShell({
-        ...pageOn,
-        internalLayout: false,
-        tagLayout: true,
-      }),
-    ).toEqual({
-      wrapItem: true,
-      wrapCol: true,
-      extraRow: false,
-      self: false,
-    })
-  })
-
-  it('does not extra-row when self + tag item true but tag layout is false', () => {
-    expect(
-      resolveControlShell({
-        ...pageOn,
-        internalItem: 'self',
-        tagItem: true,
-        tagLayout: false,
-      }),
-    ).toEqual({
-      wrapItem: true,
-      wrapCol: false,
-      extraRow: false,
-      self: true,
     })
   })
 })
