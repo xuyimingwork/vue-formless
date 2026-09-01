@@ -5,6 +5,7 @@
   --pg-muted: #78716c;
   --pg-line: #e7e5e4;
   --pg-cell: #5eead4;
+  --pg-blank: #fde68a;
   font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
   color: var(--pg-ink);
   background: var(--pg-bg);
@@ -63,6 +64,21 @@ section p {
   line-height: 1.45;
 }
 
+.pg-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin: 0 0 12px;
+  font-size: 0.88rem;
+}
+
+.pg-toggles label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
 .pg-cell {
   min-height: 56px;
   padding: 12px 14px;
@@ -70,6 +86,12 @@ section p {
   background: var(--pg-cell);
   font-size: 0.88rem;
   font-weight: 500;
+}
+
+.pg-blank {
+  min-height: 56px;
+  border-radius: 8px;
+  background: var(--pg-blank);
 }
 
 .el-row {

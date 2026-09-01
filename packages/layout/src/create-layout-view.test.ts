@@ -135,4 +135,12 @@ describe('createLayoutView / useLayoutItem', () => {
     expect(html).not.toContain('<col')
     expect(html).toContain('inner')
   })
+
+  it('start as the first remaining cell does not keep a sealing blank', async () => {
+    const html = await render(
+      h(LayoutView, { column: 3 }, () => h(Cell, { place: 'start' }, () => 'b')),
+    )
+    expect(html.match(/<col/g)).toHaveLength(1)
+    expect(html).toContain('span="8"')
+  })
 })

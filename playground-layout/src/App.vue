@@ -1,6 +1,15 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import Cell from './Cell.vue'
 import { LayoutView } from './layout'
+
+const showA = ref(true)
+const showB = ref(true)
+const showC = ref(true)
+const showEndA = ref(true)
+const showEndB = ref(true)
+const showEndC = ref(true)
+const showEndD = ref(true)
 </script>
 
 <template>
@@ -71,21 +80,33 @@ import { LayoutView } from './layout'
 
     <section>
       <h2>place: start</h2>
-      <p>B 另起一行，A 右侧由空白 Col 封住</p>
+      <p>B 另起一行，A 右侧由空白 Col 封住。取消勾选即卸载对应格子。</p>
+      <div class="pg-toggles">
+        <label><input v-model="showA" type="checkbox" /> 显示 A</label>
+        <label><input v-model="showB" type="checkbox" /> 显示 B</label>
+        <label><input v-model="showC" type="checkbox" /> 显示 C</label>
+      </div>
       <LayoutView :column="3" :gutter="16">
-        <Cell>A</Cell>
-        <Cell place="start">B · start</Cell>
-        <Cell>C</Cell>
+          <Cell v-if="showA" key="a">A</Cell>
+          <Cell v-if="showB" key="b" place="start">B · start</Cell>
+          <Cell v-if="showC" key="c">C</Cell>
       </LayoutView>
     </section>
 
     <section>
       <h2>place: end</h2>
-      <p>C 靠行尾</p>
+      <p>C 靠行尾；D 在 C 之后。取消勾选即卸载对应格子。</p>
+      <div class="pg-toggles">
+        <label><input v-model="showEndA" type="checkbox" /> 显示 A</label>
+        <label><input v-model="showEndB" type="checkbox" /> 显示 B</label>
+        <label><input v-model="showEndC" type="checkbox" /> 显示 C</label>
+        <label><input v-model="showEndD" type="checkbox" /> 显示 D</label>
+      </div>
       <LayoutView :column="3" :gutter="16">
-        <Cell>A</Cell>
-        <Cell>B</Cell>
-        <Cell place="end">C · end</Cell>
+        <Cell v-if="showEndA" key="end-a">A</Cell>
+        <Cell v-if="showEndB" key="end-b">B</Cell>
+        <Cell v-if="showEndC" key="end-c" place="end">C · end</Cell>
+        <Cell v-if="showEndD" key="end-d">D</Cell>
       </LayoutView>
     </section>
 
