@@ -12,12 +12,16 @@ describe('ControlSchema extras', () => {
     expectTypeOf<ControlSchemaExtras>().toEqualTypeOf<{}>()
     expectTypeOf<FormControlProps>().toEqualTypeOf<{
       'fl:prop'?: string | string[]
-      'fl:span'?: number
       'fl:item'?: boolean
+      'col:span'?: string | number
+      'col:place'?: 'auto' | 'start' | 'end'
+      'row:column'?: number
+      'row:gutter'?: number
     }>()
     expectTypeOf<FormViewItemProps>().toEqualTypeOf<{
       'fl:prop'?: string | string[]
-      'fl:span'?: number
+      'col:span'?: string | number
+      'col:place'?: 'auto' | 'start' | 'end'
     }>()
   })
 

@@ -30,13 +30,14 @@ import type {
   ItemFl,
 } from './item-adapter'
 import { overlayProps, resolveProps, type HostProps } from './overlay-props'
-import { splitFallthrough, splitFlAttrs, splitSlots } from './split-fallthrough'
+import { splitFallthrough, splitFlAttrs, splitLayoutAttrs, splitSlots } from './split-fallthrough'
 import {
   provideControlRuntime,
   useFormItem,
   type ControlFrame,
 } from './use-form-item'
 import type { WidgetTagProps } from './widget-props'
+import { toOptionalNumber, type ColPlace, type ColSpanSpec } from './layout'
 
 export type { ControlProp, ControlVModel } from './control-model'
 export type {
@@ -87,8 +88,11 @@ export type NamespacedControls<S> = {
 
 const controlFlProps = {
   'fl:prop': { type: [String, Array] as PropType<string | string[]>, default: undefined },
-  'fl:span': { type: Number, default: undefined },
   'fl:item': { type: Boolean, default: undefined },
+  'col:span': { type: [String, Number] as PropType<ColSpanSpec>, default: undefined },
+  'col:place': { type: String as PropType<ColPlace>, default: undefined },
+  'row:column': { type: Number, default: undefined },
+  'row:gutter': { type: Number, default: undefined },
 }
 
 /**
@@ -140,7 +144,8 @@ function createNamespacedControl(
       const Cell = useFormItem()
 
       return (): VNodeChild => {
-        const { fl: attrFl, rest } = splitFlAttrs(attrs as Record<string, unknown>)
+        const { fl: attrFl, rest: afterFl } = splitFlAttrs(attrs as Record<string, unknown>)
+        const { row, col, rest } = splitLayoutAttrs(afterFl)
         const tagFl = { ...attrFl, ...declaredFl(controlProps as Record<string, unknown>) }
         const binding = resolveControlBinding(
           controlKey,
@@ -172,6 +177,14 @@ function createNamespacedControl(
         const modelBindings = applyControlBinding(ctx.model, binding, ctx.update)
         const displayProp = binding.props[0] ?? controlKey
         const label = typeof snapshot.label === 'string' ? snapshot.label : undefined
+        const colSpan = (controlProps['col:span'] ?? col.span) as ColSpanSpec | undefined
+        const colPlace = (controlProps['col:place'] ?? col.place) as ColPlace | undefined
+        const rowColumn = toOptionalNumber(controlProps['row:column'] ?? row.column)
+        const rowGutter = toOptionalNumber(controlProps['row:gutter'] ?? row.gutter)
+
+        if (!shell.extraRow && (rowColumn != null || rowGutter != null)) {
+          console.warn('[vue-formless] :row:* is ignored on a leaf control')
+        }
 
         const body: VNodeChild = widget
           ? h(
@@ -200,6 +213,10 @@ function createNamespacedControl(
           wrapItem: shell.wrapItem,
           wrapCol: shell.wrapCol,
           extraRow: shell.extraRow,
+          colSpan,
+          colPlace,
+          rowColumn,
+          rowGutter,
           itemAttrs,
           itemOn,
           itemSlots,

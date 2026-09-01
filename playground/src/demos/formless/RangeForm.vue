@@ -36,17 +36,19 @@ function onReset() {
     ref="formRef"
     v-model="form"
     label-width="96px"
-    :fl:layout="{ column: 3, gutter: 16 }"
+    fl:layout
+    :row:column="3"
+    :row:gutter="16"
   >
     <User.Name />
     <User.Gender />
     <User.Mobile />
-    <Range.DateRangeOne :fl:span="16" />
+    <Range.DateRangeOne col:span="16" />
     <User.Email />
-    <Range.DateRangeTwo />
+    <Range.DateRangeTwo :fl:item="true" col:span="max" col:place="end" :row:column="2" />
     <User.IdCard />
     <User.Address />
-    <FormView.Item :fl:prop="'remark'" label="备注" :fl:span="24" v-slot="{ field }">
+    <FormView.Item :fl:prop="'remark'" label="备注" col:span="max" v-slot="{ field }">
       <el-input v-bind="field" type="textarea" :rows="3" placeholder="可选" />
     </FormView.Item>
   </FormView>

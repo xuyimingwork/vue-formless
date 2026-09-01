@@ -32,7 +32,7 @@ createFormControls(schema, {
 ```
 
 - 每颗 control 的 `props` 同样是对象或函数。一层里二选一；既要静态又要跟 `fl`，写进函数。
-- `layout` / `form` / `item` 均可省。有 `layout` 则 Row+Col 都要。不要 `input`，不要 layout.props（span / gutter 内核写死）。
+- `layout` / `form` / `item` 均可省。有 `layout` 则 Row+Col 都要。不要 `input`。项目密度写 `layout.column` / `layout.gutter`（不是 `layout.props`）。内核默认 1/0。
 - Form snapshot 含 `modelValue`（FormView 的写口数据）。映射到宿主（如 ElForm `model`）写在 `form.props` 里，和其它默认值一样可被 `<FormView :model="b" />` 盖掉。内核 **不**写死 `model`。
 - Item 公约数是普通宿主 props。`item.props` 吃 `ItemFl` snapshot（`label` / `validate` / `binding` / `getValues`）。
 
@@ -51,7 +51,7 @@ Form:  <FormView> 无前缀 > form.props
 
 ### 3. 非这条路径
 
-- 组树开关（`:fl:form` / `:fl:item` / `:fl:layout`、Col `span`）——内核自己用
+- 组树开关（`:fl:form` / `:fl:item` / `:fl:layout`、`:col:span` / `:col:place`、`:row:*`）——内核自己用
 - 槽 / 事件（`#item:label`、`@item:validate`）——已有通道
 - FormView `expose` 代理内层 Form 的 `validate()`
 - `FormView.Item` 手写 default、复合控件内部 picker：不自动吃到 control `props` 函数，不 clone 用户 vnode

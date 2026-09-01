@@ -42,12 +42,12 @@ const notes: Record<DemoId, { baseline: string; formless: string; compare: strin
   basic: {
     baseline: 'ElForm + Row/Col + FormItem，每个字段自己写 v-model。',
     formless:
-      '共用 User 控件表；模板只摆控件。FormView 自带 Form；:fl:layout="{ column: 2 }"，备注 :fl:span="24"。',
+      '共用 User 控件表；模板只摆控件。FormView 自带 Form；`fl:layout` 用工厂密度 2/16，备注 `col:span="max"`。',
     compare: '同一套字段，对照模板密度。',
   },
   filter: {
     baseline: '四格筛选，手写 Col span=6。',
-    formless: '同一套 User.*，只点四个；placeholder / clearable 写在标签上。:fl:layout="{ column: 4, gutter: 12 }"。',
+    formless: '同一套 User.*，只点四个；placeholder / clearable 写在标签上。`fl:layout` + `:row:column="4"`。',
     compare: '同一套查询字段，对照栅格样板。',
   },
   readonly: {
@@ -58,13 +58,13 @@ const notes: Record<DemoId, { baseline: string; formless: string; compare: strin
   mixed: {
     baseline: '分组 + 三列 / 24+16+8 / 整行，手写 Col。',
     formless:
-      '同一套 User.*；外层 FormView 包 Form；内层只写 `:fl:layout` 换密度（`fl:form` auto 关、v-model inherit）。',
+      '同一套 User.*；外层 FormView 包 Form；内层只写 `fl:layout` + `:row:*` 换密度（`fl:form` auto 关、v-model inherit）。',
     compare: '同一套分组布局，对照托管与逃逸。',
   },
   range: {
     baseline: '三列混排：行程日期 span 16 旁塞一格；开始+结束同样两列再塞一格。',
     formless:
-      'Range One 一格 span 16；Range Two 控件 formless.item self，内部 useFormItem 两格进同一行；标签 :fl:item="true" 再加外层 Item。备注是临场 FormView.Item（:fl:prop / :fl:span）。',
+      'Range One 一格 `col:span="16"`；Range Two `item: self` + `:fl:item="true"` 分组壳，内层 `:row:column="2"`，`col:place="end"`。备注是临场 FormView.Item（`:fl:prop` / `col:span`）。',
     compare: '对照两种 Range 都占两列的混排。',
   },
 }

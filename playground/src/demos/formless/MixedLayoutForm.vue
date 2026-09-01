@@ -25,21 +25,21 @@ async function onSubmit() {
 <template>
   <FormView ref="formRef" v-model="form" label-width="96px">
     <p class="pg-section-title">基本信息</p>
-    <FormView :fl:layout="{ column: 3, gutter: 16 }">
+    <FormView fl:layout :row:column="3" :row:gutter="16">
       <User.Name />
       <User.Gender />
       <User.Mobile />
     </FormView>
 
     <p class="pg-section-title">证件与联系</p>
-    <FormView :fl:layout="{ column: 3, gutter: 16 }">
-      <User.IdCard :fl:span="24" />
-      <User.Email :fl:span="16" />
-      <User.Address :fl:span="8" />
+    <FormView fl:layout :row:column="3" :row:gutter="16">
+      <User.IdCard col:span="max" />
+      <User.Email col:span="16" />
+      <User.Address col:span="8" />
     </FormView>
 
     <p class="pg-section-title">其他</p>
-    <FormView :fl:layout="{ column: 1, gutter: 16 }">
+    <FormView fl:layout :row:column="1" :row:gutter="16">
       <User.Remark />
     </FormView>
     <FormView.Item label="备注">

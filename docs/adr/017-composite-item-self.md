@@ -6,6 +6,7 @@
   - 2026-08-31 — 初版：`item: 'self'`；标签壳通道无效。
   - 2026-09-01 — **外部 `:fl:item` 高于内部**（含内部 `false` + 标签 `true` 按 true）。`'self'` + 标签显式 `true` 时工厂多一颗内层 Row。本文含改造清单。
   - 2026-09-01 — 收掉控件 / 格级 boolean `layout`。Col 只跟 FormView `:fl:layout`；第 4 档内层 Row 同此。
+  - 2026-09-01 — 第 4 档内层改为控件自挂 `LayoutView`（同一颗 `createLayoutView`）。宽 `:col:span`；内层密度 `:row:*`。
 - **来源**：[ADR-012](./012-input-item-and-rule-compile.md) / [ADR-013](./013-one-control-multiple-items.md) / [ADR-015](./015-formless-config-groups.md)。013 的「一颗 control、N 格 Item」仍成立；关壳与合并顺序以本文为准。
 
 ## 背景
@@ -56,12 +57,12 @@ FormView `:fl:layout` 是页级栅格（密度对象 / `true` / 关），**不�
 第 4 档是唯一「内外都有 Item」。不要用 FormView 默认 `item: true` 触发（没写外部就不算显式 true）。
 
 ```text
-页 Row
-  └── Col?                    ← 外层；:fl:span 有效
+页 LayoutView
+  └── LayoutItem              ← 外层；:col:span / :col:place
         └── Item              ← 外层；:item: / 分组 label 有效
-              └── Row         ← 工厂插适配 Row，gutter 跟页
-                    ├── Col → Item → input
-                    └── Col → Item → input
+              └── LayoutView  ← 控件挂的同一颗；:row:*
+                    ├── LayoutItem → Item → input
+                    └── LayoutItem → Item → input
 ```
 
 页没开 layout（没有 Row 适配或本层 `isLayoutEnabled === false`）：第 4 档只包外层 Item，**不**插内层 Row、**不**包外层 Col（内层 `useFormItem` 本就不会包 Col）。
@@ -93,11 +94,12 @@ dateRangeTwo: {
 | 标签 | 第 3 档（纯 `'self'`） | 第 4 档（`'self'` + `:fl:item="true"`） | 其它 |
 |------|------------------------|----------------------------------------|------|
 | `:fl:item` | 未写则保持 `'self'`；写了就按 §1 覆盖 | 正是本档的开关 | 覆盖内部 |
-| `:fl:span` | **无效**（无外层 Col） | 外层 Col | 外层 Col |
+| `:col:span` / `:col:place` | **无效**（无外层 Col） | 外层格 | 外层格 |
+| `:row:column` / `:row:gutter` | 忽略（叶子 warn） | 内层 LayoutView | 忽略 |
 | `:item:` / `@item:` / `#item:` | **无效** | 外层 Item | 外层 Item |
 | `:fl:prop` / `:fl:validate` | 有效（身份） | 有效 | 有效 |
 
-内层格上的 `label` / `:fl:span` 始终是格自己的。
+内层格上的 `label` / `:col:span` 始终是格自己的。
 
 ### 5. 不自动拆壳
 
@@ -109,7 +111,8 @@ dateRangeTwo: {
 - `layout: 'self'`；控件 / 格上 boolean `:fl:layout`
 - `:item:start:xxx`
 - 标签 `:fl:item="'self'"`
-- 用嵌套 FormView 当第 4 档的实现（工厂插 Row 即可）
+- 用嵌套 FormView 当第 4 档的实现（控件挂 LayoutView 即可）
+- 公开 LayoutItem / `FormView.Layout` / `place="center"` / 开放 Col 透传
 - 把组合体拆成 N 颗 control 当默认
 
 ## 改造方案
@@ -158,7 +161,7 @@ dateRangeTwo: {
 
 1. `DateRangeTwo.vue`：`item: 'self'`，删 `layout: false`。
 2. `range.ts`：删抄写的 `item`/`layout`。
-3. 可选 demo：`<Range.DateRangeTwo :fl:item="true" :fl:span="24" />` 看分组壳 + 内层 Row。
+3. 可选 demo：`<Range.DateRangeTwo :fl:item="true" col:span="max" col:place="end" />` 看分组壳 + 内层 LayoutView。
 4. 文档/DemoShell 一句：组合体自述 `'self'`；标签 `true` 加外层 Item。
 
 ### E. 文档

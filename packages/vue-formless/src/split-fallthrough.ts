@@ -3,6 +3,14 @@ import type { Slot, Slots } from 'vue'
 const ITEM_PREFIX = 'item:'
 const ITEM_ON_PREFIX = 'onItem:'
 const FL_PREFIX = 'fl:'
+const ROW_PREFIX = 'row:'
+const COL_PREFIX = 'col:'
+const ROW_KEYS = new Set(['column', 'gutter'])
+const COL_KEYS = new Set(['span', 'place'])
+
+function devWarn(message: string): void {
+  console.warn(message)
+}
 
 export function splitSlots(slots: Slots): {
   itemSlots: Record<string, Slot>
@@ -37,6 +45,39 @@ export function splitFlAttrs(attrs: Record<string, unknown>): {
     }
   }
   return { fl, rest }
+}
+
+export interface LayoutAttrBags {
+  row: { column?: unknown; gutter?: unknown }
+  col: { span?: unknown; place?: unknown }
+  rest: Record<string, unknown>
+}
+
+/** Peel closed `row:` / `col:` keys. Unknown names are dropped (dev warn). */
+export function splitLayoutAttrs(attrs: Record<string, unknown>): LayoutAttrBags {
+  const row: LayoutAttrBags['row'] = {}
+  const col: LayoutAttrBags['col'] = {}
+  const rest: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(attrs)) {
+    if (key.startsWith(ROW_PREFIX) && key.length > ROW_PREFIX.length) {
+      const name = key.slice(ROW_PREFIX.length)
+      if (ROW_KEYS.has(name)) {
+        ;(row as Record<string, unknown>)[name] = value
+      } else {
+        devWarn(`[vue-formless] unknown row:${name} is ignored`)
+      }
+    } else if (key.startsWith(COL_PREFIX) && key.length > COL_PREFIX.length) {
+      const name = key.slice(COL_PREFIX.length)
+      if (COL_KEYS.has(name)) {
+        ;(col as Record<string, unknown>)[name] = value
+      } else {
+        devWarn(`[vue-formless] unknown col:${name} is ignored`)
+      }
+    } else {
+      rest[key] = value
+    }
+  }
+  return { row, col, rest }
 }
 
 /**

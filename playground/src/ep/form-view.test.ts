@@ -52,7 +52,7 @@ describe('namespaced control widget props', () => {
     expectTypeOf<RemarkProps>().toHaveProperty('placeholder')
     expectTypeOf<RemarkProps>().toHaveProperty('rows')
     expectTypeOf<RemarkProps>().toHaveProperty('type')
-    expectTypeOf<RemarkProps>().toHaveProperty('fl:span')
+    expectTypeOf<RemarkProps>().toHaveProperty('col:span')
     expectTypeOf<RemarkProps>().toHaveProperty('fl:label')
     expectTypeOf<RemarkProps>().not.toHaveProperty('modelValue')
   })

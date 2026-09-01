@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { splitFallthrough, splitFlAttrs, splitSlots } from './split-fallthrough'
+import { describe, expect, it, vi } from 'vitest'
+import { splitFallthrough, splitFlAttrs, splitLayoutAttrs, splitSlots } from './split-fallthrough'
 import type { Slot, Slots } from 'vue'
 
 describe('splitFlAttrs', () => {
@@ -13,6 +13,32 @@ describe('splitFlAttrs', () => {
     })
     expect(fl).toEqual({ prop: 'buyers[0].name', span: 24, validate: 'required' })
     expect(rest).toEqual({ placeholder: 'x', 'item:label-width': 96 })
+  })
+})
+
+describe('splitLayoutAttrs', () => {
+  it('peels closed row: and col: keys', () => {
+    const { row, col, rest } = splitLayoutAttrs({
+      placeholder: 'x',
+      'row:column': 3,
+      'row:gutter': 12,
+      'col:span': '2x',
+      'col:place': 'end',
+    })
+    expect(row).toEqual({ column: 3, gutter: 12 })
+    expect(col).toEqual({ span: '2x', place: 'end' })
+    expect(rest).toEqual({ placeholder: 'x' })
+  })
+
+  it('drops unknown row:/col: keys', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { rest } = splitLayoutAttrs({
+      'row:justify': 'end',
+      'col:offset': 4,
+      placeholder: 'x',
+    })
+    expect(rest).toEqual({ placeholder: 'x' })
+    warn.mockRestore()
   })
 })
 

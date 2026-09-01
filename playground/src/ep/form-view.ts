@@ -11,7 +11,7 @@ export function toEpItemProps(fl: ItemFl): Record<string, unknown> {
 
 /** Playground bind: Element Row/Col/Form/Item. Not a published adapter. */
 export const FormView = createFormView({
-  layout: { Row: ElRow, Col: ElCol },
+  layout: { Row: ElRow, Col: ElCol, column: 2, gutter: 16 },
   form: {
     component: ElForm,
     props: (fl) => ({ model: fl.modelValue }),

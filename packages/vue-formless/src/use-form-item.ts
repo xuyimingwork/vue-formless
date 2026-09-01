@@ -1,5 +1,6 @@
 import {
   defineComponent,
+  h,
   inject,
   provide,
   type Component,
@@ -17,20 +18,31 @@ import {
   type ResolvedControlBinding,
 } from './control-model'
 import { useFormContext } from './context'
+import {
+  resolveColSpan,
+  useLayoutItem,
+  useLayoutRuntime,
+  type ColPlace,
+  type ColSpanSpec,
+} from './layout'
 import { declaredFl, omitShellKeys } from './fl-config'
 import type { FormViewItemProps, ItemFl } from './item-adapter'
 import { getIn } from './model-path'
-import { splitFallthrough, splitFlAttrs, splitSlots } from './split-fallthrough'
+import { splitFallthrough, splitFlAttrs, splitLayoutAttrs, splitSlots } from './split-fallthrough'
 import type { WrapControlMeta } from './wrap-control'
 
 /** Frame the namespaced control refreshes each render; `useFormItem` reads it. */
 export interface ControlFrame {
-  /** Extras + span (no `item` / `layout` / `model`). */
+  /** Extras (no `item` / `layout` / `model` / leftover `span`). */
   fl: Record<string, unknown>
   binding: ResolvedControlBinding
   wrapItem: boolean
   wrapCol: boolean
   extraRow: boolean
+  colSpan?: ColSpanSpec
+  colPlace?: ColPlace
+  rowColumn?: number
+  rowGutter?: number
   itemAttrs: Record<string, unknown>
   itemOn: Record<string, unknown>
   itemSlots: WrapControlMeta['itemSlots']
@@ -58,7 +70,8 @@ export type { FormViewItemProps } from './item-adapter'
 
 const formCellFlProps = {
   'fl:prop': { type: [String, Array] as PropType<string | string[]>, default: undefined },
-  'fl:span': { type: Number, default: undefined },
+  'col:span': { type: [String, Number] as PropType<ColSpanSpec>, default: undefined },
+  'col:place': { type: String as PropType<ColPlace>, default: undefined },
 }
 
 function createFormCellComponent(port?: string): FormViewItemComponent {
@@ -68,6 +81,8 @@ function createFormCellComponent(port?: string): FormViewItemComponent {
     props: formCellFlProps,
     setup(props, { slots, attrs }) {
       const ctx = useFormContext()
+      const LayoutItem = useLayoutItem()
+      const layoutRuntime = useLayoutRuntime()
       const runtime = inject(controlRuntimeKey, null)
       if (port != null && !runtime) {
         throw new Error(
@@ -75,7 +90,16 @@ function createFormCellComponent(port?: string): FormViewItemComponent {
         )
       }
       return (): VNodeChild =>
-        renderFormCell(ctx, runtime, port, slots, attrs as Record<string, unknown>, props)
+        renderFormCell(
+          ctx,
+          LayoutItem,
+          layoutRuntime,
+          runtime,
+          port,
+          slots,
+          attrs as Record<string, unknown>,
+          props,
+        )
     },
   }) as FormViewItemComponent
 }
@@ -86,7 +110,7 @@ export type FormViewItemComponent = DefineComponent<FormViewItemProps>
 export const FormViewItem = createFormCellComponent()
 
 /**
- * One cell: Col? → Item? → default slot.
+ * One cell: LayoutItem? → Item? → (inner LayoutView?) → default slot.
  * No arg: this control's full binding (factory outer wrap).
  * Port: slice one v-model mouth.
  * Outer wrap follows the merged shell (ADR-017); binding stays on the frame.
@@ -99,28 +123,42 @@ export function useFormItem(port?: string): FormViewItemComponent {
 
 function renderFormCell(
   ctx: ReturnType<typeof useFormContext>,
+  LayoutItem: Component,
+  layoutRuntime: ReturnType<typeof useLayoutRuntime>,
   runtime: ControlRuntime | null,
   port: string | undefined,
   slots: Slots,
   attrs: Record<string, unknown>,
   props: Record<string, unknown>,
 ): VNodeChild {
-  const { fl: attrFl, rest } = splitFlAttrs(attrs)
+  const { fl: attrFl, rest: afterFl } = splitFlAttrs(attrs)
+  const { row: attrRow, col: attrCol, rest } = splitLayoutAttrs(afterFl)
   const tagFl = { ...attrFl, ...declaredFl(props) }
   const { itemAttrs, itemOn, inputAttrs } = splitFallthrough(rest)
   const hostItemAttrs = { ...itemAttrs, ...inputAttrs }
   const { itemSlots } = splitSlots(slots)
 
   const outer = port == null && runtime != null
-  const resolved = resolveCellFl(ctx, runtime, port, tagFl)
+  const tagSpan = (props['col:span'] ?? attrCol.span) as ColSpanSpec | undefined
+  const tagPlace = (props['col:place'] ?? attrCol.place) as ColPlace | undefined
+  const frame = runtime?.getFrame()
+  const spanSpec = tagSpan ?? (outer ? frame?.colSpan : undefined)
+  const place = tagPlace ?? (outer ? frame?.colPlace : undefined)
+
+  const column = layoutRuntime?.column ?? ctx.getLayoutDensity().column
+  const resolvedSpan = resolveColSpan(spanSpec, column)
+  const resolved = resolveCellFl(ctx, runtime, port, tagFl, resolvedSpan)
   const field = applyControlBinding(ctx.model, resolved.binding, ctx.update)
   const inner = slots.default?.({ field }) ?? null
+
+  if (!outer && (attrRow.column != null || attrRow.gutter != null)) {
+    console.warn('[vue-formless] :row:* is ignored on a leaf cell')
+  }
 
   let wrapItemAttrs = hostItemAttrs
   let wrapItemOn = itemOn
   let wrapItemSlots = itemSlots
-  if (outer && runtime) {
-    const frame = runtime.getFrame()
+  if (outer && frame) {
     wrapItemAttrs = { ...frame.itemAttrs, ...hostItemAttrs }
     wrapItemOn = { ...frame.itemOn, ...itemOn }
     wrapItemSlots = { ...frame.itemSlots, ...itemSlots }
@@ -128,24 +166,42 @@ function renderFormCell(
 
   let wrapItem: boolean | undefined
   let wrapCol: boolean | undefined
-  let innerRow = false
-  if (outer && runtime) {
-    const frame = runtime.getFrame()
+  let extraRow = false
+  if (outer && frame) {
     wrapItem = frame.wrapItem
     wrapCol = frame.wrapCol
-    innerRow = frame.extraRow
+    extraRow = frame.extraRow
   }
 
-  return ctx.wrap(inner, {
-    span: resolved.span,
+  let node: VNodeChild = inner
+  if (extraRow && frame) {
+    const page = ctx.getLayoutDensity()
+    const extraBody = node
+    node = h(
+      ctx.LayoutView,
+      {
+        enabled: ctx.isLayoutEnabled(),
+        column: frame.rowColumn ?? page.column,
+        gutter: frame.rowGutter ?? page.gutter,
+      },
+      () => extraBody,
+    )
+  }
+
+  node = ctx.wrap(node, {
     item: wrapItem === false ? false : wrapItem === true ? true : undefined,
-    layout: wrapCol === false ? false : wrapCol === true ? true : undefined,
-    innerRow,
     fl: resolved.fl,
     itemAttrs: wrapItemAttrs,
     itemOn: wrapItemOn,
     itemSlots: wrapItemSlots,
   })
+
+  if (wrapCol !== false) {
+    const withItem = node
+    node = h(LayoutItem, { span: spanSpec, place }, () => withItem)
+  }
+
+  return node
 }
 
 function resolveCellFl(
@@ -153,30 +209,23 @@ function resolveCellFl(
   runtime: ControlRuntime | null,
   port: string | undefined,
   tagFl: Record<string, unknown>,
-): { fl: ItemFl; binding: ResolvedControlBinding; span?: number } {
+  span: number,
+): { fl: ItemFl; binding: ResolvedControlBinding } {
   const tagExtras = omitShellKeys(tagFl)
 
   if (runtime) {
     const frame = runtime.getFrame()
     const binding =
       port != null ? bindingForPort(frame.binding, port) : frame.binding
-    const span =
-      typeof tagFl.span === 'number'
-        ? tagFl.span
-        : port != null
-          ? undefined
-          : typeof frame.fl.span === 'number'
-            ? frame.fl.span
-            : undefined
     const fl: ItemFl = {
       ...frame.fl,
       ...tagExtras,
       controlKey: runtime.controlKey,
       binding,
       getValues: () => binding.props.map((p) => getIn(ctx.model, p)),
+      span,
     }
-    if (span !== undefined) fl.span = span
-    return { binding, span, fl }
+    return { binding, fl }
   }
 
   const prop = tagFl.prop
@@ -195,15 +244,14 @@ function resolveCellFl(
       : resolveControlBinding(controlKey || 'field', {
           prop: prop as ControlProp,
         })
-  const span = typeof tagFl.span === 'number' ? tagFl.span : undefined
   const fl: ItemFl = {
     ...tagExtras,
     controlKey,
     binding,
     getValues: () => binding.props.map((p) => getIn(ctx.model, p)),
+    span,
   }
-  if (span !== undefined) fl.span = span
-  return { binding, span, fl }
+  return { binding, fl }
 }
 
 export function attachFormViewItem<T extends Component>(

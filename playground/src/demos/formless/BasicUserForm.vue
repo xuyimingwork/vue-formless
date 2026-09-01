@@ -30,8 +30,8 @@ function onReset() {
   <FormView
     ref="formRef"
     v-model="form"
+    fl:layout
     label-width="96px"
-    :fl:layout="{ column: 2, gutter: 16 }"
   >
     <User.Name />
     <User.Gender />
@@ -39,7 +39,7 @@ function onReset() {
     <User.Email />
     <User.IdCard />
     <User.Address />
-    <User.Remark :fl:span="24" />
+    <User.Remark col:span="max" />
   </FormView>
 
   <div class="pg-actions">

@@ -47,17 +47,22 @@ export {
   type PathSegment,
 } from './model-path'
 export {
-  resolveLayout,
   DEFAULT_LAYOUT,
   GRID_TOTAL,
-  type ResolvedFormLayout,
+  resolveColSpan,
+  type ColSpanSpec,
+  type ColPlace,
+  createLayoutView,
+  useLayoutItem,
+  type CreateLayoutViewOptions,
+  type LayoutViewProps,
+  type LayoutItemProps,
 } from './layout'
 export { camelToPascal, pascalToCamel, type CamelToPascal } from './case'
 export {
   useFormContext,
   formContextKey,
   type FormContext,
-  type FormGridAdapter,
 } from './context'
 export {
   useFormItem,

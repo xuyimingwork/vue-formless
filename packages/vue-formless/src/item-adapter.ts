@@ -64,15 +64,19 @@ export type ItemFl = {
   [extra: string]: unknown
 } & ControlSchemaExtras
 
-/** Kernel `fl:` keys on `<User.Xxx />`. Schema extras are prefixed automatically. */
+/** Kernel `fl:` / `col:` / `row:` keys on `<User.Xxx />`. Schema extras are prefixed automatically. */
 export type FormControlProps = {
   'fl:prop'?: string | string[]
-  'fl:span'?: number
   'fl:item'?: boolean
+  'col:span'?: string | number
+  'col:place'?: 'auto' | 'start' | 'end'
+  'row:column'?: number
+  'row:gutter'?: number
 } & FlExtraProps<ControlSchemaExtras>
 
-/** Kernel `fl:` keys on `FormView.Item` / `useFormItem()`. Schema extras are prefixed automatically. */
+/** Kernel keys on `FormView.Item` / `useFormItem()`. Schema extras are prefixed automatically. */
 export type FormViewItemProps = {
   'fl:prop'?: string | string[]
-  'fl:span'?: number
+  'col:span'?: string | number
+  'col:place'?: 'auto' | 'start' | 'end'
 } & FlExtraProps<ControlSchemaExtras>

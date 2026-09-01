@@ -1,10 +1,9 @@
 import { inject, type Component, type InjectionKey, type Ref } from 'vue'
 import type { WrapControl } from './wrap-control'
 
-/** External grid primitives bound by `createFormView` (ADR-007 / ADR-008). */
-export interface FormGridAdapter {
-  Row: Component
-  Col: Component
+export interface FormLayoutDensity {
+  column: number
+  gutter: number
 }
 
 export interface FormContext {
@@ -13,14 +12,18 @@ export interface FormContext {
   /** Report a field write; FormView patches and emits `update:modelValue`. */
   update: (prop: string, value: unknown) => void
   /**
-   * FormView-owned shell: Col? → Item? → body.
+   * FormView-owned Item shell.
    * Used by `useFormItem` / `FormView.Item`, not by widget authors.
    */
   wrap: WrapControl
-  /** This FormView / Layout layer's Item switch. */
+  /** This FormView layer's Item switch. */
   isItemEnabled: () => boolean
-  /** True inside hosted layout (Row/Col wrap is available). */
+  /** This FormView's `:fl:layout` switch (page, not nearest LayoutView). */
   isLayoutEnabled: () => boolean
+  /** Factory `createLayoutView` result; reused for gear-4 inner host. */
+  LayoutView: Component
+  /** Page density after factory + `:row:*`. */
+  getLayoutDensity: () => FormLayoutDensity
 }
 
 export const formContextKey: InjectionKey<FormContext> = Symbol('vue-formless.formContext')

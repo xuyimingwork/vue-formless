@@ -100,7 +100,7 @@ describe('createFormView', () => {
     })
     await render(
       h(FormView, { modelValue: {} }, () =>
-        h(FormView, { 'fl:layout': { column: 3, gutter: 16 } }, () => h(Writer())),
+        h(FormView, { 'fl:layout': true, 'row:column': 3, 'row:gutter': 16 }, () => h(Writer())),
       ),
     )
     expect(forms).toHaveLength(1)
@@ -137,7 +137,7 @@ describe('createFormView', () => {
       h(
         FormView,
         { modelValue: { name: 'Ada' }, 'onUpdate:modelValue': emit },
-        () => h(FormView, { 'fl:layout': { column: 3 } }, () => h(Writer())),
+        () => h(FormView, { 'fl:layout': true, 'row:column': 3 }, () => h(Writer())),
       ),
     )
     await nextTick()
@@ -148,7 +148,7 @@ describe('createFormView', () => {
   it('renders Row and Col span 8 when column is 3', async () => {
     const FormView = View()
     const html = await render(
-      h(FormView, { modelValue: {}, 'fl:layout': { column: 3, gutter: 12 } }, () =>
+      h(FormView, { modelValue: {}, 'fl:layout': true, 'row:column': 3, 'row:gutter': 12 }, () =>
         h(FormView.Item, { 'fl:prop': 'name' }),
       ),
     )
@@ -171,7 +171,7 @@ describe('createFormView', () => {
     const FormView = View()
     const html = await render(
       h(FormView, { modelValue: {} }, () =>
-        h(FormView, { 'fl:layout': { column: 3, gutter: 16 } }, () =>
+        h(FormView, { 'fl:layout': true, 'row:column': 3, 'row:gutter': 16 }, () =>
           h(FormView.Item, { 'fl:prop': 'name' }),
         ),
       ),
@@ -262,5 +262,45 @@ describe('createFormView', () => {
     const b = { name: 'Bob' }
     await render(h(FormView, { modelValue: a, model: b }, () => h(Writer())))
     expect(seen).toEqual([b])
+  })
+
+  it('uses kernel density 1/0 when factory omits column/gutter', async () => {
+    const FormView = View()
+    const html = await render(
+      h(FormView, { modelValue: {}, 'fl:layout': true }, () =>
+        h(FormView.Item, { 'fl:prop': 'name' }),
+      ),
+    )
+    expect(html).toContain('gutter="0"')
+    expect(html).toContain('span="24"')
+  })
+
+  it('lets factory density set default span', async () => {
+    const FormView = createFormView({
+      layout: { Row, Col, column: 3, gutter: 16 },
+      item: { component: Item },
+    })
+    const html = await render(
+      h(FormView, { modelValue: {}, 'fl:layout': true }, () =>
+        h(FormView.Item, { 'fl:prop': 'name' }),
+      ),
+    )
+    expect(html).toContain('gutter="16"')
+    expect(html).toContain('span="8"')
+  })
+
+  it('throws when fl:layout is an object', async () => {
+    const FormView = View()
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    await expect(
+      render(
+        h(FormView, { modelValue: {}, 'fl:layout': { column: 3 } as never }, () =>
+          h(FormView.Item, { 'fl:prop': 'name' }),
+        ),
+      ),
+    ).rejects.toThrow(/boolean only/)
+    warn.mockRestore()
+    error.mockRestore()
   })
 })

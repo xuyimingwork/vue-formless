@@ -29,7 +29,9 @@ function onReset() {
   <FormView
     v-model="query"
     label-width="72px"
-    :fl:layout="{ column: 4, gutter: 12 }"
+    fl:layout
+    :row:column="4"
+    :row:gutter="12"
     @submit.prevent
   >
     <User.Name placeholder="姓名" clearable />

@@ -9,19 +9,20 @@
   - 2026-08-27 — 去掉独立 `path`；位置只写 `prop`。见 [ADR-011](./011-model-and-path.md)。
   - 2026-09-01 — 壳合并改为 FormView < 内部 < 外部；外部 `true` 可开回 Item。`'self'` + 标签 `true` 见 [ADR-017](./017-composite-item-self.md)。
   - 2026-09-01 — 控件 / 格上不再有 boolean `layout` / `:fl:layout`。包不包 Col 只跟 FormView `:fl:layout`（第 4 档内层 Row 同此）。见 [ADR-017](./017-composite-item-self.md)。
+  - 2026-09-01 — 增加 `row:` / `col:` 通道。`:fl:layout` 只保 boolean；宽用 `:col:span` / `:col:place`。布局对外 `createLayoutView` + `useLayoutItem`。
 - **来源**：[ADR-008](./008-form-view-vmodel-and-grid-gcd.md) / [ADR-011](./011-model-and-path.md) / [ADR-012](./012-input-item-and-rule-compile.md) / [ADR-013](./013-one-control-multiple-items.md)。本文钉 **配置怎么写、进哪一层**。不改 `component` 不含 Item、不改写口、不改 `useFormItem` 吃口名。
 
 ## 决策
 
-**无前缀 = 该层宿主；`fl:` = Formless。** `User.Xxx` 额外保留 **`:item:`** 给宿主 Item。FormView 写口仍是 Vue 常规 **`v-model`**（顶层 `modelValue`），不是 `v-model:fl`，也不是 `fl.modelValue`。
+**无前缀 = 该层宿主；`fl:` = Formless；`row:` / `col:` = 布局。** `User.Xxx` 额外保留 **`:item:`** 给宿主 Item。FormView 写口仍是 Vue 常规 **`v-model`**（顶层 `modelValue`），不是 `v-model:fl`，也不是 `fl.modelValue`。
 
 ### 1. 通道
 
-| 组件 | 无前缀 | `fl:` | 另 |
-|------|--------|--------|-----|
-| `User.Xxx` | → `component` | `prop` `span` + boolean `item` + extras | `:item:` / `@item:` / `#item:` → 宿主 Item |
-| `FormView` | → 适配 Form | 组树仍用 `layout` / `form` / `item`。`form.props` 从 snapshot（含 `modelValue`）产出默认宿主 props | **`v-model` 是 FormView 写口**。根必须有；嵌套可省略并 inherit。无前缀 `:model` 盖 `form.props` |
-| `FormView.Item` | → 适配 Item | `prop` `span` + extras。**无 `fl:item`、无 `fl:model`、无 `fl:layout`** | 无 `:item:`。选口不在标签上 |
+| 组件 | 无前缀 | `fl:` | `row:` / `col:` | 另 |
+|------|--------|--------|-----------------|-----|
+| `User.Xxx` | → `component` | `prop` + boolean `item` + extras | `col:span` `col:place`；分组上 `row:column` `row:gutter` | `:item:` / `@item:` / `#item:` → 宿主 Item |
+| `FormView` | → 适配 Form | 组树 `layout`(boolean) / `form` / `item` | `row:column` `row:gutter`（声明 props） | **`v-model` 是 FormView 写口** |
+| `FormView.Item` | → 适配 Item | `prop` + extras。**无 `fl:item`、无 `fl:model`、无 `fl:layout`** | `col:span` `col:place` | 无 `:item:` |
 
 内核 `h(Form, overlay(form.props(snapshot), attrs))`；`h(Item, overlay(item.props(snapshot), itemAttrs))`。Snapshot 只进 `props` 函数，不是宿主 prop。
 
@@ -30,19 +31,19 @@
 
 ### 2. 页开 Item；Col 跟 Row 宿主
 
-wrap 仍是 `Col? → Item? → body`。FormView 给出 Item 缺省；内部 `formless` / schema 盖一层；**标签 `:fl:item` 最高**（没写 ≠ `true`）。内部 `false` + 标签 `true` 按 true 包 Item。组合体 `'self'` 见 [ADR-017](./017-composite-item-self.md)。
+wrap 仍是 `LayoutItem? → Item? → body`。FormView 给出 Item 缺省；内部 `formless` / schema 盖一层；**标签 `:fl:item` 最高**（没写 ≠ `true`）。内部 `false` + 标签 `true` 按 true 包 Item。组合体 `'self'` 见 [ADR-017](./017-composite-item-self.md)。
 
-包不包 Col **只由长出 Row 的那一层**决定：FormView `:fl:layout`。控件袋、schema、`<User.Xxx>`、`FormView.Item` 都没有 boolean `layout`。`'self'` 外层不包 Col 是壳形态，不是格级开关。第 4 档内层 Row 同样跟页：页开 layout 才插 Row、内层格才包 Col。
+包不包 Col **只由最近 LayoutView 的 `enabled` 决定**：FormView `:fl:layout`。控件袋、schema、`<User.Xxx>`、`FormView.Item` 都没有 boolean `layout`。`'self'` 外层不包 Col 是壳形态（`wrapCol: false`），不是格级开关。第 4 档内层再挂一颗 LayoutView。
 
 | 层 | `item` | `layout` |
 |----|--------|----------|
-| FormView | `:fl:item`（工厂有 Item 时默认开） | `:fl:layout`：`false` / `true` / `{ column, gutter }`（密度只在这里） |
+| FormView | `:fl:item`（工厂有 Item 时默认开） | `:fl:layout` boolean；密度工厂 + `:row:*` |
 | schema 或控件静态 `formless` | `false` 关工厂 Item；`'self'` 见 [017](./017-composite-item-self.md) | **无**。关外层 Col 只走 `'self'` |
-| `User.Xxx` | `:fl:item="false"` 这一场再关 | **无** `:fl:layout`。宽用 `:fl:span` |
+| `User.Xxx` | `:fl:item="false"` 这一场再关 | **无** `:fl:layout`。宽用 `:col:span` |
+
+`FormView.Item` 不要 `:fl:item`，也不要 `:item:`，也不要 `:fl:layout`。格上只有 `:col:span` / `:col:place`。
 
 工厂始终 `useFormItem()` 一次（无参 = 当前 control 的整份接线）。`item: false` 只把这一层 Item 藏掉（可留 Col）；`item: 'self'` 两层都藏。**不是没绑定**。内层 `useFormItem('start')` 从同一份接线按口切开，壳跟页，不继承外层 `'self'` / `false`。
-
-`FormView.Item` 不要 `:fl:item`，也不要 `:item:`，也不要 `:fl:layout`。格上只有 `:fl:span`（这颗 Col 多宽）。
 
 ### 3. `useFormItem(port?)`
 
@@ -74,7 +75,8 @@ formless: {
 
 - 内核读核心键：`component`、`model`、`props`、`prop`、`item`。其余 schema 键与 `fl:*` extras **不解释**，进 Item/Input 转化函数的 snapshot。extras 只扩 `ControlSchema`；`ItemFl` / `FormControlProps` / `FormViewItemProps` 从 extras 推导（`label` → snapshot `label` 与 `:fl:label`）。内核不预声明 `label` / `validate`。见 [ADR-016](./016-fl-project-and-overlay.md)。
 - 内核 **删除 `identity-rules`**。`validation` / `validate` 是不透明 extras；默认 `'optional'` 和编 `rules` 都在适配（playground `toEpRules`）。
-- Col 只吃内核算出的 `span`；Row 只吃页 `fl:layout` 的 `gutter`。外层这次 wrap 无 Col 则这次不用 `span`。
+- Col 只吃内核算出的数字 `span`；Row 只吃该层 LayoutView 的 `gutter`。`:fl:span` 丢掉（开发态 warn）。
+- 布局模块只导出 `createLayoutView` / `useLayoutItem`，不导出 LayoutItem。否：`place="center"`、开放 Col 透传、`:col:justify`。
 
 ## 不纳入
 

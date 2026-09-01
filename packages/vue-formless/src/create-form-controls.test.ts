@@ -269,7 +269,7 @@ describe('createFormControls', () => {
     type RemarkProps = ComponentPublicProps<typeof User.Remark>
     expectTypeOf<RemarkProps>().toHaveProperty('placeholder')
     expectTypeOf<RemarkProps>().toHaveProperty('rows')
-    expectTypeOf<RemarkProps>().toHaveProperty('fl:span')
+    expectTypeOf<RemarkProps>().toHaveProperty('col:span')
     expectTypeOf<RemarkProps>().not.toHaveProperty('modelValue')
     expectTypeOf<RemarkProps>().not.toHaveProperty('onUpdate:modelValue')
   })
@@ -434,12 +434,12 @@ describe('createFormControls props overlay', () => {
       h(
         shellView(),
         { modelValue: { fromTime: '', toTime: '' }, 'fl:layout': true },
-        () => h(Fields.Range, { 'fl:item': true, 'fl:span': 24 }),
+        () => h(Fields.Range, { 'fl:item': true, 'col:span': 24 }),
       ),
     )
     expect(html.match(/class="item"/g)?.length).toBe(3)
     expect(html).toContain('data-label="签证"')
-    expect(html).toContain('data-gutter="16"')
+    expect(html).toContain('data-gutter="0"')
     expect(html).toContain('data-span="24"')
   })
 
@@ -498,5 +498,22 @@ describe('createFormControls props overlay', () => {
     expect(html).toContain('data-label="签证"')
     expect(html).not.toContain('class="col"')
     expect(html).not.toContain('data-gutter')
+  })
+
+  it('uses control :row:column for the inner LayoutView', async () => {
+    const Fields = createFormControls({
+      range: { label: '签证', component: Two, prop: ['fromTime', 'toTime'] },
+    })
+    const html = await render(
+      h(
+        shellView(),
+        { modelValue: { fromTime: '', toTime: '' }, 'fl:layout': true, 'row:column': 3 },
+        () => h(Fields.Range, { 'fl:item': true, 'row:column': 2 }),
+      ),
+    )
+    expect(html).toContain('data-gutter="0"')
+    const spans = [...html.matchAll(/data-span="(\d+)"/g)].map((m) => m[1])
+    expect(spans).toContain('8')
+    expect(spans.filter((s) => s === '12')).toHaveLength(2)
   })
 })
