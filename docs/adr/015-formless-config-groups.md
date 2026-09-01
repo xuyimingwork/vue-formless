@@ -33,7 +33,7 @@
 
 wrap 仍是 `LayoutItem? → Item? → body`。FormView 给出 Item 缺省；内部 `formless` / schema 盖一层；**标签 `:fl:item` 最高**（没写 ≠ `true`）。内部 `false` + 标签 `true` 按 true 包 Item。组合体 `'self'` 见 [ADR-017](./017-composite-item-self.md)。
 
-包不包 Col **只由最近 LayoutView 的 `enabled` 决定**：FormView `:fl:layout`。控件袋、schema、`<User.Xxx>`、`FormView.Item` 都没有 boolean `layout`。`'self'` 外层不包 Col 是壳形态（`wrapCol: false`），不是格级开关。第 4 档内层再挂一颗 LayoutView。
+包不包 Col **只由最近 LayoutView 的 `disabled` 决定**：FormView `:fl:layout` 关则 `disabled`。控件袋、schema、`<User.Xxx>`、`FormView.Item` 都没有 boolean `layout`。`'self'` 外层不包 Col 是壳形态（`wrapCol: false`），不是格级开关。第 4 档内层再挂一颗 LayoutView。
 
 | 层 | `item` | `layout` |
 |----|--------|----------|

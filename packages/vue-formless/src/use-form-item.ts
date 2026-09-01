@@ -180,7 +180,7 @@ function renderFormCell(
     node = h(
       ctx.LayoutView,
       {
-        enabled: ctx.isLayoutEnabled(),
+        disabled: !ctx.isLayoutEnabled(),
         column: frame.rowColumn ?? page.column,
         gutter: frame.rowGutter ?? page.gutter,
       },

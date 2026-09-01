@@ -1,5 +1,6 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import vueJsx from '@vitejs/plugin-vue-jsx'
 import { defineConfig } from 'vite'
 import dts from 'vite-plugin-dts'
 
@@ -29,9 +30,10 @@ export default defineConfig({
     },
   },
   plugins: [
+    vueJsx(),
     dts({
       rollupTypes: true,
-      exclude: ['**/__test__/**', '**/*.test.ts'],
+      exclude: ['**/__test__/**', '**/*.test.ts', '**/*.test.tsx'],
     }),
   ],
 })

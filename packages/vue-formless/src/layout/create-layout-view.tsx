@@ -1,6 +1,5 @@
 import {
   defineComponent,
-  h,
   inject,
   markRaw,
   provide,
@@ -26,7 +25,7 @@ export interface CreateLayoutViewOptions {
 }
 
 export interface LayoutViewProps {
-  enabled?: boolean
+  disabled?: boolean
   column?: number
   gutter?: number
 }
@@ -46,6 +45,11 @@ interface LayoutRuntime {
 
 const layoutItemKey: InjectionKey<Component> = Symbol('vue-formless.layoutItem')
 const layoutRuntimeKey: InjectionKey<LayoutRuntime> = Symbol('vue-formless.layoutRuntime')
+
+/** `Component` is a union; JSX needs a constructable host. */
+function asJsxHost(component: Component) {
+  return component as unknown as new () => { $props: Record<string, unknown> }
+}
 
 const Passthrough = defineComponent({
   name: 'LayoutItemPassthrough',
@@ -79,10 +83,18 @@ export function createLayoutView(options: CreateLayoutViewOptions = {}): Compone
         const n = resolveColSpan(props.span, runtime.column)
         const place = resolveColPlace(props.place)
         const blanks = takePlaceBlanks(runtime.used, n, place)
-        const col = h(runtime.Col, { span: n }, () => slots.default?.() ?? null)
+        const HostCol = asJsxHost(runtime.Col)
+        const col = <HostCol span={n}>{slots.default?.() ?? null}</HostCol>
         runtime.used.n += n
         if (blanks.length === 0) return col
-        return [...blanks.map((span) => h(runtime.Col!, { span })), col]
+        return (
+          <>
+            {blanks.map((span, i) => (
+              <HostCol key={i} span={span} />
+            ))}
+            {col}
+          </>
+        )
       }
     },
   })
@@ -91,7 +103,7 @@ export function createLayoutView(options: CreateLayoutViewOptions = {}): Compone
     name: 'LayoutView',
     inheritAttrs: false,
     props: {
-      enabled: { type: Boolean, default: false },
+      disabled: { type: Boolean, default: false },
       column: { type: Number, default: DEFAULT_LAYOUT.column },
       gutter: { type: Number, default: DEFAULT_LAYOUT.gutter },
     },
@@ -109,13 +121,14 @@ export function createLayoutView(options: CreateLayoutViewOptions = {}): Compone
 
       return (): VNodeChild => {
         used.n = 0
-        const enabled = props.enabled === true && Row != null && Col != null
+        const enabled = props.disabled !== true && Row != null && Col != null
         const column = props.column > 0 ? props.column : DEFAULT_LAYOUT.column
         runtime.enabled = enabled
         runtime.column = column
         runtime.gutter = props.gutter
         if (!enabled || !Row) return slots.default?.() ?? null
-        return h(Row, { gutter: props.gutter }, () => slots.default?.() ?? null)
+        const HostRow = asJsxHost(Row)
+        return <HostRow gutter={props.gutter}>{slots.default?.() ?? null}</HostRow>
       }
     },
   })

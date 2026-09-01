@@ -268,7 +268,7 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
           }
           const body = h(
             LayoutView,
-            { enabled, column: density.column, gutter: density.gutter },
+            { disabled: !enabled, column: density.column, gutter: density.gutter },
             () => children,
           )
 
@@ -328,7 +328,7 @@ export const FormView = attachFormViewItem(
         h(
           defaultLayoutView,
           {
-            enabled: isFlLayoutOn(props['fl:layout']),
+            disabled: !isFlLayoutOn(props['fl:layout']),
             column: props['row:column'] ?? DEFAULT_LAYOUT.column,
             gutter: props['row:gutter'] ?? DEFAULT_LAYOUT.gutter,
           },

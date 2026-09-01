@@ -40,7 +40,7 @@ async function render(vnode: VNode): Promise<string> {
 describe('createLayoutView / useLayoutItem', () => {
   it('passthrough without Col when disabled', async () => {
     const html = await render(
-      h(LayoutView, { enabled: false, column: 3 }, () => h(Cell, () => 'nocol')),
+      h(LayoutView, { disabled: true, column: 3 }, () => h(Cell, () => 'nocol')),
     )
     expect(html).not.toContain('<row')
     expect(html).not.toContain('<col')
@@ -55,7 +55,7 @@ describe('createLayoutView / useLayoutItem', () => {
         return () => h(LayoutItem, () => slots.default?.())
       },
     })
-    const html = await render(h(Bare, { enabled: true }, () => h(Inner, () => 'bare')))
+    const html = await render(h(Bare, () => h(Inner, () => 'bare')))
     expect(html).toContain('bare')
     expect(html).not.toContain('<row')
     expect(html).not.toContain('<col')
@@ -63,7 +63,7 @@ describe('createLayoutView / useLayoutItem', () => {
 
   it('uses 1x default span from column', async () => {
     const html = await render(
-      h(LayoutView, { enabled: true, column: 3, gutter: 12 }, () => h(Cell)),
+      h(LayoutView, { column: 3, gutter: 12 }, () => h(Cell)),
     )
     expect(html).toContain('gutter="12"')
     expect(html).toContain('span="8"')
@@ -71,22 +71,22 @@ describe('createLayoutView / useLayoutItem', () => {
 
   it('resolves 2x / max / absolute span', async () => {
     const two = await render(
-      h(LayoutView, { enabled: true, column: 3 }, () => h(Cell, { span: '2x' })),
+      h(LayoutView, { column: 3 }, () => h(Cell, { span: '2x' })),
     )
     expect(two).toContain('span="16"')
     const max = await render(
-      h(LayoutView, { enabled: true, column: 3 }, () => h(Cell, { span: 'max' })),
+      h(LayoutView, { column: 3 }, () => h(Cell, { span: 'max' })),
     )
     expect(max).toContain('span="24"')
     const abs = await render(
-      h(LayoutView, { enabled: true, column: 3 }, () => h(Cell, { span: 8 })),
+      h(LayoutView, { column: 3 }, () => h(Cell, { span: 8 })),
     )
     expect(abs).toContain('span="8"')
   })
 
   it('auto does not insert blank cols', async () => {
     const html = await render(
-      h(LayoutView, { enabled: true, column: 2 }, () => [
+      h(LayoutView, { column: 2 }, () => [
         h(Cell, { span: 12 }, () => 'a'),
         h(Cell, { span: 12 }, () => 'b'),
       ]),
@@ -96,7 +96,7 @@ describe('createLayoutView / useLayoutItem', () => {
 
   it('start inserts a blank to seal the row', async () => {
     const html = await render(
-      h(LayoutView, { enabled: true, column: 2 }, () => [
+      h(LayoutView, { column: 2 }, () => [
         h(Cell, { span: 8 }, () => 'a'),
         h(Cell, { span: 8, place: 'start' }, () => 'b'),
       ]),
@@ -107,7 +107,7 @@ describe('createLayoutView / useLayoutItem', () => {
 
   it('end pads so the cell sits at the row end', async () => {
     const html = await render(
-      h(LayoutView, { enabled: true, column: 3 }, () => h(Cell, { span: 8, place: 'end' }, () => 'z')),
+      h(LayoutView, { column: 3 }, () => h(Cell, { span: 8, place: 'end' }, () => 'z')),
     )
     expect(html.match(/<col/g)).toHaveLength(2)
     expect(html).toMatch(/span="16".*span="8"/s)
@@ -115,8 +115,8 @@ describe('createLayoutView / useLayoutItem', () => {
 
   it('nested LayoutView cuts through to the inner density', async () => {
     const html = await render(
-      h(LayoutView, { enabled: true, column: 3 }, () =>
-        h(LayoutView, { enabled: true, column: 2, gutter: 8 }, () => h(Cell)),
+      h(LayoutView, { column: 3 }, () =>
+        h(LayoutView, { column: 2, gutter: 8 }, () => h(Cell)),
       ),
     )
     expect(html.match(/<row/g)).toHaveLength(2)
@@ -127,8 +127,8 @@ describe('createLayoutView / useLayoutItem', () => {
 
   it('inner disabled LayoutView does not pierce outer Col', async () => {
     const html = await render(
-      h(LayoutView, { enabled: true, column: 3 }, () =>
-        h(LayoutView, { enabled: false }, () => h(Cell, () => 'inner')),
+      h(LayoutView, { column: 3 }, () =>
+        h(LayoutView, { disabled: true }, () => h(Cell, () => 'inner')),
       ),
     )
     expect(html.match(/<row/g)).toHaveLength(1)
