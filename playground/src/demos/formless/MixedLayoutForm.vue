@@ -42,9 +42,6 @@ async function onSubmit() {
     <FormView fl:layout :row:column="1" :row:gutter="16">
       <User.Remark />
     </FormView>
-    <FormView.Item label="备注">
-      <el-input v-model="form.remark" type="textarea" :rows="3" />
-    </FormView.Item>
   </FormView>
 
   <div class="pg-actions">

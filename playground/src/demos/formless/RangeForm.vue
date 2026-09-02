@@ -45,7 +45,7 @@ function onReset() {
     <User.Mobile />
     <Range.DateRangeOne col:span="16" />
     <User.Email />
-    <Range.DateRangeTwo :fl:item="true" col:span="max" col:place="end" :row:column="2" />
+    <Range.DateRangeTwo />
     <User.IdCard />
     <User.Address />
     <FormView.Item :fl:prop="'remark'" label="备注" col:span="max" v-slot="{ field }">

@@ -1,7 +1,9 @@
 import { fileURLToPath } from 'node:url'
+import vueJsx from '@vitejs/plugin-vue-jsx'
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
+  plugins: [vueJsx()],
   resolve: {
     alias: {
       'vue-formless': fileURLToPath(new URL('../packages/vue-formless/src/index.ts', import.meta.url)),
