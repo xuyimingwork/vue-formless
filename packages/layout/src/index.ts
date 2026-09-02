@@ -3,7 +3,7 @@ export {
   GRID_TOTAL,
   type ColSpanSpec,
   type ColPlace,
-} from './density'
+} from './grid'
 export {
   createLayoutView,
   useLayoutItem,

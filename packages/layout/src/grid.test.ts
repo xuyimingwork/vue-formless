@@ -6,7 +6,7 @@ import {
   normalizeColumn,
   resolveColPlace,
   resolveColSpan,
-} from './density'
+} from './grid'
 
 describe('resolveColSpan', () => {
   it('treats omit as 1x', () => {

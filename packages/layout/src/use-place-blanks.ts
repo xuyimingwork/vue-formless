@@ -1,7 +1,7 @@
 import { computed, toValue, type ComputedRef, type MaybeRefOrGetter } from 'vue'
-import { GRID_TOTAL, type ColPlace } from './density'
+import { GRID_TOTAL, type ColPlace } from './grid'
 
-export interface PlaceBlankCell {
+export interface LayoutCell {
   id: string
   span: number
   place: ColPlace
@@ -39,7 +39,7 @@ export function takePlaceBlanks(
 
 /** Ordered resolved cells in; per-id blank spans out. No DOM, no span parsing. */
 export function usePlaceBlanks(
-  cells: MaybeRefOrGetter<readonly PlaceBlankCell[]>,
+  cells: MaybeRefOrGetter<readonly LayoutCell[]>,
 ): ComputedRef<ReadonlyMap<string, number[]>> {
   return computed(() => {
     const used = { n: 0 }

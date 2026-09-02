@@ -5,8 +5,11 @@ import {
   type PropType,
   type VNodeChild,
 } from 'vue'
-import type { ColPlace, ColSpanSpec } from './density'
-import { layoutItemKey, type JsxHost } from './layout-context'
+import type { ColPlace, ColSpanSpec } from './grid'
+import { LAYOUT_VIEW_KEY } from './injection-keys'
+
+/** `Component` is a union; JSX needs a constructable host. */
+export type JsxHost = new () => { $props: Record<string, unknown> }
 
 export interface LayoutItemProps {
   span?: ColSpanSpec
@@ -43,9 +46,9 @@ const LayoutItem = defineComponent({
     place: { type: String as PropType<ColPlace>, default: undefined },
   },
   setup(props, { slots }) {
-    const attach = inject(layoutItemKey, null)
-    if (!attach) return (): VNodeChild => slots.default?.() ?? null
-    const { span, blanks, itemRef, Col, disabled } = attach(
+    const register = inject(LAYOUT_VIEW_KEY, null)
+    if (!register) return (): VNodeChild => slots.default?.() ?? null
+    const { span, blanks, itemRef, Col, disabled } = register(
       () => props.span,
       () => props.place,
     )
@@ -74,7 +77,7 @@ const PassThrough = defineComponent({
 
 /** Nearest LayoutView's cell component; identity when no LayoutView. */
 export function useLayoutItem(): Component {
-  return inject(layoutItemKey, null)
+  return inject(LAYOUT_VIEW_KEY, null)
     ? LayoutItem
     : PassThrough
 }

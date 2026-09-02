@@ -7,18 +7,19 @@ import {
   ref,
   toValue,
   type Component,
+  type MaybeRefOrGetter,
+  type Ref,
   type VNodeChild,
 } from 'vue'
-import { getColumn, resolveColPlace, resolveColSpan, type ColPlace } from './density'
-import { hostEl } from './host-el'
-import { layoutItemKey, type JsxHost } from './layout-context'
-import { useLayoutItem } from './layout-item'
+import { getColumn, resolveColPlace, resolveColSpan, type ColPlace, type ColSpanSpec } from './grid'
+import { LAYOUT_VIEW_KEY } from './injection-keys'
+import type { JsxHost } from './layout-item'
 import { useDomChildren } from './use-dom-children'
-import { usePlaceBlanks } from './use-place-blanks'
+import { usePlaceBlanks, type LayoutCell } from './use-place-blanks'
+import { hostEl } from './utils'
 
-export type { ColPlace, ColSpanSpec } from './density'
-export type { LayoutItemProps } from './layout-item'
-export { useLayoutItem }
+export type { ColPlace, ColSpanSpec } from './grid'
+export { useLayoutItem, type LayoutItemProps } from './layout-item'
 
 export interface CreateLayoutViewOptions {
   Row?: Component
@@ -31,7 +32,86 @@ export interface LayoutViewProps {
   column?: number
 }
 
-const emptyBlanks: number[] = []
+type LayoutItemState = {
+  span: number
+  place: ColPlace
+  el: Element | null
+  mounted: boolean
+}
+
+interface LayoutItems {
+  readonly value: Record<string, LayoutItemState>
+  setup(
+    span?: MaybeRefOrGetter<ColSpanSpec | undefined>,
+    place?: MaybeRefOrGetter<ColPlace | undefined>,
+  ): string
+  span(id: string): number
+  ref(id: string, raw: unknown): void
+}
+
+function useLayoutItems(column: MaybeRefOrGetter<number>): LayoutItems {
+  const items = ref<Record<string, LayoutItemState>>({})
+  let seq = 0
+
+  return {
+    get value() {
+      return items.value
+    },
+    setup(span, place) {
+      const id = String(++seq)
+      const ownSpan = computed(() => resolveColSpan(toValue(span), toValue(column)))
+      const ownPlace = computed(() => resolveColPlace(toValue(place)))
+      items.value[id] = {
+        span: ownSpan as unknown as number,
+        place: ownPlace as unknown as ColPlace,
+        el: null,
+        mounted: false,
+      }
+      onMounted(() => {
+        const item = items.value[id]
+        if (item) item.mounted = true
+      })
+      onBeforeUnmount(() => {
+        delete items.value[id]
+      })
+      return id
+    },
+    span(id) {
+      return items.value[id]?.span ?? 0
+    },
+    ref(id, raw) {
+      const item = items.value[id]
+      if (!item) return
+      const el = hostEl(raw)
+      if (item.el !== el) item.el = el
+    },
+  }
+}
+
+function getLayoutCells(
+  items: Record<string, LayoutItemState>,
+  children: Element[],
+): LayoutCell[] {
+  const cells = new Map(
+    Object.entries(items)
+      .filter(([, item]) => item.el)
+      .map(([id, item]) => [item.el!, { id, span: item.span, place: item.place }]),
+  )
+  return children
+    .filter((el) => cells.has(el))
+    .map((el) => cells.get(el)!)
+}
+
+function useRowBlanks(items: LayoutItems, rowRef: Ref<unknown>) {
+  const children = useDomChildren(
+    () => hostEl(rowRef.value),
+    () =>
+      Object.keys(items.value)
+        .filter((id) => items.value[id].mounted)
+        .join(','),
+  )
+  return usePlaceBlanks(() => getLayoutCells(items.value, children.value))
+}
 
 /**
  * Bind host Row/Col once. Returns LayoutView.
@@ -48,75 +128,18 @@ export function createLayoutView(options: CreateLayoutViewOptions = {}): Compone
       column: { type: Number, default: undefined },
     },
     setup(props, { slots, attrs }) {
-      const disabled = computed(() => {
-        if (!Row || !Col) return true
-        return props.disabled
-      })
-      // Nested ComputedRefs unwrap when read off this deep ref.
-      const items = ref<
-        Record<
-          string,
-          {
-            span: number
-            place: ColPlace
-            el: Element | null
-            mounted: boolean
-          }
-        >
-      >({})
-      let seq = 0
-
+      const disabled = computed(() => !Row || !Col || props.disabled)
+      const items = useLayoutItems(() => getColumn(props.column, options.column))
       const rowRef = ref<unknown>(null)
-      const children = useDomChildren(
-        () => hostEl(rowRef.value),
-        () =>
-          Object.keys(items.value)
-            .filter((id) => items.value[id].mounted)
-            .join(','),
-      )
+      const blanks = useRowBlanks(items, rowRef)
 
-      const orderedCells = computed(() => {
-        const bag = items.value
-        const all = Object.keys(bag)
-        const fromDom = children.value.flatMap((child) => {
-          const id = all.find((key) => bag[key].el === child)
-          return id ? [{ id, span: bag[id].span, place: bag[id].place }] : []
-        })
-        if (fromDom.length === all.length) return fromDom
-        return all.map((id) => ({ id, span: bag[id].span, place: bag[id].place }))
-      })
-
-      const blanksById = usePlaceBlanks(orderedCells)
-
-      provide(layoutItemKey, (span, place) => {
-        provide(layoutItemKey, null)
-        const id = String(++seq)
-        const ownSpan = computed(() =>
-          resolveColSpan(toValue(span), getColumn(props.column, options.column)),
-        )
-        const ownPlace = computed(() => resolveColPlace(toValue(place)))
-        items.value[id] = {
-          span: ownSpan as unknown as number,
-          place: ownPlace as unknown as ColPlace,
-          el: null,
-          mounted: false,
-        }
-        onMounted(() => {
-          const item = items.value[id]
-          if (item) item.mounted = true
-        })
-        onBeforeUnmount(() => {
-          delete items.value[id]
-        })
+      provide(LAYOUT_VIEW_KEY, (span, place) => {
+        provide(LAYOUT_VIEW_KEY, null)
+        const id = items.setup(span, place)
         return {
-          span: computed(() => items.value[id]?.span ?? ownSpan.value),
-          blanks: computed(() => blanksById.value.get(id) ?? emptyBlanks),
-          itemRef(raw: unknown) {
-            const item = items.value[id]
-            if (!item) return
-            const el = hostEl(raw)
-            if (item.el !== el) item.el = el
-          },
+          span: computed(() => items.span(id)),
+          blanks: computed(() => blanks.value.get(id) ?? []),
+          itemRef: (raw) => items.ref(id, raw),
           Col,
           disabled,
         }

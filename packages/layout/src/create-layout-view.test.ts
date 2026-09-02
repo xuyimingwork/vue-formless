@@ -94,23 +94,25 @@ describe('createLayoutView / useLayoutItem', () => {
     expect(html.match(/<grid-col/g)).toHaveLength(2)
   })
 
-  it('start inserts a blank to seal the row', async () => {
+  it('start does not insert a sealing blank during SSR', async () => {
     const html = await render(
       h(LayoutView, { column: 2 }, () => [
         h(Cell, { span: 8 }, () => 'a'),
         h(Cell, { span: 8, place: 'start' }, () => 'b'),
       ]),
     )
-    expect(html.match(/<grid-col/g)).toHaveLength(3)
-    expect(html).toMatch(/span="8".*span="16".*span="8"/s)
+    expect(html.match(/<grid-col/g)).toHaveLength(2)
+    expect(html).toMatch(/span="8".*span="8"/s)
+    expect(html).not.toContain('span="16"')
   })
 
-  it('end pads so the cell sits at the row end', async () => {
+  it('end does not pad during SSR', async () => {
     const html = await render(
       h(LayoutView, { column: 3 }, () => h(Cell, { span: 8, place: 'end' }, () => 'z')),
     )
-    expect(html.match(/<grid-col/g)).toHaveLength(2)
-    expect(html).toMatch(/span="16".*span="8"/s)
+    expect(html.match(/<grid-col/g)).toHaveLength(1)
+    expect(html).toContain('span="8"')
+    expect(html).not.toContain('span="16"')
   })
 
   it('nested LayoutView does not inherit outer column or gutter', async () => {

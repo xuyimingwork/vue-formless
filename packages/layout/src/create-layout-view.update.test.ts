@@ -52,6 +52,10 @@ describe('layout place blanks after updates', () => {
     const app = createApp(Root)
     app.mount(el)
 
+    const first = [...el.querySelectorAll('.col')].map((n) => n.getAttribute('data-span'))
+    expect(first).toEqual(['8', '8'])
+    await nextTick()
+
     const before = [...el.querySelectorAll('.col')].map((n) => n.getAttribute('data-span'))
     expect(before).toEqual(['8', '16', '8'])
 
