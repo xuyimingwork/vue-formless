@@ -1,6 +1,6 @@
 {
   "name": "@vue-formless/layout",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "description": "Internal grid layout for vue-formless (bundled, not published)",
   "type": "module",

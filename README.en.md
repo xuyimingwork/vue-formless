@@ -2,13 +2,72 @@
 
 English | [简体中文](./README.md)
 
-> Vue 3 form composable hooks (API preview — not released yet).
+> Vue 3 form library: a page-level control table plus FormView, with layout kept off the inputs. **0.1.0** — APIs may still change in 0.x.
+
+Same mixed layout: Element Row/Col/Item on the left, `<User.*>` plus nested `FormView` density on the right.
+
+![Mixed layout code](./docs/mixed-layout-code.png)
+
+Playground side by side (layout match):
+
+![Mixed layout preview](./docs/mixed-layout-preview.png)
+
+```bash
+pnpm add vue-formless
+# or npm i vue-formless
+```
+
+Peer: `vue` ^3.3.
+
+## Usage
+
+Bind host Form / Item / Row / Col once in the project (no official Element adapter):
+
+```ts
+import { ElCol, ElForm, ElFormItem, ElInput, ElRow } from 'element-plus'
+import { createFormControls, createFormView, resolveFormItemProp, type ItemFl } from 'vue-formless'
+
+declare module 'vue-formless' {
+  interface ControlSchema {
+    label?: string
+  }
+}
+
+export const FormView = createFormView({
+  layout: { Row: ElRow, Col: ElCol, column: 2, gutter: 16 },
+  form: {
+    component: ElForm,
+    props: (fl) => ({ model: fl.modelValue }),
+  },
+  item: {
+    component: ElFormItem,
+    props: (fl: ItemFl) => ({
+      label: fl.label,
+      prop: resolveFormItemProp(fl.binding, fl.controlKey),
+    }),
+  },
+})
+
+export const User = createFormControls({
+  name: { label: 'Name', component: ElInput },
+})
+```
+
+```vue
+<FormView ref="formRef" v-model="form" fl:layout label-width="96px">
+  <User.Name />
+  <User.Name col:span="max" />
+</FormView>
+```
+
+`validate()` / `resetFields()` go through the FormView ref (proxied host Form). Layout details: [docs/adr](./docs/adr/README.md).
 
 ## Layout
 
 ```text
-packages/vue-formless              # kernel
-playground                         # Element Plus baseline vs Formless preview
+packages/vue-formless              # kernel (npm: vue-formless)
+packages/layout                    # internal grid, bundled into the kernel
+playground                         # Element Plus baseline vs Formless
 docs/adr                           # architecture decisions
 ```
 
