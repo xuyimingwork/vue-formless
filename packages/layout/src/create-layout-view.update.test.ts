@@ -35,7 +35,7 @@ const Cell = defineComponent({
   },
 })
 
-describe('layout occupancy after updates', () => {
+describe('layout place blanks after updates', () => {
   it('drops start blanks when the leading cell unmounts', async () => {
     const hideA = ref(false)
     const Root = defineComponent({
@@ -141,7 +141,7 @@ describe('layout occupancy after updates', () => {
     el.remove()
   })
 
-  it('does not remount col inner components when occupancy changes', async () => {
+  it('does not remount col inner components when place blanks change', async () => {
     function probe(name: string) {
       const stats = { setups: 0, renders: 0 }
       const Comp = defineComponent({

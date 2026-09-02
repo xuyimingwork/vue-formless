@@ -67,33 +67,3 @@ export function resolveColPlace(place: unknown): ColPlace {
   if (place === 'start' || place === 'end') return place
   throw new Error(`[vue-formless] col:place "${String(place)}" is invalid`)
 }
-
-/** `used` mutation for `place`. Returns blank Col spans to insert before this cell. */
-export function takePlaceBlanks(
-  used: { n: number },
-  n: number,
-  place: ColPlace,
-): number[] {
-  const blanks: number[] = []
-  if (place === 'auto') {
-    if (used.n + n > GRID_TOTAL) used.n = 0
-    return blanks
-  }
-  if (place === 'start') {
-    if (used.n > 0) {
-      blanks.push(GRID_TOTAL - used.n)
-      used.n = 0
-    }
-    return blanks
-  }
-  if (used.n + n > GRID_TOTAL && used.n > 0) {
-    blanks.push(GRID_TOTAL - used.n)
-    used.n = 0
-  }
-  const pad = GRID_TOTAL - used.n - n
-  if (pad > 0) {
-    blanks.push(pad)
-    used.n += pad
-  }
-  return blanks
-}

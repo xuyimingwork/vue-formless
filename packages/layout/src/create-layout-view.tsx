@@ -5,14 +5,16 @@ import {
   onMounted,
   provide,
   ref,
+  toValue,
   type Component,
   type VNodeChild,
 } from 'vue'
-import { getColumn } from './density'
+import { getColumn, resolveColPlace, resolveColSpan, type ColPlace } from './density'
+import { hostEl } from './host-el'
 import { layoutItemKey, type JsxHost } from './layout-context'
 import { useLayoutItem } from './layout-item'
-import { createOccupancy, hostEl } from './occupancy'
 import { useDomChildren } from './use-dom-children'
+import { usePlaceBlanks } from './use-place-blanks'
 
 export type { ColPlace, ColSpanSpec } from './density'
 export type { LayoutItemProps } from './layout-item'
@@ -28,6 +30,8 @@ export interface LayoutViewProps {
   disabled?: boolean
   column?: number
 }
+
+const emptyBlanks: number[] = []
 
 /**
  * Bind host Row/Col once. Returns LayoutView.
@@ -48,27 +52,70 @@ export function createLayoutView(options: CreateLayoutViewOptions = {}): Compone
         if (!Row || !Col) return true
         return props.disabled
       })
-      const occupancy = createOccupancy(
-        () => children.value,
-        () => getColumn(props.column, options.column),
-      )
+      // Nested ComputedRefs unwrap when read off this deep ref.
+      const items = ref<
+        Record<
+          string,
+          {
+            span: number
+            place: ColPlace
+            el: Element | null
+            mounted: boolean
+          }
+        >
+      >({})
+      let seq = 0
+
       const rowRef = ref<unknown>(null)
-      const children = useDomChildren(() => hostEl(rowRef.value), occupancy.version)
+      const children = useDomChildren(
+        () => hostEl(rowRef.value),
+        () =>
+          Object.keys(items.value)
+            .filter((id) => items.value[id].mounted)
+            .join(','),
+      )
+
+      const orderedCells = computed(() => {
+        const bag = items.value
+        const all = Object.keys(bag)
+        const fromDom = children.value.flatMap((child) => {
+          const id = all.find((key) => bag[key].el === child)
+          return id ? [{ id, span: bag[id].span, place: bag[id].place }] : []
+        })
+        if (fromDom.length === all.length) return fromDom
+        return all.map((id) => ({ id, span: bag[id].span, place: bag[id].place }))
+      })
+
+      const blanksById = usePlaceBlanks(orderedCells)
 
       provide(layoutItemKey, (span, place) => {
         provide(layoutItemKey, null)
-        const id = occupancy.register(span, place)
+        const id = String(++seq)
+        const ownSpan = computed(() =>
+          resolveColSpan(toValue(span), getColumn(props.column, options.column)),
+        )
+        const ownPlace = computed(() => resolveColPlace(toValue(place)))
+        items.value[id] = {
+          span: ownSpan as unknown as number,
+          place: ownPlace as unknown as ColPlace,
+          el: null,
+          mounted: false,
+        }
         onMounted(() => {
-          occupancy.bump()
+          const item = items.value[id]
+          if (item) item.mounted = true
         })
         onBeforeUnmount(() => {
-          occupancy.dispose(id)
+          delete items.value[id]
         })
         return {
-          span: computed(() => occupancy.ownSpan(id)),
-          blanks: computed(() => occupancy.blanks(id)),
+          span: computed(() => items.value[id]?.span ?? ownSpan.value),
+          blanks: computed(() => blanksById.value.get(id) ?? emptyBlanks),
           itemRef(raw: unknown) {
-            occupancy.bindColEl(id, raw)
+            const item = items.value[id]
+            if (!item) return
+            const el = hostEl(raw)
+            if (item.el !== el) item.el = el
           },
           Col,
           disabled,
