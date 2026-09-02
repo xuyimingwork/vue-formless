@@ -60,7 +60,6 @@ export type ItemFl = {
   controlKey: string
   binding: ResolvedControlBinding
   getValues: () => unknown[]
-  span?: number
   [extra: string]: unknown
 } & ControlSchemaExtras
 

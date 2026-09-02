@@ -18,13 +18,7 @@ import {
   type ResolvedControlBinding,
 } from './control-model'
 import { useFormContext } from './context'
-import {
-  resolveColSpan,
-  useLayoutItem,
-  useLayoutRuntime,
-  type ColPlace,
-  type ColSpanSpec,
-} from '@vue-formless/layout'
+import { useLayoutItem, type ColPlace, type ColSpanSpec } from '@vue-formless/layout'
 import { declaredFl, omitShellKeys } from './fl-config'
 import type { FormViewItemProps, ItemFl } from './item-adapter'
 import { getIn } from './model-path'
@@ -82,7 +76,6 @@ function createFormCellComponent(port?: string): FormViewItemComponent {
     setup(props, { slots, attrs }) {
       const ctx = useFormContext()
       const LayoutItem = useLayoutItem()
-      const layoutRuntime = useLayoutRuntime()
       const runtime = inject(controlRuntimeKey, null)
       if (port != null && !runtime) {
         throw new Error(
@@ -93,7 +86,6 @@ function createFormCellComponent(port?: string): FormViewItemComponent {
         renderFormCell(
           ctx,
           LayoutItem,
-          layoutRuntime,
           runtime,
           port,
           slots,
@@ -124,7 +116,6 @@ export function useFormItem(port?: string): FormViewItemComponent {
 function renderFormCell(
   ctx: ReturnType<typeof useFormContext>,
   LayoutItem: Component,
-  layoutRuntime: ReturnType<typeof useLayoutRuntime>,
   runtime: ControlRuntime | null,
   port: string | undefined,
   slots: Slots,
@@ -145,9 +136,7 @@ function renderFormCell(
   const spanSpec = tagSpan ?? (outer ? frame?.colSpan : undefined)
   const place = tagPlace ?? (outer ? frame?.colPlace : undefined)
 
-  const column = layoutRuntime?.column ?? ctx.getLayoutDensity().column
-  const resolvedSpan = resolveColSpan(spanSpec, column)
-  const resolved = resolveCellFl(ctx, runtime, port, tagFl, resolvedSpan)
+  const resolved = resolveCellFl(ctx, runtime, port, tagFl)
   const field = applyControlBinding(ctx.model, resolved.binding, ctx.update)
   const inner = slots.default?.({ field }) ?? null
 
@@ -175,17 +164,11 @@ function renderFormCell(
 
   let node: VNodeChild = inner
   if (extraRow && frame) {
-    const page = ctx.getLayoutDensity()
     const extraBody = node
-    node = h(
-      ctx.LayoutView,
-      {
-        disabled: !ctx.isLayoutEnabled(),
-        column: frame.rowColumn ?? page.column,
-        gutter: frame.rowGutter ?? page.gutter,
-      },
-      () => extraBody,
-    )
+    const innerView: Record<string, unknown> = { disabled: !ctx.isLayoutEnabled() }
+    if (frame.rowColumn != null) innerView.column = frame.rowColumn
+    if (frame.rowGutter != null) innerView.gutter = frame.rowGutter
+    node = h(ctx.LayoutView, innerView, () => extraBody)
   }
 
   node = ctx.wrap(node, {
@@ -209,7 +192,6 @@ function resolveCellFl(
   runtime: ControlRuntime | null,
   port: string | undefined,
   tagFl: Record<string, unknown>,
-  span: number,
 ): { fl: ItemFl; binding: ResolvedControlBinding } {
   const tagExtras = omitShellKeys(tagFl)
 
@@ -223,7 +205,6 @@ function resolveCellFl(
       controlKey: runtime.controlKey,
       binding,
       getValues: () => binding.props.map((p) => getIn(ctx.model, p)),
-      span,
     }
     return { binding, fl }
   }
@@ -249,7 +230,6 @@ function resolveCellFl(
     controlKey,
     binding,
     getValues: () => binding.props.map((p) => getIn(ctx.model, p)),
-    span,
   }
   return { binding, fl }
 }

@@ -1,11 +1,6 @@
 import { inject, type Component, type InjectionKey, type Ref } from 'vue'
 import type { WrapControl } from './wrap-control'
 
-export interface FormLayoutDensity {
-  column: number
-  gutter: number
-}
-
 export interface FormContext {
   /** Current FormView `modelValue` (parent snapshot; do not mutate). */
   model: unknown
@@ -22,8 +17,6 @@ export interface FormContext {
   isLayoutEnabled: () => boolean
   /** Factory `createLayoutView` result; reused for gear-4 inner host. */
   LayoutView: Component
-  /** Page density after factory + `:row:*`. */
-  getLayoutDensity: () => FormLayoutDensity
 }
 
 export const formContextKey: InjectionKey<FormContext> = Symbol('vue-formless.formContext')

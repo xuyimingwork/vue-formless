@@ -146,7 +146,6 @@ function provideFormViewContext(options: {
   isItemEnabled?: () => boolean
   isLayoutEnabled: () => boolean
   LayoutView: Component
-  getLayoutDensity: FormContext['getLayoutDensity']
 }): void {
   const wrap = createControlWrap({
     Item: options.Item,
@@ -166,7 +165,6 @@ function provideFormViewContext(options: {
       isItemEnabled,
       isLayoutEnabled: options.isLayoutEnabled,
       LayoutView: markRaw(options.LayoutView),
-      getLayoutDensity: options.getLayoutDensity,
     }) as FormContext,
   )
 }
@@ -256,10 +254,6 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
           isItemEnabled: () => props['fl:item'] !== false,
           isLayoutEnabled: () => isFlLayoutOn(props['fl:layout']),
           LayoutView,
-          getLayoutDensity: () => ({
-            column: props['row:column'] ?? factoryColumn,
-            gutter: props['row:gutter'] ?? factoryGutter,
-          }),
         })
 
         return (): VNodeChild => {
@@ -322,10 +316,6 @@ export const FormView = attachFormViewItem(
         update,
         isLayoutEnabled: () => isFlLayoutOn(props['fl:layout']),
         LayoutView: defaultLayoutView,
-        getLayoutDensity: () => ({
-          column: props['row:column'] ?? DEFAULT_LAYOUT.column,
-          gutter: props['row:gutter'] ?? DEFAULT_GUTTER,
-        }),
       })
       return (): VNodeChild =>
         h(
