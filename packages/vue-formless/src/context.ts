@@ -17,6 +17,9 @@ export interface FormContext {
   isLayoutEnabled: () => boolean
   /** Factory `createLayoutView` result; reused for gear-4 inner host. */
   LayoutView: Component
+  /** `createFormView({ layout })` density; inner extra rows use this, not the page `:row:*`. */
+  factoryColumn: number
+  factoryGutter: number
 }
 
 export const formContextKey: InjectionKey<FormContext> = Symbol('vue-formless.formContext')

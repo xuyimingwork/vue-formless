@@ -516,4 +516,21 @@ describe('createFormControls props overlay', () => {
     expect(spans).toContain('8')
     expect(spans.filter((s) => s === '12')).toHaveLength(2)
   })
+
+  it('does not inherit the page :row:column onto an extra row', async () => {
+    const Fields = createFormControls({
+      range: { label: '签证', component: Two, prop: ['fromTime', 'toTime'] },
+    })
+    const html = await render(
+      h(
+        shellView(),
+        { modelValue: { fromTime: '', toTime: '' }, 'fl:layout': true, 'row:column': 3 },
+        () => h(Fields.Range, { 'fl:item': true }),
+      ),
+    )
+    const spans = [...html.matchAll(/data-span="(\d+)"/g)].map((m) => m[1])
+    expect(spans).toContain('8')
+    expect(spans.filter((s) => s === '24')).toHaveLength(2)
+    expect(spans).not.toContain('12')
+  })
 })

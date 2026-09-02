@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_LAYOUT, GRID_TOTAL, resolveColPlace, resolveColSpan, takePlaceBlanks } from './density'
+import {
+  DEFAULT_LAYOUT,
+  GRID_TOTAL,
+  getColumn,
+  normalizeColumn,
+  resolveColPlace,
+  resolveColSpan,
+  takePlaceBlanks,
+} from './density'
 
 describe('resolveColSpan', () => {
   it('treats omit as 1x', () => {
@@ -68,5 +76,25 @@ describe('takePlaceBlanks', () => {
 describe('DEFAULT_LAYOUT', () => {
   it('is one column', () => {
     expect(DEFAULT_LAYOUT).toEqual({ column: 1 })
+  })
+})
+
+describe('normalizeColumn', () => {
+  it('clamps present values to 1–24', () => {
+    expect(normalizeColumn(3)).toBe(3)
+    expect(normalizeColumn(0)).toBe(1)
+    expect(normalizeColumn(25)).toBe(GRID_TOTAL)
+    expect(normalizeColumn(-1)).toBe(1)
+    expect(normalizeColumn(Infinity)).toBe(GRID_TOTAL)
+    expect(normalizeColumn(NaN)).toBe(DEFAULT_LAYOUT.column)
+  })
+})
+
+describe('getColumn', () => {
+  it('skips missing and normalizes the first present value', () => {
+    expect(getColumn(undefined, undefined)).toBe(DEFAULT_LAYOUT.column)
+    expect(getColumn(undefined, 3)).toBe(3)
+    expect(getColumn(0, 3)).toBe(1)
+    expect(getColumn(undefined, 0, 3)).toBe(1)
   })
 })

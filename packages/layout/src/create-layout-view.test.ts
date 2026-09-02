@@ -15,7 +15,7 @@ const Col = defineComponent({
   name: 'DummyCol',
   props: { span: { type: Number, default: 0 } },
   setup(props, { slots }) {
-    return () => h('col', { span: String(props.span) }, slots.default?.())
+    return () => h('grid-col', { span: String(props.span) }, slots.default?.())
   },
 })
 
@@ -43,7 +43,7 @@ describe('createLayoutView / useLayoutItem', () => {
       h(LayoutView, { disabled: true, column: 3 }, () => h(Cell, () => 'nocol')),
     )
     expect(html).not.toContain('<row')
-    expect(html).not.toContain('<col')
+    expect(html).not.toContain('<grid-col')
     expect(html).toContain('nocol')
   })
 
@@ -58,7 +58,7 @@ describe('createLayoutView / useLayoutItem', () => {
     const html = await render(h(Bare, () => h(Inner, () => 'bare')))
     expect(html).toContain('bare')
     expect(html).not.toContain('<row')
-    expect(html).not.toContain('<col')
+    expect(html).not.toContain('<grid-col')
   })
 
   it('uses 1x default span from column', async () => {
@@ -91,7 +91,7 @@ describe('createLayoutView / useLayoutItem', () => {
         h(Cell, { span: 12 }, () => 'b'),
       ]),
     )
-    expect(html.match(/<col/g)).toHaveLength(2)
+    expect(html.match(/<grid-col/g)).toHaveLength(2)
   })
 
   it('start inserts a blank to seal the row', async () => {
@@ -101,7 +101,7 @@ describe('createLayoutView / useLayoutItem', () => {
         h(Cell, { span: 8, place: 'start' }, () => 'b'),
       ]),
     )
-    expect(html.match(/<col/g)).toHaveLength(3)
+    expect(html.match(/<grid-col/g)).toHaveLength(3)
     expect(html).toMatch(/span="8".*span="16".*span="8"/s)
   })
 
@@ -109,8 +109,31 @@ describe('createLayoutView / useLayoutItem', () => {
     const html = await render(
       h(LayoutView, { column: 3 }, () => h(Cell, { span: 8, place: 'end' }, () => 'z')),
     )
-    expect(html.match(/<col/g)).toHaveLength(2)
+    expect(html.match(/<grid-col/g)).toHaveLength(2)
     expect(html).toMatch(/span="16".*span="8"/s)
+  })
+
+  it('nested LayoutView does not inherit outer column or gutter', async () => {
+    const html = await render(
+      h(LayoutView, { column: 3, gutter: 12 }, () =>
+        h(LayoutView, () => h(Cell)),
+      ),
+    )
+    expect(html.match(/<row/g)).toHaveLength(2)
+    expect(html).toContain('gutter="12"')
+    expect(html).toContain('gutter="0"')
+    expect(html).toContain('span="24"')
+    expect(html).not.toContain('span="8"')
+  })
+
+  it('nested LayoutView clamps an illegal column', async () => {
+    const html = await render(
+      h(LayoutView, { column: 3 }, () =>
+        h(LayoutView, { column: 0 }, () => h(Cell)),
+      ),
+    )
+    expect(html).toContain('span="24"')
+    expect(html).not.toContain('span="8"')
   })
 
   it('nested LayoutView cuts through to the inner density', async () => {
@@ -132,7 +155,19 @@ describe('createLayoutView / useLayoutItem', () => {
       ),
     )
     expect(html.match(/<row/g)).toHaveLength(1)
-    expect(html).not.toContain('<col')
+    expect(html).not.toContain('<grid-col')
+    expect(html).toContain('inner')
+  })
+
+  it('nested LayoutItem inside a cell does not wrap another Col', async () => {
+    const html = await render(
+      h(LayoutView, { column: 3 }, () =>
+        h(Cell, { span: 8 }, () => h(Cell, { span: 'max' }, () => 'inner')),
+      ),
+    )
+    expect(html.match(/<grid-col/g)).toHaveLength(1)
+    expect(html).toContain('span="8"')
+    expect(html).not.toContain('span="24"')
     expect(html).toContain('inner')
   })
 
@@ -140,7 +175,7 @@ describe('createLayoutView / useLayoutItem', () => {
     const html = await render(
       h(LayoutView, { column: 3 }, () => h(Cell, { place: 'start' }, () => 'b')),
     )
-    expect(html.match(/<col/g)).toHaveLength(1)
+    expect(html.match(/<grid-col/g)).toHaveLength(1)
     expect(html).toContain('span="8"')
   })
 })

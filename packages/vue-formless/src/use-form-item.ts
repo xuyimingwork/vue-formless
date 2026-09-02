@@ -165,10 +165,15 @@ function renderFormCell(
   let node: VNodeChild = inner
   if (extraRow && frame) {
     const extraBody = node
-    const innerView: Record<string, unknown> = { disabled: !ctx.isLayoutEnabled() }
-    if (frame.rowColumn != null) innerView.column = frame.rowColumn
-    if (frame.rowGutter != null) innerView.gutter = frame.rowGutter
-    node = h(ctx.LayoutView, innerView, () => extraBody)
+    node = h(
+      ctx.LayoutView,
+      {
+        disabled: !ctx.isLayoutEnabled(),
+        column: frame.rowColumn ?? ctx.factoryColumn,
+        gutter: frame.rowGutter ?? ctx.factoryGutter,
+      },
+      () => extraBody,
+    )
   }
 
   node = ctx.wrap(node, {

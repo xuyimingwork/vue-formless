@@ -14,6 +14,19 @@ export const DEFAULT_LAYOUT: Required<FormLayoutOptions> = {
   column: 1,
 }
 
+/** Clamp a present column to 1–24. Missing values are not handled here. */
+export function normalizeColumn(raw: unknown): number {
+  const n = Math.floor(Number(raw))
+  if (n === Infinity) return GRID_TOTAL
+  if (!Number.isFinite(n)) return DEFAULT_LAYOUT.column
+  return Math.min(GRID_TOTAL, Math.max(1, n))
+}
+
+/** First present candidate, then `normalizeColumn`. */
+export function getColumn(...raw: unknown[]): number {
+  return normalizeColumn(raw.find((v) => v != null) ?? DEFAULT_LAYOUT.column)
+}
+
 /** Author-facing Col width: omit / `'Nx'` / `'max'` / absolute 1–24. */
 export type ColSpanSpec = string | number
 

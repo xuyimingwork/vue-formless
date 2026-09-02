@@ -52,7 +52,8 @@ export interface FormViewProps {
   modelValue?: unknown
   /**
    * Grid hosting switch. Default `false`.
-   * Density: factory `layout.column/gutter`, overlay `:row:column` / `:row:gutter`.
+   * Density: this FormView's factory `layout.column/gutter` plus `:row:column` / `:row:gutter`.
+   * Nested FormView / extra rows do not inherit this instance overlay.
    */
   'fl:layout'?: FormLayoutProp
   'row:column'?: number
@@ -146,6 +147,8 @@ function provideFormViewContext(options: {
   isItemEnabled?: () => boolean
   isLayoutEnabled: () => boolean
   LayoutView: Component
+  factoryColumn: number
+  factoryGutter: number
 }): void {
   const wrap = createControlWrap({
     Item: options.Item,
@@ -165,6 +168,8 @@ function provideFormViewContext(options: {
       isItemEnabled,
       isLayoutEnabled: options.isLayoutEnabled,
       LayoutView: markRaw(options.LayoutView),
+      factoryColumn: options.factoryColumn,
+      factoryGutter: options.factoryGutter,
     }) as FormContext,
   )
 }
@@ -254,6 +259,8 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
           isItemEnabled: () => props['fl:item'] !== false,
           isLayoutEnabled: () => isFlLayoutOn(props['fl:layout']),
           LayoutView,
+          factoryColumn,
+          factoryGutter,
         })
 
         return (): VNodeChild => {
@@ -316,6 +323,8 @@ export const FormView = attachFormViewItem(
         update,
         isLayoutEnabled: () => isFlLayoutOn(props['fl:layout']),
         LayoutView: defaultLayoutView,
+        factoryColumn: DEFAULT_LAYOUT.column,
+        factoryGutter: DEFAULT_GUTTER,
       })
       return (): VNodeChild =>
         h(

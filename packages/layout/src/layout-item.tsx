@@ -1,44 +1,33 @@
 import {
   defineComponent,
   inject,
-  onBeforeUnmount,
-  onMounted,
   type Component,
   type PropType,
   type VNodeChild,
 } from 'vue'
-import { resolveColSpan, type ColPlace, type ColSpanSpec } from './density'
-import { layoutContextKey, type JsxHost } from './layout-context'
-import { blanksBefore, type CellRecord } from './occupancy'
+import type { ColPlace, ColSpanSpec } from './density'
+import { layoutItemKey, type JsxHost } from './layout-context'
 
 export interface LayoutItemProps {
   span?: ColSpanSpec
   place?: ColPlace
 }
 
-const Passthrough = defineComponent({
-  name: 'LayoutItemPassthrough',
-  inheritAttrs: false,
-  setup(_, { slots }) {
-    return (): VNodeChild => slots.default?.() ?? null
-  },
-})
-
 const LayoutBlanks = defineComponent({
   name: 'LayoutBlanks',
+  inheritAttrs: false,
   props: {
-    cell: { type: Object as PropType<CellRecord>, required: true },
+    is: { type: Object as PropType<Component | undefined>, default: undefined },
+    spans: { type: Array as PropType<number[]>, required: true },
   },
   setup(props) {
-    const ctx = inject(layoutContextKey)!
     return (): VNodeChild => {
-      const HostCol = ctx.Col as JsxHost
-      const blanks = blanksBefore(ctx.occupancy.entries(), props.cell, ctx.column)
-      if (blanks.length === 0) return null
+      if (props.spans.length === 0 || props.is == null) return null
+      const HostCol = props.is as JsxHost
       return (
         <>
-          {blanks.map((span, i) => (
-            <HostCol key={i} span={span} />
+          {props.spans.map((n, i) => (
+            <HostCol key={i} span={n} />
           ))}
         </>
       )
@@ -54,40 +43,19 @@ const LayoutItem = defineComponent({
     place: { type: String as PropType<ColPlace>, default: undefined },
   },
   setup(props, { slots }) {
-    const ctx = inject(layoutContextKey)!
-    const id = ctx.occupancy.nextId()
-    let colEl: Element | null = null
-    const cell: CellRecord = {
-      id,
-      get span() {
-        return props.span
-      },
-      get place() {
-        return props.place
-      },
-    }
-    ctx.occupancy.add(cell)
-
-    function bindColEl(raw: unknown): void {
-      colEl = ctx.occupancy.bindColEl(id, raw, colEl)
-    }
-
-    onMounted(() => {
-      ctx.occupancy.bump()
-    })
-
-    onBeforeUnmount(() => {
-      ctx.occupancy.remove(id, colEl)
-    })
-
+    const attach = inject(layoutItemKey, null)
+    if (!attach) return (): VNodeChild => slots.default?.() ?? null
+    const { span, blanks, itemRef, Col, disabled } = attach(
+      () => props.span,
+      () => props.place,
+    )
     return (): VNodeChild => {
-      if (ctx.disabled.value) return slots.default?.() ?? null
-      const HostCol = ctx.Col as JsxHost
-      const n = resolveColSpan(props.span, ctx.column)
+      if (disabled.value) return slots.default?.() ?? null
+      const HostCol = Col as JsxHost
       return (
         <>
-          <LayoutBlanks cell={cell} />
-          <HostCol ref={bindColEl} span={n}>
+          <LayoutBlanks is={Col} spans={blanks.value} />
+          <HostCol ref={itemRef} span={span.value}>
             {slots.default?.() ?? null}
           </HostCol>
         </>
@@ -96,7 +64,17 @@ const LayoutItem = defineComponent({
   },
 })
 
+const PassThrough = defineComponent({
+  name: 'LayoutItemPassThrough',
+  inheritAttrs: false,
+  setup(_, { slots }) {
+    return (): VNodeChild => slots.default?.() ?? null
+  },
+})
+
 /** Nearest LayoutView's cell component; identity when no LayoutView. */
 export function useLayoutItem(): Component {
-  return inject(layoutContextKey, null) ? LayoutItem : Passthrough
+  return inject(layoutItemKey, null)
+    ? LayoutItem
+    : PassThrough
 }
