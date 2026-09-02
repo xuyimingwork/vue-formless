@@ -61,14 +61,18 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm stage:npm
 
       # Trusted Publisher 要求 npm CLI 11.5.1+
       - name: Setup NPM
         run: npm install -g npm@latest
 
-      # prepublishOnly: typecheck → test → build
+      # 从仓库根目录形状的 .release 发布，README 相对配图与 GitHub 一致
       # --provenance: 生成供应链溯源证明
       # --tag: 预发布打 beta/alpha/rc，正式版打 latest
       - name: Publish To NPM
-        working-directory: packages/vue-formless
+        working-directory: .release
         run: npm publish --provenance --access public --tag ${{ steps.version.outputs.npm_tag }}

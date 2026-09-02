@@ -9,7 +9,8 @@
     "test:watch": "pnpm --filter vue-formless test:watch",
     "typecheck": "pnpm --filter @vue-formless/layout typecheck && pnpm --filter vue-formless typecheck && pnpm --filter playground typecheck && pnpm --filter playground-layout typecheck",
     "playground": "pnpm --filter playground dev",
-    "playground:layout": "pnpm --filter playground-layout dev"
+    "playground:layout": "pnpm --filter playground-layout dev",
+    "stage:npm": "node scripts/stage-npm.mjs"
   },
   "engines": {
     "node": ">=18"

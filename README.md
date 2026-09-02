@@ -2,7 +2,7 @@
 
 简体中文 | [English](./README.en.md)
 
-> Vue 3 表单组合式库：控件表 + FormView，布局与输入拆开。当前 **0.1.0**，`0.x` 期间 API 仍可能调整。
+> Vue 3 表单组合式库：控件表 + FormView，布局与输入拆开。当前 **0.1.1**，`0.x` 期间 API 仍可能调整。
 
 同一套混合布局：左边手写 Element Row/Col/Item，右边 `<User.*>` + 嵌套 `FormView` 换密度。
 

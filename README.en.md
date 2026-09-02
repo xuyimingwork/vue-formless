@@ -2,7 +2,7 @@
 
 English | [简体中文](./README.md)
 
-> Vue 3 form library: a page-level control table plus FormView, with layout kept off the inputs. **0.1.0** — APIs may still change in 0.x.
+> Vue 3 form library: a page-level control table plus FormView, with layout kept off the inputs. **0.1.1** — APIs may still change in 0.x.
 
 Same mixed layout: Element Row/Col/Item on the left, `<User.*>` plus nested `FormView` density on the right.
 

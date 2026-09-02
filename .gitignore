@@ -7,3 +7,4 @@ docs/.vitepress/dist
 *.local
 .DS_Store
 .VSCodeCounter
+.release
