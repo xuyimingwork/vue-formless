@@ -49,7 +49,6 @@ export {
 export {
   DEFAULT_LAYOUT,
   GRID_TOTAL,
-  resolveColSpan,
   type ColSpanSpec,
   type ColPlace,
   createLayoutView,

@@ -1,18 +1,10 @@
-export interface FormLayoutOptions {
-  /** Columns per row → default Col span = GRID_TOTAL / column. */
-  column?: number
-}
-
-/** FormView `:fl:layout` is a boolean switch. Density is factory / `:row:*`. */
-export type FormLayoutProp = boolean
-
-/** Host Col span modulus (Element / Ant Design 24-grid). Not a bind-time option. */
+/** Host Col span modulus (Element / Ant Design 24-grid). */
 export const GRID_TOTAL = 24
 
-/** Kernel column when factory and tag omit it. Gutter is a Row attr on FormView, not occupancy. */
-export const DEFAULT_LAYOUT: Required<FormLayoutOptions> = {
+/** Kernel column when factory and the LayoutView `column` prop are omitted. */
+export const DEFAULT_LAYOUT = {
   column: 1,
-}
+} as const
 
 /** Clamp a present column to 1–24. Missing values are not handled here. */
 export function normalizeColumn(raw: unknown): number {
@@ -74,13 +66,6 @@ export function resolveColPlace(place: unknown): ColPlace {
   if (place == null || place === '' || place === 'auto') return 'auto'
   if (place === 'start' || place === 'end') return place
   throw new Error(`[vue-formless] col:place "${String(place)}" is invalid`)
-}
-
-export function toOptionalNumber(value: unknown): number | undefined {
-  if (value == null || value === '') return undefined
-  const n = typeof value === 'number' ? value : Number(value)
-  if (!Number.isFinite(n)) return undefined
-  return n
 }
 
 /** `used` mutation for `place`. Returns blank Col spans to insert before this cell. */

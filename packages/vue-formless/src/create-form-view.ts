@@ -13,7 +13,7 @@ import {
 } from 'vue'
 import { formContextKey, type FormContext } from './context'
 import { createFormModelWriter } from './form-model-writer'
-import { createLayoutView, DEFAULT_LAYOUT, type FormLayoutProp } from '@vue-formless/layout'
+import { createLayoutView, DEFAULT_LAYOUT } from '@vue-formless/layout'
 import type { ItemFl } from './item-adapter'
 import { overlayProps, resolveProps, type HostProps } from './overlay-props'
 import { createControlWrap } from './wrap-control'
@@ -40,8 +40,13 @@ export interface CreateFormViewOptions {
   item?: FormViewHostBind<ItemFl>
 }
 
-export type { FormLayoutProp, FormLayoutOptions } from '@vue-formless/layout'
 export type { HostProps } from './overlay-props'
+
+/** FormView `:fl:layout` is a boolean switch. Density is factory / `:row:*`. */
+export type FormLayoutProp = boolean
+
+/** Factory `layout.column` overlay; gutter lives on `FormViewLayoutBind`. */
+export type FormLayoutOptions = Pick<FormViewLayoutBind, 'column'>
 
 export type FormFormProp = boolean | 'auto'
 

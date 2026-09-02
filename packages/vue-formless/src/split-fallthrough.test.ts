@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { splitFallthrough, splitFlAttrs, splitLayoutAttrs, splitSlots } from './split-fallthrough'
+import { splitFallthrough, splitFlAttrs, splitLayoutAttrs, splitSlots, toOptionalNumber } from './split-fallthrough'
 import type { Slot, Slots } from 'vue'
 
 describe('splitFlAttrs', () => {
@@ -39,6 +39,17 @@ describe('splitLayoutAttrs', () => {
     })
     expect(rest).toEqual({ placeholder: 'x' })
     warn.mockRestore()
+  })
+})
+
+describe('toOptionalNumber', () => {
+  it('treats empty as missing and rejects non-finite', () => {
+    expect(toOptionalNumber(undefined)).toBeUndefined()
+    expect(toOptionalNumber(null)).toBeUndefined()
+    expect(toOptionalNumber('')).toBeUndefined()
+    expect(toOptionalNumber(NaN)).toBeUndefined()
+    expect(toOptionalNumber(0)).toBe(0)
+    expect(toOptionalNumber('12')).toBe(12)
   })
 })
 

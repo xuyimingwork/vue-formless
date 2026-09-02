@@ -30,14 +30,14 @@ import type {
   ItemFl,
 } from './item-adapter'
 import { overlayProps, resolveProps, type HostProps } from './overlay-props'
-import { splitFallthrough, splitFlAttrs, splitLayoutAttrs, splitSlots } from './split-fallthrough'
+import { splitFallthrough, splitFlAttrs, splitLayoutAttrs, splitSlots, toOptionalNumber } from './split-fallthrough'
 import {
   provideControlRuntime,
   useFormItem,
   type ControlFrame,
 } from './use-form-item'
 import type { WidgetTagProps } from './widget-props'
-import { toOptionalNumber, type ColPlace, type ColSpanSpec } from '@vue-formless/layout'
+import type { ColPlace, ColSpanSpec } from '@vue-formless/layout'
 
 export type { ControlProp, ControlVModel } from './control-model'
 export type {

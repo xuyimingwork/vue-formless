@@ -80,6 +80,13 @@ export function splitLayoutAttrs(attrs: Record<string, unknown>): LayoutAttrBags
   return { row, col, rest }
 }
 
+export function toOptionalNumber(value: unknown): number | undefined {
+  if (value == null || value === '') return undefined
+  const n = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(n)) return undefined
+  return n
+}
+
 /**
  * `:item:label-width` → attrs `item:label-width` → Item `label-width`.
  * `@item:validate` → attrs `onItem:validate` → Item `onValidate`.
