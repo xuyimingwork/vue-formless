@@ -27,9 +27,9 @@ export function normalizeColumn(raw: unknown): number {
   return Math.min(GRID_TOTAL, Math.max(1, n))
 }
 
-/** First present candidate, then `normalizeColumn`. */
-export function getColumn(...raw: unknown[]): number {
-  return normalizeColumn(raw.find((v) => v != null) ?? DEFAULT_LAYOUT.column)
+/** Last present candidate, then `normalizeColumn` (later overrides, like mergeProps). */
+export function mergeColumn(...raw: unknown[]): number {
+  return normalizeColumn([...raw].reverse().find((v) => v != null))
 }
 
 /** Author-facing Col width: omit / `'Nx'` / `'max'` / absolute 1–24. */
@@ -38,15 +38,21 @@ export type ColSpanRaw = ColSpan | `${ColSpan}` | `${ColSpan}x` | 'max'
 export type ColPlace = 'auto' | 'start' | 'end'
 export type ColSpan = IntRange<1, typeof GRID_TOTAL>
 
-export function resolveColSpan(raw?: ColSpanRaw, column: number): ColSpan {
+export function normalizeColSpan(raw: unknown, column: number): ColSpan {
   const safeColumn = column > 0 ? column : DEFAULT_LAYOUT.column
   const slot = Math.max(1, Math.floor(GRID_TOTAL / safeColumn)) as ColSpan
 
   if (raw == null || raw === '') return slot
 
   if (typeof raw === 'number') {
-    assertColSpan(raw)
-    return raw
+    if (Number.isInteger(raw) && raw >= 1 && raw <= GRID_TOTAL) return raw as ColSpan
+    warnInvalid('col:span', raw, '1x')
+    return slot
+  }
+
+  if (typeof raw !== 'string') {
+    warnInvalid('col:span', raw, '1x')
+    return slot
   }
 
   const text = raw.trim()
@@ -56,28 +62,31 @@ export function resolveColSpan(raw?: ColSpanRaw, column: number): ColSpan {
   if (nx) {
     const n = Number(nx[1])
     if (n < 1) {
-      throw new Error(`[vue-formless] col:span "${raw}" is invalid`)
+      warnInvalid('col:span', raw, '1x')
+      return slot
     }
     return Math.min(GRID_TOTAL, n * slot) as ColSpan
   }
 
   if (/^\d+$/.test(text)) {
     const n = Number(text)
-    assertColSpan(n)
-    return n
+    if (n >= 1 && n <= GRID_TOTAL) return n as ColSpan
+    warnInvalid('col:span', raw, '1x')
+    return slot
   }
 
-  throw new Error(`[vue-formless] col:span "${raw}" is invalid`)
+  warnInvalid('col:span', raw, '1x')
+  return slot
 }
 
-export function assertColSpan(n: number): asserts n is ColSpan {
-  if (!Number.isInteger(n) || n < 1 || n > GRID_TOTAL) {
-    throw new Error(`[vue-formless] col:span ${n} must be an integer 1–${GRID_TOTAL}`)
-  }
-}
-
-export function resolveColPlace(place: unknown): ColPlace {
+export function normalizeColPlace(place: unknown): ColPlace {
   if (place == null || place === '' || place === 'auto') return 'auto'
   if (place === 'start' || place === 'end') return place
-  throw new Error(`[vue-formless] col:place "${String(place)}" is invalid`)
+  warnInvalid('col:place', place, 'auto')
+  return 'auto'
+}
+
+function warnInvalid(kind: 'col:span' | 'col:place', raw: unknown, fallback: string): void {
+  const shown = typeof raw === 'string' ? `"${raw}"` : String(raw)
+  console.warn(`[layout] ${kind} ${shown} is invalid; falling back to ${fallback}`)
 }

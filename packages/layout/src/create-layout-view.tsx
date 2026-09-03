@@ -11,11 +11,11 @@ import {
   type Ref,
   type VNodeChild,
 } from 'vue'
-import { getColumn, resolveColPlace, resolveColSpan, type ColPlace, type ColSpan, type ColSpanRaw } from './grid'
+import { mergeColumn, normalizeColPlace, normalizeColSpan, type ColPlace, type ColSpan, type ColSpanRaw } from './grid'
 import { LAYOUT_VIEW_KEY } from './injection-keys'
 import type { JsxHost } from './layout-item'
+import { calculateBlanks, calculateLayout, type Cell } from './calculate-layout'
 import { useDomChildren } from './use-dom-children'
-import { usePlaceBlanks, type LayoutCell } from './use-place-blanks'
 import { hostEl } from './utils'
 
 export type { ColPlace, ColSpanRaw } from './grid'
@@ -59,8 +59,8 @@ function useLayoutItems(column: MaybeRefOrGetter<number>): LayoutItems {
     },
     setup(span, place) {
       const id = String(++seq)
-      const ownSpan = computed(() => resolveColSpan(toValue(span), toValue(column)))
-      const ownPlace = computed(() => resolveColPlace(toValue(place)))
+      const ownSpan = computed(() => normalizeColSpan(toValue(span), toValue(column)))
+      const ownPlace = computed(() => normalizeColPlace(toValue(place)))
       items.value[id] = {
         span: ownSpan as unknown as ColSpan,
         place: ownPlace as unknown as ColPlace,
@@ -88,10 +88,12 @@ function useLayoutItems(column: MaybeRefOrGetter<number>): LayoutItems {
   }
 }
 
+type RowCell = Cell & { id: string }
+
 function cellsInDomOrder(
   items: Record<string, LayoutItemState>,
   children: Element[],
-): LayoutCell[] {
+): RowCell[] {
   const cells = new Map(
     Object.entries(items)
       .filter(([, item]) => item.el)
@@ -110,7 +112,12 @@ function useRowBlanks(items: LayoutItems, rowRef: Ref<unknown>) {
         .filter((id) => items.value[id].mounted)
         .join(','),
   )
-  return usePlaceBlanks(() => cellsInDomOrder(items.value, children.value))
+  return computed(() => {
+    const layout = calculateLayout(cellsInDomOrder(items.value, children.value))
+    return new Map(
+      layout.map((cell) => [cell.id, calculateBlanks(cell.$start, cell.$occupied, cell.span)]),
+    )
+  })
 }
 
 /**
@@ -129,7 +136,7 @@ export function createLayoutView(options: CreateLayoutViewOptions = {}): Compone
     },
     setup(props, { slots, attrs }) {
       const disabled = computed(() => !Row || !Col || props.disabled)
-      const items = useLayoutItems(() => getColumn(props.column, options.column))
+      const items = useLayoutItems(() => mergeColumn(options.column, props.column))
       const rowRef = ref<unknown>(null)
       const blanks = useRowBlanks(items, rowRef)
 

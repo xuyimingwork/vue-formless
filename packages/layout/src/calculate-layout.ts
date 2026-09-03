@@ -1,20 +1,17 @@
-import { assertColSpan, GRID_TOTAL, type ColPlace, type ColSpan } from './grid'
+import { GRID_TOTAL, type ColPlace, type ColSpan } from './grid'
 
-export type LayoutCellInput = {
+export type Cell = {
   span: ColSpan
   place: ColPlace
 }
 
-export function calculateLayout<T extends LayoutCellInput>(
-  cells: T[],
-): (T & {
-  $occupied: number
+export type CellPlaced<T extends Cell = Cell> = T & {
   $start: number
-})[] {
-  return cells.reduce((result, cell, i): (T & {
-    $occupied: number
-    $start: number
-  })[] => {
+  $occupied: number
+}
+
+export function calculateLayout<T extends Cell>(cells: T[]): CellPlaced<T>[] {
+  return cells.reduce((result, cell, i): CellPlaced<T>[] => {
     const prev = result[i - 1]
     const $start = prev ? prev.$start + prev.$occupied : 0
     const cursor = $start % GRID_TOTAL

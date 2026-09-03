@@ -2,15 +2,15 @@ import { describe, expect, it } from 'vitest'
 import {
   calculateBlanks,
   calculateLayout,
-  type LayoutCellInput,
+  type Cell,
 } from './calculate-layout'
 import type { ColPlace, ColSpan } from './grid'
 
-function cell(span: ColSpan, place: ColPlace = 'auto'): LayoutCellInput {
+function cell(span: ColSpan, place: ColPlace = 'auto'): Cell {
   return { span, place }
 }
 
-function place(cells: LayoutCellInput[]) {
+function place(cells: Cell[]) {
   return calculateLayout(cells).map((c) => ({
     span: c.span,
     place: c.place,
@@ -80,10 +80,5 @@ describe('calculateLayout', () => {
       { span: 24, place: 'auto', $start: 0, $occupied: 24, blanks: [] },
       { span: 8, place: 'auto', $start: 24, $occupied: 8, blanks: [] },
     ])
-  })
-
-  it('throws on an illegal span', () => {
-    expect(() => place([cell(0 as ColSpan)])).toThrow(/1–24/)
-    expect(() => place([cell(25 as ColSpan)])).toThrow(/1–24/)
   })
 })

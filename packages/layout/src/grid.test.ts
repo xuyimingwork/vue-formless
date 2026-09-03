@@ -1,54 +1,64 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   DEFAULT_LAYOUT,
   GRID_TOTAL,
-  getColumn,
+  mergeColumn,
+  normalizeColPlace,
+  normalizeColSpan,
   normalizeColumn,
-  resolveColPlace,
-  resolveColSpan,
 } from './grid'
 
-describe('resolveColSpan', () => {
+describe('normalizeColSpan', () => {
   it('treats omit as 1x', () => {
-    expect(resolveColSpan(undefined, 1)).toBe(24)
-    expect(resolveColSpan(undefined, 2)).toBe(12)
-    expect(resolveColSpan(undefined, 3)).toBe(8)
-    expect(resolveColSpan('', 3)).toBe(8)
+    expect(normalizeColSpan(undefined, 1)).toBe(24)
+    expect(normalizeColSpan(undefined, 2)).toBe(12)
+    expect(normalizeColSpan(undefined, 3)).toBe(8)
+    expect(normalizeColSpan('', 3)).toBe(8)
   })
 
   it('multiplies Nx by the slot and clamps to 24', () => {
-    expect(resolveColSpan('2x', 3)).toBe(16)
-    expect(resolveColSpan('3x', 3)).toBe(24)
-    expect(resolveColSpan('4x', 3)).toBe(24)
+    expect(normalizeColSpan('2x', 3)).toBe(16)
+    expect(normalizeColSpan('3x', 3)).toBe(24)
+    expect(normalizeColSpan('4x', 3)).toBe(24)
   })
 
   it('treats numbers and numeric strings as absolute span', () => {
-    expect(resolveColSpan(8, 3)).toBe(8)
-    expect(resolveColSpan('8', 3)).toBe(8)
-    expect(resolveColSpan('max', 3)).toBe(GRID_TOTAL)
+    expect(normalizeColSpan(8, 3)).toBe(8)
+    expect(normalizeColSpan('8', 3)).toBe(8)
+    expect(normalizeColSpan('max', 3)).toBe(GRID_TOTAL)
   })
 
-  it('throws on illegal literals', () => {
-    expect(() => resolveColSpan(0, 2)).toThrow(/1–24/)
-    expect(() => resolveColSpan(25, 2)).toThrow(/1–24/)
-    expect(() => resolveColSpan(8.5, 2)).toThrow(/1–24/)
-    expect(() => resolveColSpan('2X', 2)).toThrow(/invalid/)
-    expect(() => resolveColSpan('0x', 2)).toThrow(/invalid/)
-    expect(() => resolveColSpan('2.5x', 2)).toThrow(/invalid/)
-    expect(() => resolveColSpan('foo', 2)).toThrow(/invalid/)
+  it('warns and falls back to 1x on illegal literals', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    expect(normalizeColSpan(0, 2)).toBe(12)
+    expect(normalizeColSpan(25, 2)).toBe(12)
+    expect(normalizeColSpan(8.5, 2)).toBe(12)
+    expect(normalizeColSpan('2X', 2)).toBe(12)
+    expect(normalizeColSpan('0x', 2)).toBe(12)
+    expect(normalizeColSpan('2.5x', 2)).toBe(12)
+    expect(normalizeColSpan('foo', 2)).toBe(12)
+    expect(warn).toHaveBeenCalled()
+    expect(warn.mock.calls[0]?.[0]).toMatch(/^\[layout\] col:span/)
+    expect(String(warn.mock.calls[0]?.[0])).not.toMatch(/formless/)
+    warn.mockRestore()
   })
 })
 
-describe('resolveColPlace', () => {
+describe('normalizeColPlace', () => {
   it('defaults to auto', () => {
-    expect(resolveColPlace(undefined)).toBe('auto')
-    expect(resolveColPlace('')).toBe('auto')
-    expect(resolveColPlace('auto')).toBe('auto')
+    expect(normalizeColPlace(undefined)).toBe('auto')
+    expect(normalizeColPlace('')).toBe('auto')
+    expect(normalizeColPlace('auto')).toBe('auto')
   })
 
-  it('throws on illegal place', () => {
-    expect(() => resolveColPlace('center')).toThrow(/invalid/)
-    expect(() => resolveColPlace('foo')).toThrow(/invalid/)
+  it('warns and falls back to auto on illegal place', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    expect(normalizeColPlace('center')).toBe('auto')
+    expect(normalizeColPlace('foo')).toBe('auto')
+    expect(warn).toHaveBeenCalled()
+    expect(warn.mock.calls[0]?.[0]).toMatch(/^\[layout\] col:place/)
+    expect(String(warn.mock.calls[0]?.[0])).not.toMatch(/formless/)
+    warn.mockRestore()
   })
 })
 
@@ -69,11 +79,11 @@ describe('normalizeColumn', () => {
   })
 })
 
-describe('getColumn', () => {
-  it('skips missing and normalizes the first present value', () => {
-    expect(getColumn(undefined, undefined)).toBe(DEFAULT_LAYOUT.column)
-    expect(getColumn(undefined, 3)).toBe(3)
-    expect(getColumn(0, 3)).toBe(1)
-    expect(getColumn(undefined, 0, 3)).toBe(1)
+describe('mergeColumn', () => {
+  it('lets later candidates override earlier ones, then normalizes', () => {
+    expect(mergeColumn(undefined, undefined)).toBe(DEFAULT_LAYOUT.column)
+    expect(mergeColumn(undefined, 3)).toBe(3)
+    expect(mergeColumn(3, 0)).toBe(1)
+    expect(mergeColumn(undefined, 0, 3)).toBe(3)
   })
 })
