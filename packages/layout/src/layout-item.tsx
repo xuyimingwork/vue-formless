@@ -1,12 +1,15 @@
 import {
+  computed,
   defineComponent,
   inject,
+  ref,
   type Component,
   type PropType,
   type VNodeChild,
 } from 'vue'
 import type { ColPlace, ColSpanRaw } from './grid'
 import { LAYOUT_VIEW_KEY } from './injection-keys'
+import { hostEl } from './utils'
 
 /** `Component` is a union; JSX needs a constructable host. */
 export type JsxHost = new () => { $props: Record<string, unknown> }
@@ -30,7 +33,12 @@ const LayoutBlanks = defineComponent({
       return (
         <>
           {props.spans.map((n, i) => (
-            <HostCol key={i} span={n} />
+            <HostCol
+              key={i}
+              span={n}
+              aria-hidden="true"
+              data-layout-blank=""
+            />
           ))}
         </>
       )
@@ -45,20 +53,34 @@ const LayoutItem = defineComponent({
     span: { type: [String, Number] as PropType<ColSpanRaw>, default: undefined },
     place: { type: String as PropType<ColPlace>, default: undefined },
   },
-  setup(props, { slots }) {
+  setup(props, { slots, attrs, expose }) {
     const register = inject(LAYOUT_VIEW_KEY, null)
     if (!register) return (): VNodeChild => slots.default?.() ?? null
     const { span, blanks, itemRef, Col, disabled } = register(
       () => props.span,
       () => props.place,
     )
+    const colHost = ref<unknown>(null)
+    expose({
+      el: computed(() => hostEl(colHost.value)),
+    })
+    function bindCol(raw: unknown) {
+      colHost.value = raw
+      itemRef(raw)
+    }
     return (): VNodeChild => {
       if (disabled.value) return slots.default?.() ?? null
       const HostCol = Col as JsxHost
       return (
         <>
           <LayoutBlanks is={Col} spans={blanks.value} />
-          <HostCol ref={itemRef} span={span.value}>
+          <HostCol
+            {...attrs}
+            ref={bindCol}
+            span={span.value}
+            data-layout-cell=""
+            data-layout-place={props.place || 'auto'}
+          >
             {slots.default?.() ?? null}
           </HostCol>
         </>

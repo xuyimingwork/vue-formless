@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createSSRApp, defineComponent, h, type VNode } from 'vue'
+import { createSSRApp, defineComponent, h, type Component, type VNode } from 'vue'
 import { renderToString } from 'vue/server-renderer'
 import { createLayoutView, useLayoutItem } from './create-layout-view'
 
@@ -67,6 +67,9 @@ describe('createLayoutView / useLayoutItem', () => {
     )
     expect(html).toContain('gutter="12"')
     expect(html).toContain('span="8"')
+    expect(html).toContain('data-layout-row')
+    expect(html).toContain('data-layout-cell')
+    expect(html).not.toContain('data-layout-blank')
   })
 
   it('resolves 2x / max / absolute span', async () => {
@@ -179,5 +182,101 @@ describe('createLayoutView / useLayoutItem', () => {
     )
     expect(html.match(/<grid-col/g)).toHaveLength(1)
     expect(html).toContain('span="8"')
+  })
+
+  it('passthrough outside LayoutView', async () => {
+    const html = await render(h(Cell, () => 'solo'))
+    expect(html).toContain('solo')
+    expect(html).not.toContain('<row')
+    expect(html).not.toContain('<grid-col')
+  })
+
+  it('passthrough outside LayoutView with no default slot', async () => {
+    const Empty = defineComponent({
+      setup() {
+        const LayoutItem = useLayoutItem()
+        return () => h(LayoutItem)
+      },
+    })
+    const html = await render(h(Empty))
+    expect(html).not.toContain('<row')
+    expect(html).not.toContain('<grid-col')
+  })
+
+  it('renders an empty HostRow when LayoutView has no default slot', async () => {
+    const html = await render(h(LayoutView, { column: 3 }))
+    expect(html).toContain('<row')
+    expect(html).toContain('data-layout-row')
+    expect(html).not.toContain('<grid-col')
+  })
+
+  it('renders nothing when disabled LayoutView has no default slot', async () => {
+    const html = await render(h(LayoutView, { disabled: true }))
+    expect(html).not.toContain('<row')
+    expect(html).not.toContain('<grid-col')
+  })
+
+  it('passthrough when disabled LayoutItem has no default slot', async () => {
+    const Empty = defineComponent({
+      setup() {
+        const LayoutItem = useLayoutItem()
+        return () => h(LayoutItem)
+      },
+    })
+    const html = await render(h(LayoutView, { disabled: true }, () => h(Empty)))
+    expect(html).not.toContain('<row')
+    expect(html).not.toContain('<grid-col')
+  })
+
+  it('wraps an empty default slot in HostCol', async () => {
+    const Empty = defineComponent({
+      setup() {
+        const LayoutItem = useLayoutItem()
+        return () => h(LayoutItem)
+      },
+    })
+    const html = await render(h(LayoutView, { column: 3 }, () => h(Empty)))
+    expect(html).toContain('<grid-col')
+    expect(html).toContain('span="8"')
+    expect(html).toContain('data-layout-cell')
+  })
+
+  it('renders LayoutItem without a view as the default slot', async () => {
+    let Item: Component | undefined
+    const Capture = defineComponent({
+      setup() {
+        Item = useLayoutItem()
+        return () => null
+      },
+    })
+    await render(h(LayoutView, { column: 3 }, () => h(Capture)))
+    expect(Item).toBeTruthy()
+    const html = await render(h(Item!, () => 'orphan'))
+    expect(html).toContain('orphan')
+    expect(html).not.toContain('<grid-col')
+    const empty = await render(h(Item!))
+    expect(empty).not.toContain('<grid-col')
+  })
+
+  it('forwards attrs to the real col but keeps kernel span and markers', async () => {
+    const Rich = defineComponent({
+      setup() {
+        const LayoutItem = useLayoutItem()
+        return () =>
+          h(
+            LayoutItem,
+            { span: 8, class: 'mine', 'data-layout-cell': 'user', 'data-user': '1' },
+            () => 'x',
+          )
+      },
+    })
+    const html = await render(h(LayoutView, { column: 3, class: 'row-x' }, () => h(Rich)))
+    expect(html).toContain('class="row-x"')
+    expect(html).toContain('data-layout-row')
+    expect(html).toContain('class="mine"')
+    expect(html).toContain('data-user="1"')
+    expect(html).toContain('span="8"')
+    expect(html).toContain('data-layout-cell')
+    expect(html).not.toContain('data-layout-cell="user"')
   })
 })

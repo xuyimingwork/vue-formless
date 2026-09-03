@@ -2,8 +2,9 @@
  * @vitest-environment happy-dom
  */
 import { describe, expect, it } from 'vitest'
-import { createApp, defineComponent, h, nextTick, ref } from 'vue'
+import { createApp, defineComponent, h, inject, nextTick, onBeforeUnmount, ref } from 'vue'
 import { createLayoutView, useLayoutItem } from './create-layout-view'
+import { LAYOUT_VIEW_KEY } from './injection-keys'
 
 const Row = defineComponent({
   name: 'DummyRow',
@@ -16,8 +17,8 @@ const Col = defineComponent({
   name: 'DummyCol',
   inheritAttrs: false,
   props: { span: { type: Number, default: 0 } },
-  setup(props, { slots }) {
-    return () => h('div', { class: 'col', 'data-span': String(props.span) }, slots.default?.())
+  setup(props, { slots, attrs }) {
+    return () => h('div', { class: 'col', 'data-span': String(props.span), ...attrs }, slots.default?.())
   },
 })
 
@@ -58,6 +59,10 @@ describe('layout place blanks after updates', () => {
 
     const before = [...el.querySelectorAll('.col')].map((n) => n.getAttribute('data-span'))
     expect(before).toEqual(['8', '16', '8'])
+    const blank = el.querySelector('[data-layout-blank]')
+    expect(blank?.getAttribute('data-span')).toBe('16')
+    expect(blank?.getAttribute('aria-hidden')).toBe('true')
+    expect(el.querySelector('[data-layout-place="start"]')).not.toBeNull()
 
     hideA.value = true
     await nextTick()
@@ -201,6 +206,64 @@ describe('layout place blanks after updates', () => {
     expect(a.stats.setups).toBe(1)
     expect(c.stats.setups).toBe(1)
     expect(b.stats.setups).toBe(1)
+
+    app.unmount()
+    el.remove()
+  })
+
+  it('exposes the real col element on LayoutItem', async () => {
+    const itemRef = ref<{ el: Element | null } | null>(null)
+    const Inner = defineComponent({
+      setup() {
+        const LayoutItem = useLayoutItem()
+        return () => h(LayoutItem, { ref: itemRef, span: 8 }, () => 'x')
+      },
+    })
+    const Root = defineComponent({
+      setup() {
+        return () => h(LayoutView, { column: 3 }, () => h(Inner))
+      },
+    })
+    const el = document.createElement('div')
+    document.body.appendChild(el)
+    const app = createApp(Root)
+    app.mount(el)
+    await nextTick()
+
+    expect(itemRef.value?.el).toBeInstanceOf(Element)
+    expect(itemRef.value?.el).toBe(el.querySelector('[data-layout-cell]'))
+
+    app.unmount()
+    el.remove()
+  })
+
+  it('span lookup falls back to 0 after the item unregisters', async () => {
+    const seen = { n: -1 }
+    const Probe = defineComponent({
+      setup() {
+        const register = inject(LAYOUT_VIEW_KEY)!
+        const { span } = register(() => 8, () => 'auto')
+        onBeforeUnmount(() => {
+          seen.n = span.value
+        })
+        return () => null
+      },
+    })
+    const show = ref(true)
+    const Root = defineComponent({
+      setup() {
+        return () => h(LayoutView, { column: 3 }, () => (show.value ? h(Probe) : null))
+      },
+    })
+    const el = document.createElement('div')
+    document.body.appendChild(el)
+    const app = createApp(Root)
+    app.mount(el)
+    await nextTick()
+
+    show.value = false
+    await nextTick()
+    expect(seen.n).toBe(0)
 
     app.unmount()
     el.remove()

@@ -71,4 +71,69 @@ describe('useMutationObserver', () => {
     app.unmount()
     el.remove()
   })
+
+  it('does nothing when MutationObserver is missing', async () => {
+    const Saved = globalThis.MutationObserver
+    Object.defineProperty(globalThis, 'MutationObserver', {
+      configurable: true,
+      value: undefined,
+    })
+    try {
+      const Root = defineComponent({
+        setup() {
+          useMutationObserver(() => document.body, () => {})
+          return () => h('div')
+        },
+      })
+      const el = document.createElement('div')
+      document.body.appendChild(el)
+      const app = createApp(Root)
+      app.mount(el)
+      await nextTick()
+      app.unmount()
+      el.remove()
+    } finally {
+      Object.defineProperty(globalThis, 'MutationObserver', {
+        configurable: true,
+        value: Saved,
+      })
+    }
+  })
+
+  it('skips binding until the target is an element', async () => {
+    const hits = { n: 0 }
+    const row = ref<Element | null>(null)
+    const Root = defineComponent({
+      setup() {
+        useMutationObserver(row, () => {
+          hits.n += 1
+        })
+        return () => h('div')
+      },
+    })
+    const el = document.createElement('div')
+    document.body.appendChild(el)
+    const app = createApp(Root)
+    app.mount(el)
+    await nextTick()
+    expect(hits.n).toBe(0)
+
+    const target = document.createElement('div')
+    el.appendChild(target)
+    row.value = target
+    await nextTick()
+    target.appendChild(document.createElement('span'))
+    await new Promise((r) => setTimeout(r, 0))
+    expect(hits.n).toBeGreaterThan(0)
+
+    row.value = null
+    await nextTick()
+    const after = hits.n
+    target.appendChild(document.createElement('span'))
+    await new Promise((r) => setTimeout(r, 0))
+    expect(hits.n).toBe(after)
+
+    app.unmount()
+    el.remove()
+  })
 })

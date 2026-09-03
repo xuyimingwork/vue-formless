@@ -156,7 +156,7 @@ export function createLayoutView(options: CreateLayoutViewOptions = {}): Compone
         if (disabled.value) return slots.default?.() ?? null
         const HostRow = Row as JsxHost
         return (
-          <HostRow ref={rowRef} {...attrs}>
+          <HostRow ref={rowRef} {...attrs} data-layout-row="">
             {slots.default?.() ?? null}
           </HostRow>
         )
