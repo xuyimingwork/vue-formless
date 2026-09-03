@@ -50,7 +50,7 @@ export {
   type ColSpanRaw,
   type ColPlace,
   createLayoutView,
-  useLayoutItem,
+  LayoutItem,
   type CreateLayoutViewOptions,
   type LayoutViewProps,
   type LayoutItemProps,

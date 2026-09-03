@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { createSSRApp, defineComponent, h, type Component, type VNode } from 'vue'
+import { createSSRApp, defineComponent, h, type VNode } from 'vue'
 import { renderToString } from 'vue/server-renderer'
-import { createLayoutView, useLayoutItem } from './create-layout-view'
+import { createLayoutView, LayoutItem } from './create-layout-view'
 
 const Row = defineComponent({
   name: 'DummyRow',
@@ -28,7 +28,6 @@ const Cell = defineComponent({
     place: { type: String, default: undefined },
   },
   setup(props, { slots }) {
-    const LayoutItem = useLayoutItem()
     return () => h(LayoutItem, { span: props.span, place: props.place }, () => slots.default?.() ?? 'x')
   },
 })
@@ -37,7 +36,7 @@ async function render(vnode: VNode): Promise<string> {
   return renderToString(createSSRApp({ render: () => vnode }))
 }
 
-describe('createLayoutView / useLayoutItem', () => {
+describe('createLayoutView / LayoutItem', () => {
   it('passthrough without Col when disabled', async () => {
     const html = await render(
       h(LayoutView, { disabled: true, column: 3 }, () => h(Cell, () => 'nocol')),
@@ -49,13 +48,7 @@ describe('createLayoutView / useLayoutItem', () => {
 
   it('passthrough when createLayoutView has no Row/Col', async () => {
     const Bare = createLayoutView()
-    const Inner = defineComponent({
-      setup(_, { slots }) {
-        const LayoutItem = useLayoutItem()
-        return () => h(LayoutItem, () => slots.default?.())
-      },
-    })
-    const html = await render(h(Bare, () => h(Inner, () => 'bare')))
+    const html = await render(h(Bare, () => h(LayoutItem, () => 'bare')))
     expect(html).toContain('bare')
     expect(html).not.toContain('<row')
     expect(html).not.toContain('<grid-col')
@@ -192,13 +185,7 @@ describe('createLayoutView / useLayoutItem', () => {
   })
 
   it('passthrough outside LayoutView with no default slot', async () => {
-    const Empty = defineComponent({
-      setup() {
-        const LayoutItem = useLayoutItem()
-        return () => h(LayoutItem)
-      },
-    })
-    const html = await render(h(Empty))
+    const html = await render(h(LayoutItem))
     expect(html).not.toContain('<row')
     expect(html).not.toContain('<grid-col')
   })
@@ -217,60 +204,34 @@ describe('createLayoutView / useLayoutItem', () => {
   })
 
   it('passthrough when disabled LayoutItem has no default slot', async () => {
-    const Empty = defineComponent({
-      setup() {
-        const LayoutItem = useLayoutItem()
-        return () => h(LayoutItem)
-      },
-    })
-    const html = await render(h(LayoutView, { disabled: true }, () => h(Empty)))
+    const html = await render(h(LayoutView, { disabled: true }, () => h(LayoutItem)))
     expect(html).not.toContain('<row')
     expect(html).not.toContain('<grid-col')
   })
 
   it('wraps an empty default slot in HostCol', async () => {
-    const Empty = defineComponent({
-      setup() {
-        const LayoutItem = useLayoutItem()
-        return () => h(LayoutItem)
-      },
-    })
-    const html = await render(h(LayoutView, { column: 3 }, () => h(Empty)))
+    const html = await render(h(LayoutView, { column: 3 }, () => h(LayoutItem)))
     expect(html).toContain('<grid-col')
     expect(html).toContain('span="8"')
     expect(html).toContain('data-layout-cell')
   })
 
   it('renders LayoutItem without a view as the default slot', async () => {
-    let Item: Component | undefined
-    const Capture = defineComponent({
-      setup() {
-        Item = useLayoutItem()
-        return () => null
-      },
-    })
-    await render(h(LayoutView, { column: 3 }, () => h(Capture)))
-    expect(Item).toBeTruthy()
-    const html = await render(h(Item!, () => 'orphan'))
+    const html = await render(h(LayoutItem, () => 'orphan'))
     expect(html).toContain('orphan')
     expect(html).not.toContain('<grid-col')
-    const empty = await render(h(Item!))
+    const empty = await render(h(LayoutItem))
     expect(empty).not.toContain('<grid-col')
   })
 
   it('forwards attrs to the real col but keeps kernel span and markers', async () => {
-    const Rich = defineComponent({
-      setup() {
-        const LayoutItem = useLayoutItem()
-        return () =>
-          h(
-            LayoutItem,
-            { span: 8, class: 'mine', 'data-layout-cell': 'user', 'data-user': '1' },
-            () => 'x',
-          )
-      },
-    })
-    const html = await render(h(LayoutView, { column: 3, class: 'row-x' }, () => h(Rich)))
+    const html = await render(
+      h(
+        LayoutView,
+        { column: 3, class: 'row-x' },
+        () => h(LayoutItem, { span: 8, class: 'mine', 'data-layout-cell': 'user', 'data-user': '1' }, () => 'x'),
+      ),
+    )
     expect(html).toContain('class="row-x"')
     expect(html).toContain('data-layout-row')
     expect(html).toContain('class="mine"')

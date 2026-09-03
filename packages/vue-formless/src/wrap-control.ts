@@ -15,7 +15,7 @@ export interface WrapControlMeta {
   itemSlots: Record<string, Slot>
 }
 
-/** FormView-owned Item shell. Col is owned by LayoutView / useLayoutItem. */
+/** FormView-owned Item shell. Col is owned by LayoutView / LayoutItem. */
 export type WrapControl = (body: VNodeChild, meta: WrapControlMeta) => VNodeChild
 
 export function createControlWrap(options: {

@@ -2,7 +2,7 @@
 
 本目录记录 vue-formless 的重要设计决策。每篇 ADR 自洽，包含背景、备选方案、取舍与结论（或待定项）。
 
-观点提炼自《动态表单架构设计推演》：在 Schema 复用与 Template 定制之间，用「页级控件表 + 命名空间控件 + FormView/Context」取得平衡，而不是全量 JSON 布局引擎。`createFormControls` 声明的是语义输入簇（`validation` + `:fl:validate`），不是表单 schema；`component` 只接输入；可选适配 `Form` / `Item` 与 Row/Col 用 slot 由内核填 default；栅格走 `createLayoutView` + `useLayoutItem`，FormView `:fl:layout` 只做开关（不拆公开 FormLayout）；根组件以 `v-model` 接入可写状态，嵌套 FormView 可 inherit。配置通道见 [ADR-015](./015-formless-config-groups.md)；`fl` → 宿主 props 见 [ADR-016](./016-fl-project-and-overlay.md)。
+观点提炼自《动态表单架构设计推演》：在 Schema 复用与 Template 定制之间，用「页级控件表 + 命名空间控件 + FormView/Context」取得平衡，而不是全量 JSON 布局引擎。`createFormControls` 声明的是语义输入簇（`validation` + `:fl:validate`），不是表单 schema；`component` 只接输入；可选适配 `Form` / `Item` 与 Row/Col 用 slot 由内核填 default；栅格走 `createLayoutView` + `LayoutItem`，FormView `:fl:layout` 只做开关（不拆公开 FormLayout）；根组件以 `v-model` 接入可写状态，嵌套 FormView 可 inherit。配置通道见 [ADR-015](./015-formless-config-groups.md)；`fl` → 宿主 props 见 [ADR-016](./016-fl-project-and-overlay.md)。
 
 | ADR | 标题 | 状态 |
 |-----|------|------|

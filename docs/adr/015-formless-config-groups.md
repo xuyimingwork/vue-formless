@@ -9,7 +9,8 @@
   - 2026-08-27 — 去掉独立 `path`；位置只写 `prop`。见 [ADR-011](./011-model-and-path.md)。
   - 2026-09-01 — 壳合并改为 FormView < 内部 < 外部；外部 `true` 可开回 Item。`'self'` + 标签 `true` 见 [ADR-017](./017-composite-item-self.md)。
   - 2026-09-01 — 控件 / 格上不再有 boolean `layout` / `:fl:layout`。包不包 Col 只跟 FormView `:fl:layout`（第 4 档内层 Row 同此）。见 [ADR-017](./017-composite-item-self.md)。
-  - 2026-09-01 — 增加 `row:` / `col:` 通道。`:fl:layout` 只保 boolean；宽用 `:col:span` / `:col:place`。布局对外 `createLayoutView` + `useLayoutItem`。
+  - 2026-09-01 — 增加 `row:` / `col:` 通道。`:fl:layout` 只保 boolean；宽用 `:col:span` / `:col:place`。布局对外 `createLayoutView` + `LayoutItem`。
+  - 2026-09-03 — 去掉 `useLayoutItem`，直接导出 `LayoutItem`。
 - **来源**：[ADR-008](./008-form-view-vmodel-and-grid-gcd.md) / [ADR-011](./011-model-and-path.md) / [ADR-012](./012-input-item-and-rule-compile.md) / [ADR-013](./013-one-control-multiple-items.md)。本文钉 **配置怎么写、进哪一层**。不改 `component` 不含 Item、不改写口、不改 `useFormItem` 吃口名。
 
 ## 决策
@@ -76,7 +77,7 @@ formless: {
 - 内核读核心键：`component`、`model`、`props`、`prop`、`item`。其余 schema 键与 `fl:*` extras **不解释**，进 Item/Input 转化函数的 snapshot。extras 只扩 `ControlSchema`；`ItemFl` / `FormControlProps` / `FormViewItemProps` 从 extras 推导（`label` → snapshot `label` 与 `:fl:label`）。内核不预声明 `label` / `validate`。见 [ADR-016](./016-fl-project-and-overlay.md)。
 - 内核 **删除 `identity-rules`**。`validation` / `validate` 是不透明 extras；默认 `'optional'` 和编 `rules` 都在适配（playground `toEpRules`）。
 - Col 只吃内核算出的数字 `span`；Row 只吃该层 LayoutView 的 `gutter`。`:fl:span` 丢掉（开发态 warn）。
-- 布局模块只导出 `createLayoutView` / `useLayoutItem`，不导出 LayoutItem。否：`place="center"`、开放 Col 透传、`:col:justify`。
+- 布局模块导出 `createLayoutView` / `LayoutItem`。否：`place="center"`、开放 Col 透传、`:col:justify`。
 
 ## 不纳入
 

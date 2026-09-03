@@ -17,6 +17,7 @@
   - 2026-08-26 — `:fl:form` 默认 `'auto'`（根开、嵌套关）；未绑 v-model 的嵌套 FormView inherit 祖先写口。内核可拆 Layout（`column` / `gutter`），**不**公开 `FormView.Layout`。
   - 2026-08-26 — 工厂改为 `layout` / `form` / `item` 分组；`form.props` / `item.props` 为对象或函数。Form snapshot 含 `modelValue`，映射由 `form.props` 做。见 [ADR-016](./016-fl-project-and-overlay.md)。
   - 2026-09-01 — `:fl:layout` 只保 boolean；密度走工厂 `layout.column/gutter` 与 `:row:*`。布局子系统对外 `createLayoutView` + `useLayoutItem`。格宽 `:col:span` / `:col:place`。内核默认 `column: 1, gutter: 0`。
+  - 2026-09-03 — 布局对外改为 `createLayoutView` + `LayoutItem`（不再 `useLayoutItem`）。
 - **来源**：相对 [ADR-004](./004-form-layout-and-context.md) / [ADR-007](./007-layout-adapter-and-span-priority.md) 的后续澄清（命名、数据口、适配面与占位策略）
 
 ## 背景
@@ -44,7 +45,7 @@ ADR-004 将运行时粘合命名为 `FormLayout`，并同时承担 FormContext �
 ```text
 Form?（工厂有 Form 且 `fl:form` 未关；默认 `'auto'` = 根开、嵌套关）
   └ LayoutView（始终挂；`:fl:layout` 关则透传。内部 `createLayoutView`，不公开）
-        └ 字段（每格 `useLayoutItem`：Col? → Item? → 输入）
+        └ 字段（每格 `LayoutItem`：Col? → Item? → 输入）
 ```
 
 简单表单页面只有一颗 `FormView`，不要再套公开的 Layout 组件，也不要用户手写 `el-form`：
@@ -58,7 +59,7 @@ Form?（工厂有 Form 且 `fl:form` 未关；默认 `'auto'` = 根开、嵌套�
 
 `item` 在工厂绑了对应组件时 **默认开**。`fl:form` 默认 `'auto'`：根上包 Form，嵌套 FormView 不包。显式 `:fl:form="true"` / `"false"` 覆盖。`label-width` / `disabled` 等未声明 attrs 落到 `Form`。FormView 的 `ref` **代理内层 Form**（内核不声明 `validate` 等方法）。表格等根上用 `:fl:form="false"`；工厂不传 `Form` 则永远不包。
 
-奇怪布局：不写 `fl:layout`，在同一颗 FormView 里手写 Row/Col（仍可有 Form）。同一页多段密度：外层 FormView 包 Form（可不开 layout），内层 `<FormView fl:layout :row:column="3">` 只托管栅格——`fl:form` auto 关掉 Form，未写 `v-model` 则 inherit 祖先写口。**不要**为此再引入公开的 `FormLayout` / `FormView.Layout`，也不要让内层再包 Form（除非显式 `:fl:form="true"`）。布局对外只有 `createLayoutView` + `useLayoutItem`，不导出 LayoutItem。
+奇怪布局：不写 `fl:layout`，在同一颗 FormView 里手写 Row/Col（仍可有 Form）。同一页多段密度：外层 FormView 包 Form（可不开 layout），内层 `<FormView fl:layout :row:column="3">` 只托管栅格——`fl:form` auto 关掉 Form，未写 `v-model` 则 inherit 祖先写口。**不要**为此再引入公开的 `FormLayout` / `FormView.Layout`，也不要让内层再包 Form（除非显式 `:fl:form="true"`）。布局对外是 `createLayoutView` + `LayoutItem`。
 
 ADR-004 中的 `FormLayout` 名称由本文废止为推荐对外名；**也不**作为对外栅格子组件复活。实现层可以把 Row + Col wrap 收进内部 Layout。文档与实现统一：`FormView` = 数据根 + 可选 Form + 可选栅格。
 

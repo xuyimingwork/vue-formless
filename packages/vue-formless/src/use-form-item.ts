@@ -18,7 +18,7 @@ import {
   type ResolvedControlBinding,
 } from './control-model'
 import { useFormContext } from './context'
-import { useLayoutItem, type ColPlace, type ColSpanRaw } from '@vue-formless/layout'
+import { LayoutItem, type ColPlace, type ColSpanRaw } from '@vue-formless/layout'
 import { declaredFl, omitShellKeys } from './fl-config'
 import type { FormViewItemProps, ItemFl } from './item-adapter'
 import { getIn } from './model-path'
@@ -75,7 +75,6 @@ function createFormCellComponent(port?: string): FormViewItemComponent {
     props: formCellFlProps,
     setup(props, { slots, attrs }) {
       const ctx = useFormContext()
-      const LayoutItem = useLayoutItem()
       const runtime = inject(controlRuntimeKey, null)
       if (port != null && !runtime) {
         throw new Error(
@@ -85,7 +84,6 @@ function createFormCellComponent(port?: string): FormViewItemComponent {
       return (): VNodeChild =>
         renderFormCell(
           ctx,
-          LayoutItem,
           runtime,
           port,
           slots,
@@ -115,7 +113,6 @@ export function useFormItem(port?: string): FormViewItemComponent {
 
 function renderFormCell(
   ctx: ReturnType<typeof useFormContext>,
-  LayoutItem: Component,
   runtime: ControlRuntime | null,
   port: string | undefined,
   slots: Slots,

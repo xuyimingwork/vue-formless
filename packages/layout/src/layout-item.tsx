@@ -46,7 +46,7 @@ const LayoutBlanks = defineComponent({
   },
 })
 
-const LayoutItem = defineComponent({
+export const LayoutItem = defineComponent({
   name: 'LayoutItem',
   inheritAttrs: false,
   props: {
@@ -88,18 +88,3 @@ const LayoutItem = defineComponent({
     }
   },
 })
-
-const PassThrough = defineComponent({
-  name: 'LayoutItemPassThrough',
-  inheritAttrs: false,
-  setup(_, { slots }) {
-    return (): VNodeChild => slots.default?.() ?? null
-  },
-})
-
-/** Nearest LayoutView's cell component; identity when no LayoutView. */
-export function useLayoutItem(): Component {
-  return inject(LAYOUT_VIEW_KEY, null)
-    ? LayoutItem
-    : PassThrough
-}

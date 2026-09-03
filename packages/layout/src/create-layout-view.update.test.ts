@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { createApp, defineComponent, h, inject, nextTick, onBeforeUnmount, ref } from 'vue'
-import { createLayoutView, useLayoutItem } from './create-layout-view'
+import { createLayoutView, LayoutItem } from './create-layout-view'
 import { LAYOUT_VIEW_KEY } from './injection-keys'
 
 const Row = defineComponent({
@@ -31,7 +31,6 @@ const Cell = defineComponent({
     place: { type: String, default: undefined },
   },
   setup(props, { slots }) {
-    const LayoutItem = useLayoutItem()
     return () => h(LayoutItem, { span: props.span, place: props.place }, () => slots.default?.() ?? 'x')
   },
 })
@@ -215,7 +214,6 @@ describe('layout place blanks after updates', () => {
     const itemRef = ref<{ el: Element | null } | null>(null)
     const Inner = defineComponent({
       setup() {
-        const LayoutItem = useLayoutItem()
         return () => h(LayoutItem, { ref: itemRef, span: 8 }, () => 'x')
       },
     })

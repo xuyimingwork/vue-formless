@@ -7,6 +7,7 @@
   - 2026-09-01 — **外部 `:fl:item` 高于内部**（含内部 `false` + 标签 `true` 按 true）。`'self'` + 标签显式 `true` 时工厂多一颗内层 Row。本文含改造清单。
   - 2026-09-01 — 收掉控件 / 格级 boolean `layout`。Col 只跟 FormView `:fl:layout`；第 4 档内层 Row 同此。
   - 2026-09-01 — 第 4 档内层改为控件自挂 `LayoutView`（同一颗 `createLayoutView`）。宽 `:col:span`；内层密度 `:row:*`。
+  - 2026-09-03 — 公开 `LayoutItem`；仍不公开 `FormView.Layout`。
 - **来源**：[ADR-012](./012-input-item-and-rule-compile.md) / [ADR-013](./013-one-control-multiple-items.md) / [ADR-015](./015-formless-config-groups.md)。013 的「一颗 control、N 格 Item」仍成立；关壳与合并顺序以本文为准。
 
 ## 背景
@@ -112,7 +113,7 @@ dateRangeTwo: {
 - `:item:start:xxx`
 - 标签 `:fl:item="'self'"`
 - 用嵌套 FormView 当第 4 档的实现（控件挂 LayoutView 即可）
-- 公开 LayoutItem / `FormView.Layout` / `place="center"` / 开放 Col 透传
+- 公开 `FormView.Layout` / `place="center"` / 开放 Col 透传
 - 把组合体拆成 N 颗 control 当默认
 
 ## 改造方案

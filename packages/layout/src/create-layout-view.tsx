@@ -19,7 +19,7 @@ import { useDomChildren } from './use-dom-children'
 import { hostEl } from './utils'
 
 export type { ColPlace, ColSpanRaw } from './grid'
-export { useLayoutItem, type LayoutItemProps } from './layout-item'
+export { LayoutItem, type LayoutItemProps } from './layout-item'
 
 export interface CreateLayoutViewOptions {
   Row?: Component
@@ -120,10 +120,7 @@ function useRowBlanks(items: LayoutItems, rowRef: Ref<unknown>) {
   })
 }
 
-/**
- * Bind host Row/Col once. Returns LayoutView.
- * LayoutItem is not exported; cells call `useLayoutItem()`.
- */
+/** Bind host Row/Col once. Returns LayoutView; cells are `LayoutItem`. */
 export function createLayoutView(options: CreateLayoutViewOptions = {}): Component {
   const { Row, Col } = options as { Row?: JsxHost; Col?: JsxHost }
 
