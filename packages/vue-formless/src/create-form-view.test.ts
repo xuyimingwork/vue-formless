@@ -264,14 +264,13 @@ describe('createFormView', () => {
     expect(seen).toEqual([b])
   })
 
-  it('uses kernel density 1/0 when factory omits column/gutter', async () => {
+  it('uses column 1 when factory omits column', async () => {
     const FormView = View()
     const html = await render(
       h(FormView, { modelValue: {}, 'fl:layout': true }, () =>
         h(FormView.Item, { 'fl:prop': 'name' }),
       ),
     )
-    expect(html).toContain('gutter="0"')
     expect(html).toContain('span="24"')
   })
 

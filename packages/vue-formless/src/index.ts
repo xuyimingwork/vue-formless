@@ -47,8 +47,6 @@ export {
   type PathSegment,
 } from './model-path'
 export {
-  DEFAULT_LAYOUT,
-  GRID_TOTAL,
   type ColSpanRaw,
   type ColPlace,
   createLayoutView,

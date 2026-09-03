@@ -13,7 +13,7 @@ import {
 } from 'vue'
 import { formContextKey, type FormContext } from './context'
 import { createFormModelWriter } from './form-model-writer'
-import { createLayoutView, DEFAULT_LAYOUT } from '@vue-formless/layout'
+import { createLayoutView } from '@vue-formless/layout'
 import type { ItemFl } from './item-adapter'
 import { overlayProps, resolveProps, type HostProps } from './overlay-props'
 import { createControlWrap } from './wrap-control'
@@ -50,15 +50,15 @@ export type FormLayoutOptions = Pick<FormViewLayoutBind, 'column'>
 
 export type FormFormProp = boolean | 'auto'
 
-/** Row gutter when factory `layout.gutter` and `:row:gutter` are omitted. */
-const DEFAULT_GUTTER = 0
+/** Column density when factory `layout.column` and `:row:column` are omitted. */
+const DEFAULT_COLUMN = 1
 
 export interface FormViewProps {
   modelValue?: unknown
   /**
    * Grid hosting switch. Default `false`.
-   * Density: this FormView's factory `layout.column/gutter` plus `:row:column` / `:row:gutter`.
-   * Nested FormView / extra rows do not inherit this instance overlay.
+   * Column density: factory `layout.column` plus `:row:column`. Nested FormView / extra rows
+   * do not inherit this instance overlay. `:row:gutter` and factory `layout.gutter` fall through to the host Row.
    */
   'fl:layout'?: FormLayoutProp
   'row:column'?: number
@@ -153,7 +153,6 @@ function provideFormViewContext(options: {
   isLayoutEnabled: () => boolean
   LayoutView: Component
   factoryColumn: number
-  factoryGutter: number
 }): void {
   const wrap = createControlWrap({
     Item: options.Item,
@@ -174,7 +173,6 @@ function provideFormViewContext(options: {
       isLayoutEnabled: options.isLayoutEnabled,
       LayoutView: markRaw(options.LayoutView),
       factoryColumn: options.factoryColumn,
-      factoryGutter: options.factoryGutter,
     }) as FormContext,
   )
 }
@@ -237,8 +235,7 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
   const LayoutView = createLayoutView(
     bind ? { Row: bind.Row, Col: bind.Col } : {},
   )
-  const factoryColumn = bind?.column ?? DEFAULT_LAYOUT.column
-  const factoryGutter = bind?.gutter ?? DEFAULT_GUTTER
+  const factoryColumn = bind?.column ?? DEFAULT_COLUMN
 
   return attachFormViewItem(
     defineComponent({
@@ -265,19 +262,19 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
           isLayoutEnabled: () => isFlLayoutOn(props['fl:layout']),
           LayoutView,
           factoryColumn,
-          factoryGutter,
         })
 
         return (): VNodeChild => {
           const children = slots.default?.() ?? null
           const enabled = isFlLayoutOn(props['fl:layout'])
-          const density = {
-            column: props['row:column'] ?? factoryColumn,
-            gutter: props['row:gutter'] ?? factoryGutter,
-          }
           const body = h(
             LayoutView,
-            { disabled: !enabled, column: density.column, gutter: density.gutter },
+            {
+              disabled: !enabled,
+              column: props['row:column'] ?? factoryColumn,
+              ...(bind?.gutter != null ? { gutter: bind.gutter } : {}),
+              ...(props['row:gutter'] != null ? { gutter: props['row:gutter'] } : {}),
+            },
             () => children,
           )
 
@@ -328,16 +325,15 @@ export const FormView = attachFormViewItem(
         update,
         isLayoutEnabled: () => isFlLayoutOn(props['fl:layout']),
         LayoutView: defaultLayoutView,
-        factoryColumn: DEFAULT_LAYOUT.column,
-        factoryGutter: DEFAULT_GUTTER,
+        factoryColumn: DEFAULT_COLUMN,
       })
       return (): VNodeChild =>
         h(
           defaultLayoutView,
           {
             disabled: !isFlLayoutOn(props['fl:layout']),
-            column: props['row:column'] ?? DEFAULT_LAYOUT.column,
-            gutter: props['row:gutter'] ?? DEFAULT_GUTTER,
+            column: props['row:column'] ?? DEFAULT_COLUMN,
+            ...(props['row:gutter'] != null ? { gutter: props['row:gutter'] } : {}),
           },
           () => slots.default?.() ?? null,
         )

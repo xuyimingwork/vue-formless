@@ -439,7 +439,7 @@ describe('createFormControls props overlay', () => {
     )
     expect(html.match(/class="item"/g)?.length).toBe(3)
     expect(html).toContain('data-label="签证"')
-    expect(html).toContain('data-gutter="0"')
+    expect(html).toContain('class="row"')
     expect(html).toContain('data-span="24"')
   })
 
@@ -511,7 +511,7 @@ describe('createFormControls props overlay', () => {
         () => h(Fields.Range, { 'fl:item': true, 'row:column': 2 }),
       ),
     )
-    expect(html).toContain('data-gutter="0"')
+    expect(html).toContain('class="row"')
     const spans = [...html.matchAll(/data-span="(\d+)"/g)].map((m) => m[1])
     expect(spans).toContain('8')
     expect(spans.filter((s) => s === '12')).toHaveLength(2)

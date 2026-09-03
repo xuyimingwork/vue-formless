@@ -170,7 +170,7 @@ function renderFormCell(
       {
         disabled: !ctx.isLayoutEnabled(),
         column: frame.rowColumn ?? ctx.factoryColumn,
-        gutter: frame.rowGutter ?? ctx.factoryGutter,
+        ...(frame.rowGutter != null ? { gutter: frame.rowGutter } : {}),
       },
       () => extraBody,
     )
