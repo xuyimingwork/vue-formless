@@ -1,19 +1,22 @@
 import type { Scene, Tile } from './types'
 
-const NESTED = [
-  '<LayoutView :column="3" :gutter="16">',
-  '  <LayoutItem>A</LayoutItem>',
-  '  <LayoutItem>B</LayoutItem>',
-  '  <LayoutItem>C</LayoutItem>',
-  '  <LayoutItem span="max">',
-  '    <LayoutView :column="2">',
-  '      <LayoutItem>1</LayoutItem>',
-  '      <LayoutItem>2</LayoutItem>',
-  '      <LayoutItem span="max">max</LayoutItem>',
-  '    </LayoutView>',
-  '  </LayoutItem>',
-  '</LayoutView>',
-].join('\n')
+function nestedSnippet(gutter: number) {
+  const g = gutter ? ` :gutter="${gutter}"` : ''
+  return [
+    `<LayoutView :column="3"${g}>`,
+    '  <LayoutItem>A</LayoutItem>',
+    '  <LayoutItem>B</LayoutItem>',
+    '  <LayoutItem>C</LayoutItem>',
+    '  <LayoutItem span="max">',
+    `    <LayoutView :column="2"${g}>`,
+    '      <LayoutItem>1</LayoutItem>',
+    '      <LayoutItem>2</LayoutItem>',
+    '      <LayoutItem span="max">max</LayoutItem>',
+    '    </LayoutView>',
+    '  </LayoutItem>',
+    '</LayoutView>',
+  ].join('\n')
+}
 
 function itemTag(t: Tile): string {
   const attrs: string[] = []
@@ -32,7 +35,7 @@ export function renderSnippet(opts: {
   disabled: boolean
   tiles: Tile[]
 }): string {
-  if (opts.scene === 'nested') return NESTED
+  if (opts.scene === 'nested') return nestedSnippet(opts.gutter)
   const view: string[] = [`:column="${opts.column}"`]
   if (opts.gutter) view.push(`:gutter="${opts.gutter}"`)
   if (opts.disabled) view.push('disabled')

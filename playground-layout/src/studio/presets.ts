@@ -32,8 +32,8 @@ export type PresetSetup = {
   tiles?: Tile[]
 }
 
-export function setupPreset(id: PresetId): PresetSetup {
-  const base = { column: 3, gutter: 16, rowGap: 8, disabled: false }
+export function setupPreset(id: PresetId, compact = false): PresetSetup {
+  const base = { column: 3, gutter: compact ? 8 : 16, rowGap: 8, disabled: false }
   if (id === 'nested') return { ...base, scene: 'nested' }
   if (id === 'banner') {
     return {

@@ -7,8 +7,8 @@ import StudioToolbar from './components/StudioToolbar.vue'
 import { provideCompact } from './studio/compact'
 import { provideStudio } from './studio/use-studio'
 
-const studio = provideStudio()
 const compact = provideCompact()
+const studio = provideStudio(compact)
 </script>
 
 <template>

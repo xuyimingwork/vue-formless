@@ -1,12 +1,12 @@
-import { computed, inject, provide, reactive, ref, type InjectionKey } from 'vue'
+import { computed, inject, provide, reactive, ref, watch, type InjectionKey, type Ref } from 'vue'
 import { PRESETS, setupPreset, type PresetId } from './presets'
 import { renderSnippet } from './snippet'
 import { resizeTiles } from './tiles'
 import type { Scene, Tile } from './types'
 
-export function createStudio() {
+export function createStudio(compact: Ref<boolean>) {
   const column = ref(3)
-  const gutter = ref(16)
+  const gutter = ref(compact.value ? 8 : 16)
   const rowGap = ref(8)
   const disabled = ref(false)
   const showBlanks = ref(true)
@@ -15,7 +15,7 @@ export function createStudio() {
   const tiles = ref<Tile[]>([])
 
   function applyPreset(id: PresetId) {
-    const next = setupPreset(id)
+    const next = setupPreset(id, compact.value)
     activePreset.value = id
     scene.value = next.scene
     column.value = next.column
@@ -26,6 +26,11 @@ export function createStudio() {
   }
 
   applyPreset('flow')
+
+  watch(compact, (isCompact) => {
+    if (isCompact && gutter.value === 16) gutter.value = 8
+    else if (!isCompact && gutter.value === 8) gutter.value = 16
+  })
 
   const snippet = computed(() =>
     renderSnippet({
@@ -63,8 +68,8 @@ export type Studio = ReturnType<typeof createStudio>
 
 const StudioKey: InjectionKey<Studio> = Symbol('studio')
 
-export function provideStudio() {
-  const studio = createStudio()
+export function provideStudio(compact: Ref<boolean>) {
+  const studio = createStudio(compact)
   provide(StudioKey, studio)
   return studio
 }
