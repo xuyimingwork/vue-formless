@@ -18,7 +18,7 @@ import {
   type ResolvedControlBinding,
 } from './control-model'
 import { useFormContext } from './context'
-import { useLayoutItem, type ColPlace, type ColSpanSpec } from '@vue-formless/layout'
+import { useLayoutItem, type ColPlace, type ColSpanRaw } from '@vue-formless/layout'
 import { declaredFl, omitShellKeys } from './fl-config'
 import type { FormViewItemProps, ItemFl } from './item-adapter'
 import { getIn } from './model-path'
@@ -33,7 +33,7 @@ export interface ControlFrame {
   wrapItem: boolean
   wrapCol: boolean
   extraRow: boolean
-  colSpan?: ColSpanSpec
+  colSpan?: ColSpanRaw
   colPlace?: ColPlace
   rowColumn?: number
   rowGutter?: number
@@ -64,7 +64,7 @@ export type { FormViewItemProps } from './item-adapter'
 
 const formCellFlProps = {
   'fl:prop': { type: [String, Array] as PropType<string | string[]>, default: undefined },
-  'col:span': { type: [String, Number] as PropType<ColSpanSpec>, default: undefined },
+  'col:span': { type: [String, Number] as PropType<ColSpanRaw>, default: undefined },
   'col:place': { type: String as PropType<ColPlace>, default: undefined },
 }
 
@@ -130,7 +130,7 @@ function renderFormCell(
   const { itemSlots } = splitSlots(slots)
 
   const outer = port == null && runtime != null
-  const tagSpan = (props['col:span'] ?? attrCol.span) as ColSpanSpec | undefined
+  const tagSpan = (props['col:span'] ?? attrCol.span) as ColSpanRaw | undefined
   const tagPlace = (props['col:place'] ?? attrCol.place) as ColPlace | undefined
   const frame = runtime?.getFrame()
   const spanSpec = tagSpan ?? (outer ? frame?.colSpan : undefined)

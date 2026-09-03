@@ -4,7 +4,7 @@ import type {
   InjectionKey,
   MaybeRefOrGetter,
 } from 'vue'
-import type { ColPlace, ColSpanSpec } from './grid'
+import type { ColPlace, ColSpanRaw } from './grid'
 
 export interface LayoutItemBinding {
   span: ComputedRef<number>
@@ -15,7 +15,7 @@ export interface LayoutItemBinding {
 }
 
 export type RegisterLayoutItem = (
-  span?: MaybeRefOrGetter<ColSpanSpec | undefined>,
+  span?: MaybeRefOrGetter<ColSpanRaw | undefined>,
   place?: MaybeRefOrGetter<ColPlace | undefined>,
 ) => LayoutItemBinding
 

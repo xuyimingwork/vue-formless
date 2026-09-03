@@ -37,7 +37,7 @@ import {
   type ControlFrame,
 } from './use-form-item'
 import type { WidgetTagProps } from './widget-props'
-import type { ColPlace, ColSpanSpec } from '@vue-formless/layout'
+import type { ColPlace, ColSpanRaw } from '@vue-formless/layout'
 
 export type { ControlProp, ControlVModel } from './control-model'
 export type {
@@ -89,7 +89,7 @@ export type NamespacedControls<S> = {
 const controlFlProps = {
   'fl:prop': { type: [String, Array] as PropType<string | string[]>, default: undefined },
   'fl:item': { type: Boolean, default: undefined },
-  'col:span': { type: [String, Number] as PropType<ColSpanSpec>, default: undefined },
+  'col:span': { type: [String, Number] as PropType<ColSpanRaw>, default: undefined },
   'col:place': { type: String as PropType<ColPlace>, default: undefined },
   'row:column': { type: Number, default: undefined },
   'row:gutter': { type: Number, default: undefined },
@@ -177,7 +177,7 @@ function createNamespacedControl(
         const modelBindings = applyControlBinding(ctx.model, binding, ctx.update)
         const displayProp = binding.props[0] ?? controlKey
         const label = typeof snapshot.label === 'string' ? snapshot.label : undefined
-        const colSpan = (controlProps['col:span'] ?? col.span) as ColSpanSpec | undefined
+        const colSpan = (controlProps['col:span'] ?? col.span) as ColSpanRaw | undefined
         const colPlace = (controlProps['col:place'] ?? col.place) as ColPlace | undefined
         const rowColumn = toOptionalNumber(controlProps['row:column'] ?? row.column)
         const rowGutter = toOptionalNumber(controlProps['row:gutter'] ?? row.gutter)

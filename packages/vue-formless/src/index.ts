@@ -49,7 +49,7 @@ export {
 export {
   DEFAULT_LAYOUT,
   GRID_TOTAL,
-  type ColSpanSpec,
+  type ColSpanRaw,
   type ColPlace,
   createLayoutView,
   useLayoutItem,

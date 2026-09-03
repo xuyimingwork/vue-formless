@@ -11,14 +11,14 @@ import {
   type Ref,
   type VNodeChild,
 } from 'vue'
-import { getColumn, resolveColPlace, resolveColSpan, type ColPlace, type ColSpanSpec } from './grid'
+import { getColumn, resolveColPlace, resolveColSpan, type ColPlace, type ColSpan, type ColSpanRaw } from './grid'
 import { LAYOUT_VIEW_KEY } from './injection-keys'
 import type { JsxHost } from './layout-item'
 import { useDomChildren } from './use-dom-children'
 import { usePlaceBlanks, type LayoutCell } from './use-place-blanks'
 import { hostEl } from './utils'
 
-export type { ColPlace, ColSpanSpec } from './grid'
+export type { ColPlace, ColSpanRaw } from './grid'
 export { useLayoutItem, type LayoutItemProps } from './layout-item'
 
 export interface CreateLayoutViewOptions {
@@ -33,7 +33,7 @@ export interface LayoutViewProps {
 }
 
 type LayoutItemState = {
-  span: number
+  span: ColSpan
   place: ColPlace
   el: Element | null
   mounted: boolean
@@ -42,7 +42,7 @@ type LayoutItemState = {
 interface LayoutItems {
   readonly value: Record<string, LayoutItemState>
   setup(
-    span?: MaybeRefOrGetter<ColSpanSpec | undefined>,
+    span?: MaybeRefOrGetter<ColSpanRaw | undefined>,
     place?: MaybeRefOrGetter<ColPlace | undefined>,
   ): string
   span(id: string): number
@@ -62,7 +62,7 @@ function useLayoutItems(column: MaybeRefOrGetter<number>): LayoutItems {
       const ownSpan = computed(() => resolveColSpan(toValue(span), toValue(column)))
       const ownPlace = computed(() => resolveColPlace(toValue(place)))
       items.value[id] = {
-        span: ownSpan as unknown as number,
+        span: ownSpan as unknown as ColSpan,
         place: ownPlace as unknown as ColPlace,
         el: null,
         mounted: false,
@@ -88,7 +88,7 @@ function useLayoutItems(column: MaybeRefOrGetter<number>): LayoutItems {
   }
 }
 
-function getLayoutCells(
+function cellsInDomOrder(
   items: Record<string, LayoutItemState>,
   children: Element[],
 ): LayoutCell[] {
@@ -110,7 +110,7 @@ function useRowBlanks(items: LayoutItems, rowRef: Ref<unknown>) {
         .filter((id) => items.value[id].mounted)
         .join(','),
   )
-  return usePlaceBlanks(() => getLayoutCells(items.value, children.value))
+  return usePlaceBlanks(() => cellsInDomOrder(items.value, children.value))
 }
 
 /**

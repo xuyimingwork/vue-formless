@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { useLayoutItem, type ColPlace, type ColSpanSpec } from '@vue-formless/layout'
+import { useLayoutItem, type ColPlace, type ColSpanRaw } from '@vue-formless/layout'
 
 defineProps<{
-  span?: ColSpanSpec
+  span?: ColSpanRaw
   place?: ColPlace
   plain?: boolean
 }>()

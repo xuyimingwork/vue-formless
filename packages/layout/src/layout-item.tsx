@@ -5,14 +5,14 @@ import {
   type PropType,
   type VNodeChild,
 } from 'vue'
-import type { ColPlace, ColSpanSpec } from './grid'
+import type { ColPlace, ColSpanRaw } from './grid'
 import { LAYOUT_VIEW_KEY } from './injection-keys'
 
 /** `Component` is a union; JSX needs a constructable host. */
 export type JsxHost = new () => { $props: Record<string, unknown> }
 
 export interface LayoutItemProps {
-  span?: ColSpanSpec
+  span?: ColSpanRaw
   place?: ColPlace
 }
 
@@ -42,7 +42,7 @@ const LayoutItem = defineComponent({
   name: 'LayoutItem',
   inheritAttrs: false,
   props: {
-    span: { type: [String, Number] as PropType<ColSpanSpec>, default: undefined },
+    span: { type: [String, Number] as PropType<ColSpanRaw>, default: undefined },
     place: { type: String as PropType<ColPlace>, default: undefined },
   },
   setup(props, { slots }) {
