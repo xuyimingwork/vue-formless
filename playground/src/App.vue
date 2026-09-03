@@ -6,6 +6,10 @@ import { demos, parseDemoMode, type DemoId } from './router'
 const route = useRoute()
 const mode = computed(() => parseDemoMode(String(route.params.mode ?? '')))
 
+const layoutHref = import.meta.env.DEV
+  ? 'http://localhost:5174/'
+  : `${import.meta.env.BASE_URL}layout/`
+
 function isActive(id: DemoId) {
   return route.params.id === id
 }
@@ -28,6 +32,7 @@ function isActive(id: DemoId) {
           </RouterLink>
         </li>
       </ul>
+      <a class="pg-nav-extra" :href="layoutHref">24 格布局</a>
     </aside>
     <main class="pg-main">
       <RouterView />

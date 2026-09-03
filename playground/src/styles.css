@@ -41,6 +41,8 @@ button {
 }
 
 .pg-nav {
+  display: flex;
+  flex-direction: column;
   padding: 28px 20px;
   border-right: 1px solid var(--pg-line);
   background: color-mix(in srgb, var(--pg-panel) 88%, white);
@@ -99,6 +101,17 @@ button {
   color: var(--pg-muted);
   font-size: 0.78rem;
   line-height: 1.35;
+}
+
+.pg-nav-extra {
+  margin-top: auto;
+  padding-top: 24px;
+  font-size: 0.82rem;
+  color: var(--pg-accent);
+}
+
+.pg-nav-extra:hover {
+  text-decoration: underline;
 }
 
 .pg-main {

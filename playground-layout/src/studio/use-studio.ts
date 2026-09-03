@@ -51,6 +51,8 @@ export function createStudio() {
     activePreset,
     tiles,
     snippet,
+    peeking: ref(false),
+    sourceOpen: ref(false),
     presets: PRESETS,
     applyPreset,
     setCount,

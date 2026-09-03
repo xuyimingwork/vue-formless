@@ -1,10 +1,7 @@
 <template>
   <details class="pg-adapt">
     <summary>
-      <span class="pg-adapt-kicker">适配</span>
-      <span class="pg-adapt-lead">
-        布局库不绑 UI 框架。把宿主的 Row / Col 交给 createLayoutView，之后才写 LayoutView / LayoutItem。本 Demo 以 Element Plus 为例，换成别的栅格同样接。
-      </span>
+      <span class="pg-adapt-lead">可以适配 Element Plus、Ant Design Vue 等主流栅格。</span>
       <span class="pg-adapt-more" />
     </summary>
     <pre><code>{{ sketch }}</code></pre>
