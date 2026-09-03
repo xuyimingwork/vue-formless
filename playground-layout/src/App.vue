@@ -13,12 +13,8 @@ const compact = provideCompact()
 
 <template>
   <div class="pg" :class="{ 'is-compact': compact, 'is-peek': studio.peeking || studio.sourceOpen }">
-    <div class="pg-chrome">
-      <div class="pg-chrome-inner">
-        <StudioHeader />
-        <StudioToolbar />
-      </div>
-    </div>
+    <StudioHeader />
+    <StudioToolbar />
     <Stage :snippet="studio.snippet">
       <PlayBoard v-if="studio.scene === 'play'" />
       <NestedBoard v-else />

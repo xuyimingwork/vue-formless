@@ -21,23 +21,23 @@ const studio = useStudio()
       <pre><code>{{ snippet }}</code></pre>
       <AdapterHint />
     </section>
+
+    <button
+      v-if="compact"
+      type="button"
+      class="pg-fab"
+      title="查看当前写法"
+      @click="studio.sourceOpen = true"
+    >
+      源码
+    </button>
+
+    <Sheet v-if="compact && studio.sourceOpen" peek title="源码" @close="studio.sourceOpen = false">
+      <div class="pg-code pg-code--sheet">
+        <p class="pg-code-head">达成当前效果的写法 · 默认 span 1x / place auto 已省略</p>
+        <pre><code>{{ snippet }}</code></pre>
+        <AdapterHint />
+      </div>
+    </Sheet>
   </div>
-
-  <button
-    v-if="compact"
-    type="button"
-    class="pg-fab"
-    aria-label="查看源码"
-    @click="studio.sourceOpen = true"
-  >
-    源码
-  </button>
-
-  <Sheet v-if="compact && studio.sourceOpen" peek title="源码" @close="studio.sourceOpen = false">
-    <div class="pg-code pg-code--sheet">
-      <p class="pg-code-head">达成当前效果的写法 · 默认 span 1x / place auto 已省略</p>
-      <pre><code>{{ snippet }}</code></pre>
-      <AdapterHint />
-    </div>
-  </Sheet>
 </template>

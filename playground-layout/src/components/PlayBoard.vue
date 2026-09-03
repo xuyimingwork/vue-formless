@@ -54,7 +54,6 @@ function removeEditing() {
     :class="{
       'pg-board--hide-blanks': !studio.showBlanks,
       'pg-board--off': studio.disabled,
-      'is-peek': compact && editing,
     }"
     :style="{ '--pg-row-gap': `${studio.rowGap}px` }"
   >
