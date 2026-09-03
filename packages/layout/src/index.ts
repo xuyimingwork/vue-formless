@@ -1,9 +1,4 @@
-export {
-  DEFAULT_LAYOUT,
-  GRID_TOTAL,
-  type ColSpanRaw,
-  type ColPlace,
-} from './grid'
+export type { ColSpanRaw, ColPlace } from './grid'
 export {
   createLayoutView,
   useLayoutItem,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  DEFAULT_LAYOUT,
+  DEFAULT_COLUMN,
   GRID_TOTAL,
   mergeColumn,
   normalizeColPlace,
@@ -78,9 +78,9 @@ describe('normalizeColPlace', () => {
   })
 })
 
-describe('DEFAULT_LAYOUT', () => {
+describe('DEFAULT_COLUMN', () => {
   it('is one column', () => {
-    expect(DEFAULT_LAYOUT).toEqual({ column: 1 })
+    expect(DEFAULT_COLUMN).toBe(1)
   })
 })
 
@@ -92,13 +92,13 @@ describe('normalizeColumn', () => {
     expect(normalizeColumn(-1)).toBe(1)
     expect(normalizeColumn(Infinity)).toBe(GRID_TOTAL)
     expect(normalizeColumn(-Infinity)).toBe(1)
-    expect(normalizeColumn(NaN)).toBe(DEFAULT_LAYOUT.column)
+    expect(normalizeColumn(NaN)).toBe(DEFAULT_COLUMN)
   })
 })
 
 describe('mergeColumn', () => {
   it('lets later candidates override earlier ones, then normalizes', () => {
-    expect(mergeColumn(undefined, undefined)).toBe(DEFAULT_LAYOUT.column)
+    expect(mergeColumn(undefined, undefined)).toBe(DEFAULT_COLUMN)
     expect(mergeColumn(undefined, 3)).toBe(3)
     expect(mergeColumn(3, 0)).toBe(1)
     expect(mergeColumn(undefined, 0, 3)).toBe(3)
