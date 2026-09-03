@@ -62,12 +62,22 @@ export const User = createFormControls({
 
 `validate()` / `resetFields()` 走 FormView 的 ref（代理内层 Form）。栅格细节见 [docs/adr](./docs/adr/README.md)。
 
+## 在线 Playground
+
+GitHub Pages（仓库需在 **Settings → Pages → Source** 选 GitHub Actions，推 `main` 后生成）：
+
+- 表单对照：[https://xuyimingwork.github.io/vue-formx/](https://xuyimingwork.github.io/vue-formx/)
+- 24 格布局：[https://xuyimingwork.github.io/vue-formx/layout/](https://xuyimingwork.github.io/vue-formx/layout/)
+
+本地预览打包结果：`PAGES_BASE=/vue-formx/ pnpm build:pages`，再用任意静态服务器打开 `site/`。
+
 ## 仓库结构
 
 ```text
 packages/vue-formless              # 内核（npm：vue-formless）
 packages/layout                    # 内部栅格，打进内核 dist
 playground                         # Element Plus 基线 vs Formless
+playground-layout                  # 24 格布局工作台
 docs/adr                           # 架构决策
 ```
 
@@ -86,6 +96,8 @@ Playground 对照：基础表单、筛选条、只读详情、混合布局、Dat
 ```bash
 pnpm playground
 # http://localhost:5173
+pnpm playground:layout
+# http://localhost:5174
 ```
 
 ## License

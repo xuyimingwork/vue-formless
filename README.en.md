@@ -62,12 +62,22 @@ export const User = createFormControls({
 
 `validate()` / `resetFields()` go through the FormView ref (proxied host Form). Layout details: [docs/adr](./docs/adr/README.md).
 
+## Live playgrounds
+
+GitHub Pages (set **Settings → Pages → Source** to GitHub Actions; deploys from `main`):
+
+- Forms: [https://xuyimingwork.github.io/vue-formx/](https://xuyimingwork.github.io/vue-formx/)
+- 24-col layout: [https://xuyimingwork.github.io/vue-formx/layout/](https://xuyimingwork.github.io/vue-formx/layout/)
+
+Local preview of the Pages bundle: `PAGES_BASE=/vue-formx/ pnpm build:pages`, then serve `site/`.
+
 ## Layout
 
 ```text
 packages/vue-formless              # kernel (npm: vue-formless)
 packages/layout                    # internal grid, bundled into the kernel
 playground                         # Element Plus baseline vs Formless
+playground-layout                  # 24-col layout studio
 docs/adr                           # architecture decisions
 ```
 

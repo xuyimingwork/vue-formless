@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 const root = fileURLToPath(new URL('.', import.meta.url))
 
 export default defineConfig({
+  base: process.env.PAGES_BASE || '/',
   plugins: [vue(), vueJsx()],
   resolve: {
     alias: {

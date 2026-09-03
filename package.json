@@ -10,6 +10,7 @@
     "typecheck": "pnpm --filter @vue-formless/layout typecheck && pnpm --filter vue-formless typecheck && pnpm --filter playground typecheck && pnpm --filter playground-layout typecheck",
     "playground": "pnpm --filter playground dev",
     "playground:layout": "pnpm --filter playground-layout dev",
+    "build:pages": "node scripts/build-pages.mjs",
     "stage:npm": "node scripts/stage-npm.mjs"
   },
   "engines": {

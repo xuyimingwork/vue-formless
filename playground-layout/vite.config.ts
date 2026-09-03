@@ -7,6 +7,7 @@ import { defineConfig } from 'vite'
 const root = fileURLToPath(new URL('.', import.meta.url))
 
 export default defineConfig({
+  base: process.env.PAGES_BASE || '/',
   plugins: [vue(), vueJsx()],
   resolve: {
     alias: {
