@@ -2,7 +2,9 @@
 
 - **状态**：Accepted（修订）
 - **日期**：2026-08-12
-- **修订**：2026-08-13 — 适配最小面、`gutter` 透传与空白 Col 占位策略见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)；文中「Layout」对应 `FormView` 的托管模式 / 页级默认。
+- **修订**：
+  - 2026-08-13 — 适配最小面、`gutter` 透传与空白 Col 占位策略见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)；文中「Layout」对应 `FormView` 的托管模式 / 页级默认。
+  - 2026-09-04 — 「独占落地行」用 `:col:take="'rest'"`，见 [ADR-018](./018-col-take-rest.md)。筛选条可视行数是 Layout 的 `row`，见 [ADR-019](./019-layout-row-window.md)。
 - **来源**：动态表单架构设计推演之后续澄清（相对 ADR-004 初版修正）
 
 ## 背景
@@ -37,7 +39,7 @@ Item 上的布局配置  >  Layout 上的默认配置  >  兜底
 - 做：**Layout 级**列密度随视口/容器变化  
 - 不做（至少不作为默认能力）：Col/Item 级多断点 span（各字段在小屏「有的变窄、有的维持」）
 
-个别字段「任何密度下都独占一行」视为 Item 例外，而不是一套断点表。
+个别字段「任何密度下都独占落地行」视为 Item 例外（`:col:take="'rest'"`，见 [ADR-018](./018-col-take-rest.md)），而不是一套断点表。筛选条收起行数落在 Layout 的 `row`（[ADR-019](./019-layout-row-window.md)），不落在 Item。
 
 ### 4. 模板扁平，留白由布局层处理
 

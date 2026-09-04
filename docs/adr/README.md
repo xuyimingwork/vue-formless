@@ -23,6 +23,8 @@
 | [015](./015-formless-config-groups.md) | Formless 配置通道 | Accepted |
 | [016](./016-fl-project-and-overlay.md) | fl → 宿主 props | Accepted |
 | [017](./017-composite-item-self.md) | 组合体 control、`item: 'self'` 与自述 | Accepted |
+| [018](./018-col-take-rest.md) | `col:take="rest"`（实宽与行占用分离） | Accepted |
+| [019](./019-layout-row-window.md) | LayoutView `row` 窗口与必展示 / 自动 | Accepted |
 
 ## 决策关系（简图）
 
@@ -42,6 +44,8 @@
  ├── 003 模板表达 = <User.Agency /> / <User.Name />
  ├── 004 运行时粘合 = Context + 控件表（内核 UI 无关）
  │    ├── 007 外部 Row/Col 适配；字段 span > 页级默认；响应式只在页级
- │    └── 008 FormView：v-model（嵌套可 inherit）；可选 Form（`fl:form` auto）；`:layout` 栅格（不拆公开 FormLayout）；公约数 Row/Col/Item
+ │    ├── 008 FormView：v-model（嵌套可 inherit）；可选 Form（`fl:form` auto）；`:layout` 栅格（不拆公开 FormLayout）；公约数 Row/Col/Item
+ │    ├── 018 `take="rest"`：实宽仍是 span；落地行吃完；否 `span="rest"`
+ │    └── 019 LayoutView `row` 窗口；格子 `show` 必展示 / 自动；筛选折叠
  └── 006 动态性默认走生成/CI，而非运行时全量 JSON
 ```

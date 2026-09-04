@@ -11,6 +11,7 @@
   - 2026-09-01 — 控件 / 格上不再有 boolean `layout` / `:fl:layout`。包不包 Col 只跟 FormView `:fl:layout`（第 4 档内层 Row 同此）。见 [ADR-017](./017-composite-item-self.md)。
   - 2026-09-01 — 增加 `row:` / `col:` 通道。`:fl:layout` 只保 boolean；宽用 `:col:span` / `:col:place`。布局对外 `createLayoutView` + `LayoutItem`。
   - 2026-09-03 — 去掉 `useLayoutItem`，直接导出 `LayoutItem`。
+  - 2026-09-04 — `:col:take` 见 [ADR-018](./018-col-take-rest.md)；`:row:row` / `:col:show` 见 [ADR-019](./019-layout-row-window.md)。
 - **来源**：[ADR-008](./008-form-view-vmodel-and-grid-gcd.md) / [ADR-011](./011-model-and-path.md) / [ADR-012](./012-input-item-and-rule-compile.md) / [ADR-013](./013-one-control-multiple-items.md)。本文钉 **配置怎么写、进哪一层**。不改 `component` 不含 Item、不改写口、不改 `useFormItem` 吃口名。
 
 ## 决策
@@ -21,9 +22,9 @@
 
 | 组件 | 无前缀 | `fl:` | `row:` / `col:` | 另 |
 |------|--------|--------|-----------------|-----|
-| `User.Xxx` | → `component` | `prop` + boolean `item` + extras | `col:span` `col:place`；分组上 `row:column` `row:gutter` | `:item:` / `@item:` / `#item:` → 宿主 Item |
-| `FormView` | → 适配 Form | 组树 `layout`(boolean) / `form` / `item` | `row:column` `row:gutter`（声明 props） | **`v-model` 是 FormView 写口** |
-| `FormView.Item` | → 适配 Item | `prop` + extras。**无 `fl:item`、无 `fl:model`、无 `fl:layout`** | `col:span` `col:place` | 无 `:item:` |
+| `User.Xxx` | → `component` | `prop` + boolean `item` + extras | `col:span` `col:place` `col:take` `col:show`；分组上 `row:column` `row:gutter` `row:row` | `:item:` / `@item:` / `#item:` → 宿主 Item |
+| `FormView` | → 适配 Form | 组树 `layout`(boolean) / `form` / `item` | `row:column` `row:gutter` `row:row`（声明 props） | **`v-model` 是 FormView 写口** |
+| `FormView.Item` | → 适配 Item | `prop` + extras。**无 `fl:item`、无 `fl:model`、无 `fl:layout`** | `col:span` `col:place` `col:take` `col:show` | 无 `:item:` |
 
 内核 `h(Form, overlay(form.props(snapshot), attrs))`；`h(Item, overlay(item.props(snapshot), itemAttrs))`。Snapshot 只进 `props` 函数，不是宿主 prop。
 
@@ -42,7 +43,7 @@ wrap 仍是 `LayoutItem? → Item? → body`。FormView 给出 Item 缺省；内
 | schema 或控件静态 `formless` | `false` 关工厂 Item；`'self'` 见 [017](./017-composite-item-self.md) | **无**。关外层 Col 只走 `'self'` |
 | `User.Xxx` | `:fl:item="false"` 这一场再关 | **无** `:fl:layout`。宽用 `:col:span` |
 
-`FormView.Item` 不要 `:fl:item`，也不要 `:item:`，也不要 `:fl:layout`。格上只有 `:col:span` / `:col:place`。
+`FormView.Item` 不要 `:fl:item`，也不要 `:item:`，也不要 `:fl:layout`。格上只有 `:col:span` / `:col:place` / `:col:take` / `:col:show`。
 
 工厂始终 `useFormItem()` 一次（无参 = 当前 control 的整份接线）。`item: false` 只把这一层 Item 藏掉（可留 Col）；`item: 'self'` 两层都藏。**不是没绑定**。内层 `useFormItem('start')` 从同一份接线按口切开，壳跟页，不继承外层 `'self'` / `false`。
 
