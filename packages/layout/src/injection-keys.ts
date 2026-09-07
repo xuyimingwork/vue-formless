@@ -12,7 +12,8 @@ export interface LayoutItemBinding {
     before: number[]
     after: number[]
   }>
-  ref: (raw: unknown) => void
+  ref: (raw: unknown) => void,
+  placed: ComputedRef<boolean>
   Col: Component | undefined
   disabled: ComputedRef<boolean>
 }

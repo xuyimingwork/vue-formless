@@ -6,7 +6,9 @@ export type Cell = {
 }
 
 export type CellPlaced<T extends Cell = Cell> = T & {
+  // 开始位置
   $start: number
+  // 从开始到结束占用的数量
   $occupied: number
 }
 

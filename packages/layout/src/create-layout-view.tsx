@@ -39,7 +39,7 @@ type LayoutItemState = {
   mounted: boolean
 }
 
-interface LayoutItems {
+interface LayoutItem {
   readonly value: Record<string, LayoutItemState>
   setup(
     span?: MaybeRefOrGetter<ColSpanRaw | undefined>,
@@ -48,6 +48,7 @@ interface LayoutItems {
   span(id: string): number
   blank(id: string): { before: number[], after: number[] }
   ref(id: string, raw: unknown): void
+  placed(id: string): boolean
 }
 
 function useLayoutItem({
@@ -56,49 +57,48 @@ function useLayoutItem({
 }: {
   column: MaybeRefOrGetter<number>,
   rowRef: Ref<unknown>
-}): LayoutItems {
+}): LayoutItem {
   let seq = 0
-  const items = ref<Record<string, LayoutItemState>>({})
+  const rawItems = ref<Record<string, LayoutItemState>>({})
   // 当前 dom 结构
   const children = useDomChildren(
     () => hostEl(rowRef.value),
     () =>
-      Object.keys(items.value)
-        .filter((id) => items.value[id].mounted)
+      Object.keys(rawItems.value)
+        .filter((id) => rawItems.value[id].mounted)
         .join(','),
   )
+  const orderedItems = computed(() => cellsInDomOrder(rawItems.value, children.value))
+  const placedItems = computed(() => calculateLayout(orderedItems.value))
   const blanks = computed(() => {
-    const layout = calculateLayout(cellsInDomOrder(items.value, children.value))
     return new Map(
-      layout.map((cell) => [cell.id, calculateBlanks(cell.$start, cell.$occupied, cell.span)]),
+      placedItems.value.map((cell) => [cell.id, calculateBlanks(cell.$start, cell.$occupied, cell.span)]),
     )
   })
 
   return {
     get value() {
-      return items.value
+      return rawItems.value
     },
     setup(span, place) {
       const id = String(++seq)
-      const ownSpan = computed(() => normalizeColSpan(toValue(span), toValue(column)))
-      const ownPlace = computed(() => normalizeColPlace(toValue(place)))
-      items.value[id] = {
-        span: ownSpan as unknown as ColSpan,
-        place: ownPlace as unknown as ColPlace,
+      rawItems.value[id] = {
+        span: computed(() => normalizeColSpan(toValue(span), toValue(column))) as unknown as ColSpan,
+        place: computed(() => normalizeColPlace(toValue(place))) as unknown as ColPlace,
         el: null,
         mounted: false,
       }
       onMounted(() => {
-        const item = items.value[id]
+        const item = rawItems.value[id]
         if (item) item.mounted = true
       })
       onBeforeUnmount(() => {
-        delete items.value[id]
+        delete rawItems.value[id]
       })
       return id
     },
     span(id) {
-      return items.value[id]?.span ?? 0
+      return rawItems.value[id]?.span ?? 0
     },
     blank(id) {
       return {
@@ -107,11 +107,14 @@ function useLayoutItem({
       }
     },
     ref(id, raw) {
-      const item = items.value[id]
+      const item = rawItems.value[id]
       if (!item) return
       const el = hostEl(raw)
       if (item.el !== el) item.el = el
     },
+    placed(id) {
+      return placedItems.value.findIndex((cell) => cell.id === id) > -1
+    }
   }
 }
 
@@ -156,6 +159,7 @@ export function createLayoutView(options: CreateLayoutViewOptions = {}): Compone
           span: computed(() => item.span(id)),
           blank: computed(() => item.blank(id)),
           ref: (raw) => item.ref(id, raw),
+          placed: computed(() => item.placed(id)),
           Col,
           disabled,
         }

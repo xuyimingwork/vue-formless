@@ -166,7 +166,7 @@ describe('createLayoutView / LayoutItem', () => {
     expect(html.match(/<grid-col/g)).toHaveLength(1)
     expect(html).toContain('span="8"')
     expect(html).not.toContain('span="24"')
-    expect(html).toContain('inner')
+    expect(html).not.toContain('inner')
   })
 
   it('start as the first remaining cell does not keep a sealing blank', async () => {
