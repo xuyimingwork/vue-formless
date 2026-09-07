@@ -8,8 +8,11 @@ import type { ColPlace, ColSpanRaw } from './grid'
 
 export interface LayoutItemBinding {
   span: ComputedRef<number>
-  blanks: ComputedRef<number[]>
-  itemRef: (raw: unknown) => void
+  blank: ComputedRef<{
+    before: number[]
+    after: number[]
+  }>
+  ref: (raw: unknown) => void
   Col: Component | undefined
   disabled: ComputedRef<boolean>
 }

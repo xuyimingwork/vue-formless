@@ -46,12 +46,33 @@ interface LayoutItems {
     place?: MaybeRefOrGetter<ColPlace | undefined>,
   ): string
   span(id: string): number
+  blank(id: string): { before: number[], after: number[] }
   ref(id: string, raw: unknown): void
 }
 
-function useLayoutItems(column: MaybeRefOrGetter<number>): LayoutItems {
-  const items = ref<Record<string, LayoutItemState>>({})
+function useLayoutItem({
+  column, 
+  rowRef
+}: {
+  column: MaybeRefOrGetter<number>,
+  rowRef: Ref<unknown>
+}): LayoutItems {
   let seq = 0
+  const items = ref<Record<string, LayoutItemState>>({})
+  // 当前 dom 结构
+  const children = useDomChildren(
+    () => hostEl(rowRef.value),
+    () =>
+      Object.keys(items.value)
+        .filter((id) => items.value[id].mounted)
+        .join(','),
+  )
+  const blanks = computed(() => {
+    const layout = calculateLayout(cellsInDomOrder(items.value, children.value))
+    return new Map(
+      layout.map((cell) => [cell.id, calculateBlanks(cell.$start, cell.$occupied, cell.span)]),
+    )
+  })
 
   return {
     get value() {
@@ -79,6 +100,12 @@ function useLayoutItems(column: MaybeRefOrGetter<number>): LayoutItems {
     span(id) {
       return items.value[id]?.span ?? 0
     },
+    blank(id) {
+      return {
+        before: blanks.value.get(id) ?? [],
+        after: [],
+      }
+    },
     ref(id, raw) {
       const item = items.value[id]
       if (!item) return
@@ -104,22 +131,6 @@ function cellsInDomOrder(
     .map((el) => cells.get(el)!)
 }
 
-function useRowBlanks(items: LayoutItems, rowRef: Ref<unknown>) {
-  const children = useDomChildren(
-    () => hostEl(rowRef.value),
-    () =>
-      Object.keys(items.value)
-        .filter((id) => items.value[id].mounted)
-        .join(','),
-  )
-  return computed(() => {
-    const layout = calculateLayout(cellsInDomOrder(items.value, children.value))
-    return new Map(
-      layout.map((cell) => [cell.id, calculateBlanks(cell.$start, cell.$occupied, cell.span)]),
-    )
-  })
-}
-
 /** Bind host Row/Col once. Returns LayoutView; cells are `LayoutItem`. */
 export function createLayoutView(options: CreateLayoutViewOptions = {}): Component {
   const { Row, Col } = options as { Row?: JsxHost; Col?: JsxHost }
@@ -133,17 +144,18 @@ export function createLayoutView(options: CreateLayoutViewOptions = {}): Compone
     },
     setup(props, { slots, attrs }) {
       const disabled = computed(() => !Row || !Col || props.disabled)
-      const items = useLayoutItems(() => mergeColumn(options.column, props.column))
+      const column = computed(() => mergeColumn(options.column, props.column))
       const rowRef = ref<unknown>(null)
-      const blanks = useRowBlanks(items, rowRef)
+      const item = useLayoutItem({ column, rowRef })
 
       provide(LAYOUT_VIEW_KEY, (span, place) => {
+        // stop propagation of LAYOUT_VIEW_KEY
         provide(LAYOUT_VIEW_KEY, null)
-        const id = items.setup(span, place)
+        const id = item.setup(span, place)
         return {
-          span: computed(() => items.span(id)),
-          blanks: computed(() => blanks.value.get(id) ?? []),
-          itemRef: (raw) => items.ref(id, raw),
+          span: computed(() => item.span(id)),
+          blank: computed(() => item.blank(id)),
+          ref: (raw) => item.ref(id, raw),
           Col,
           disabled,
         }

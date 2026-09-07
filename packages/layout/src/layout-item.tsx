@@ -56,7 +56,7 @@ export const LayoutItem = defineComponent({
   setup(props, { slots, attrs, expose }) {
     const register = inject(LAYOUT_VIEW_KEY, null)
     if (!register) return (): VNodeChild => slots.default?.() ?? null
-    const { span, blanks, itemRef, Col, disabled } = register(
+    const { span, blank, ref: itemRef, Col, disabled } = register(
       () => props.span,
       () => props.place,
     )
@@ -73,7 +73,7 @@ export const LayoutItem = defineComponent({
       const HostCol = Col as JsxHost
       return (
         <>
-          <LayoutBlanks is={Col} spans={blanks.value} />
+          <LayoutBlanks is={Col} spans={blank.value.before} />
           <HostCol
             {...attrs}
             ref={bindCol}
@@ -83,6 +83,7 @@ export const LayoutItem = defineComponent({
           >
             {slots.default?.() ?? null}
           </HostCol>
+          <LayoutBlanks is={Col} spans={blank.value.after} />
         </>
       )
     }
