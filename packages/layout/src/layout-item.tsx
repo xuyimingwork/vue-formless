@@ -56,7 +56,7 @@ export const LayoutItem = defineComponent({
   setup(props, { slots, attrs, expose }) {
     const register = inject(LAYOUT_VIEW_KEY, null)
     if (!register) return (): VNodeChild => slots.default?.() ?? null
-    const { span, blank, ref: itemRef, Col, disabled, placed } = register(
+    const { span, blank, ref: itemRef, Col, disabled, placed, place } = register(
       () => props.span,
       () => props.place,
     )
@@ -79,7 +79,7 @@ export const LayoutItem = defineComponent({
             ref={bindCol}
             span={span.value}
             data-layout-cell=""
-            data-layout-place={props.place || 'auto'}
+            data-layout-place={place.value}
           >
             { placed.value ? slots.default?.() ?? null : null}
           </HostCol>

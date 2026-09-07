@@ -4,15 +4,16 @@ import type {
   InjectionKey,
   MaybeRefOrGetter,
 } from 'vue'
-import type { ColPlace, ColSpanRaw } from './grid'
+import type { ColPlace, ColSpan, ColSpanRaw } from './grid'
 
 export interface LayoutItemBinding {
-  span: ComputedRef<number>
+  span: ComputedRef<ColSpan>
   blank: ComputedRef<{
     before: number[]
     after: number[]
   }>
   ref: (raw: unknown) => void,
+  place: ComputedRef<ColPlace>
   placed: ComputedRef<boolean>
   Col: Component | undefined
   disabled: ComputedRef<boolean>

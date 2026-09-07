@@ -40,18 +40,18 @@ type LayoutItemState = {
 }
 
 interface LayoutItem {
-  readonly value: Record<string, LayoutItemState>
   setup(
     span?: MaybeRefOrGetter<ColSpanRaw | undefined>,
     place?: MaybeRefOrGetter<ColPlace | undefined>,
   ): string
-  span(id: string): number
+  span(id: string): ColSpan
   blank(id: string): { before: number[], after: number[] }
+  place(id: string): ColPlace
   ref(id: string, raw: unknown): void
   placed(id: string): boolean
 }
 
-function useLayoutItem({
+function useItemHub({
   column, 
   rowRef
 }: {
@@ -77,9 +77,6 @@ function useLayoutItem({
   })
 
   return {
-    get value() {
-      return rawItems.value
-    },
     setup(span, place) {
       const id = String(++seq)
       rawItems.value[id] = {
@@ -105,6 +102,9 @@ function useLayoutItem({
         before: blanks.value.get(id) ?? [],
         after: [],
       }
+    },
+    place(id) {
+      return rawItems.value[id]?.place ?? 'unknown'
     },
     ref(id, raw) {
       const item = rawItems.value[id]
@@ -149,17 +149,18 @@ export function createLayoutView(options: CreateLayoutViewOptions = {}): Compone
       const disabled = computed(() => !Row || !Col || props.disabled)
       const column = computed(() => mergeColumn(options.column, props.column))
       const rowRef = ref<unknown>(null)
-      const item = useLayoutItem({ column, rowRef })
+      const itemHub = useItemHub({ column, rowRef })
 
       provide(LAYOUT_VIEW_KEY, (span, place) => {
         // stop propagation of LAYOUT_VIEW_KEY
         provide(LAYOUT_VIEW_KEY, null)
-        const id = item.setup(span, place)
+        const id = itemHub.setup(span, place)
         return {
-          span: computed(() => item.span(id)),
-          blank: computed(() => item.blank(id)),
-          ref: (raw) => item.ref(id, raw),
-          placed: computed(() => item.placed(id)),
+          span: computed(() => itemHub.span(id)),
+          blank: computed(() => itemHub.blank(id)),
+          ref: (raw) => itemHub.ref(id, raw),
+          place: computed(() => itemHub.place(id)),
+          placed: computed(() => itemHub.placed(id)),
           Col,
           disabled,
         }
