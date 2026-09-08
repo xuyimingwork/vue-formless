@@ -23,8 +23,8 @@
 | [015](./015-formless-config-groups.md) | Formless 配置通道 | Accepted |
 | [016](./016-fl-project-and-overlay.md) | fl → 宿主 props | Accepted |
 | [017](./017-composite-item-self.md) | 组合体 control、`item: 'self'` 与自述 | Accepted |
-| [018](./018-col-take-rest.md) | `col:take="rest"`（实宽与行占用分离） | Accepted |
-| [019](./019-layout-row-window.md) | LayoutView `row` 窗口与必展示 / 自动 | Accepted |
+| [018](./018-col-take-rest.md) | `col:take="rest"`（实宽与行占用分离） | 待定 |
+| [019](./019-layout-row-window.md) | LayoutView `row` 窗口与必展示 / 自动 | 待定 |
 
 ## 决策关系（简图）
 

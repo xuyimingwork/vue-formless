@@ -1,6 +1,6 @@
 # ADR-018：`col:take="rest"`（实宽与行占用分离）
 
-- **状态**：Accepted
+- **状态**：待定
 - **日期**：2026-09-04
 - **来源**：相对 [ADR-007](./007-layout-adapter-and-span-priority.md) / [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。到达时间等短控件要独占落地行，但不能把 Col 拉成 `max`（`width: 100%` 会跟 `column` 脱节）。
 

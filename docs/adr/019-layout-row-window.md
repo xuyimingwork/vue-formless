@@ -1,6 +1,6 @@
 # ADR-019：LayoutView `row` 窗口与必展示 / 自动
 
-- **状态**：Accepted
+- **状态**：待定
 - **日期**：2026-09-04
 - **来源**：相对 [ADR-007](./007-layout-adapter-and-span-priority.md) / [ADR-008](./008-form-view-vmodel-and-grid-gcd.md) / [ADR-015](./015-formless-config-groups.md)。列表筛选条要收起成固定行数，查询 / 重置钉在最后一行末尾；展开后全部出现。
 
