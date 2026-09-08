@@ -13,13 +13,13 @@ import {
 } from 'vue'
 import { mergeColumn, normalizeColPlace, normalizeColSpan, type ColPlace, type ColSpan, type ColSpanRaw } from './grid'
 import { LAYOUT_VIEW_KEY } from './injection-keys'
-import type { JsxHost } from './LayoutItem'
+import type { JsxHost } from './LayoutCell'
 import { calculateBlanks, calculateLayout, type Cell } from './calculate-layout'
 import { useDomChildren } from './use-dom-children'
 import { hostEl } from './utils'
 
 export type { ColPlace, ColSpanRaw } from './grid'
-export { LayoutItem, type LayoutItemProps } from './LayoutItem'
+export { LayoutCell as LayoutCell, type LayoutCellProps as LayoutCellProps } from './LayoutCell'
 
 export interface CreateLayoutViewOptions {
   Row?: Component

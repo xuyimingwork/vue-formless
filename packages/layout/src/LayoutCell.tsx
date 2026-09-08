@@ -14,7 +14,7 @@ import { hostEl } from './utils'
 /** `Component` is a union; JSX needs a constructable host. */
 export type JsxHost = new () => { $props: Record<string, unknown> }
 
-export interface LayoutItemProps {
+export interface LayoutCellProps {
   span?: ColSpanRaw
   place?: ColPlace
 }
@@ -46,8 +46,8 @@ const LayoutBlanks = defineComponent({
   },
 })
 
-export const LayoutItem = defineComponent({
-  name: 'LayoutItem',
+export const LayoutCell = defineComponent({
+  name: 'LayoutCell',
   inheritAttrs: false,
   props: {
     span: { type: [String, Number] as PropType<ColSpanRaw>, default: undefined },
@@ -56,7 +56,7 @@ export const LayoutItem = defineComponent({
   setup(props, { slots, attrs, expose }) {
     const register = inject(LAYOUT_VIEW_KEY, null)
     if (!register) return (): VNodeChild => slots.default?.() ?? null
-    const { span, blank, ref: itemRef, Col, disabled, placed, place } = register(
+    const { span, blank, ref: itemRef, Col, disabled, place } = register(
       () => props.span,
       () => props.place,
     )
@@ -81,7 +81,7 @@ export const LayoutItem = defineComponent({
             data-layout-cell=""
             data-layout-place={place.value}
           >
-            { placed.value ? slots.default?.() ?? null : null}
+            { slots.default?.() ?? null }
           </HostCol>
           <LayoutBlanks is={Col} spans={blank.value.after} />
         </>

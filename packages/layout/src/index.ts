@@ -1,8 +1,8 @@
 export type { ColSpanRaw, ColPlace } from './grid'
 export {
   createLayoutView,
-  LayoutItem,
+  LayoutCell,
   type CreateLayoutViewOptions,
   type LayoutViewProps,
-  type LayoutItemProps,
+  type LayoutCellProps as LayoutCellProps,
 } from './create-layout-view'
