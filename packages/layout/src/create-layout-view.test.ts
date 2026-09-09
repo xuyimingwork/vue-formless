@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createSSRApp, defineComponent, h, type VNode } from 'vue'
 import { renderToString } from 'vue/server-renderer'
-import { createLayoutView, LayoutItem } from './create-layout-view'
+import { createLayoutView, LayoutCell } from './create-layout-view'
 
 const Row = defineComponent({
   name: 'DummyRow',
@@ -28,7 +28,7 @@ const Cell = defineComponent({
     place: { type: String, default: undefined },
   },
   setup(props, { slots }) {
-    return () => h(LayoutItem, { span: props.span, place: props.place }, () => slots.default?.() ?? 'x')
+    return () => h(LayoutCell, { span: props.span, place: props.place }, () => slots.default?.() ?? 'x')
   },
 })
 
@@ -36,7 +36,7 @@ async function render(vnode: VNode): Promise<string> {
   return renderToString(createSSRApp({ render: () => vnode }))
 }
 
-describe('createLayoutView / LayoutItem', () => {
+describe('createLayoutView / LayoutCell', () => {
   it('passthrough without Col when disabled', async () => {
     const html = await render(
       h(LayoutView, { disabled: true, column: 3 }, () => h(Cell, () => 'nocol')),
@@ -48,7 +48,7 @@ describe('createLayoutView / LayoutItem', () => {
 
   it('passthrough when createLayoutView has no Row/Col', async () => {
     const Bare = createLayoutView()
-    const html = await render(h(Bare, () => h(LayoutItem, () => 'bare')))
+    const html = await render(h(Bare, () => h(LayoutCell, () => 'bare')))
     expect(html).toContain('bare')
     expect(html).not.toContain('<row')
     expect(html).not.toContain('<grid-col')
@@ -157,7 +157,7 @@ describe('createLayoutView / LayoutItem', () => {
     expect(html).toContain('inner')
   })
 
-  it('nested LayoutItem inside a cell does not wrap another Col', async () => {
+  it('nested LayoutCell inside a cell does not wrap another Col', async () => {
     const html = await render(
       h(LayoutView, { column: 3 }, () =>
         h(Cell, { span: 8 }, () => h(Cell, { span: 'max' }, () => 'inner')),
@@ -166,7 +166,7 @@ describe('createLayoutView / LayoutItem', () => {
     expect(html.match(/<grid-col/g)).toHaveLength(1)
     expect(html).toContain('span="8"')
     expect(html).not.toContain('span="24"')
-    expect(html).not.toContain('inner')
+    expect(html).toContain('inner')
   })
 
   it('start as the first remaining cell does not keep a sealing blank', async () => {
@@ -185,7 +185,7 @@ describe('createLayoutView / LayoutItem', () => {
   })
 
   it('passthrough outside LayoutView with no default slot', async () => {
-    const html = await render(h(LayoutItem))
+    const html = await render(h(LayoutCell))
     expect(html).not.toContain('<row')
     expect(html).not.toContain('<grid-col')
   })
@@ -203,24 +203,24 @@ describe('createLayoutView / LayoutItem', () => {
     expect(html).not.toContain('<grid-col')
   })
 
-  it('passthrough when disabled LayoutItem has no default slot', async () => {
-    const html = await render(h(LayoutView, { disabled: true }, () => h(LayoutItem)))
+  it('passthrough when disabled LayoutCell has no default slot', async () => {
+    const html = await render(h(LayoutView, { disabled: true }, () => h(LayoutCell)))
     expect(html).not.toContain('<row')
     expect(html).not.toContain('<grid-col')
   })
 
   it('wraps an empty default slot in HostCol', async () => {
-    const html = await render(h(LayoutView, { column: 3 }, () => h(LayoutItem)))
+    const html = await render(h(LayoutView, { column: 3 }, () => h(LayoutCell)))
     expect(html).toContain('<grid-col')
     expect(html).toContain('span="8"')
     expect(html).toContain('data-layout-cell')
   })
 
-  it('renders LayoutItem without a view as the default slot', async () => {
-    const html = await render(h(LayoutItem, () => 'orphan'))
+  it('renders LayoutCell without a view as the default slot', async () => {
+    const html = await render(h(LayoutCell, () => 'orphan'))
     expect(html).toContain('orphan')
     expect(html).not.toContain('<grid-col')
-    const empty = await render(h(LayoutItem))
+    const empty = await render(h(LayoutCell))
     expect(empty).not.toContain('<grid-col')
   })
 
@@ -229,7 +229,7 @@ describe('createLayoutView / LayoutItem', () => {
       h(
         LayoutView,
         { column: 3, class: 'row-x' },
-        () => h(LayoutItem, { span: 8, class: 'mine', 'data-layout-cell': 'user', 'data-user': '1' }, () => 'x'),
+        () => h(LayoutCell, { span: 8, class: 'mine', 'data-layout-cell': 'user', 'data-user': '1' }, () => 'x'),
       ),
     )
     expect(html).toContain('class="row-x"')

@@ -134,7 +134,7 @@ function cellsInDomOrder(
     .map((el) => cells.get(el)!)
 }
 
-/** Bind host Row/Col once. Returns LayoutView; cells are `LayoutItem`. */
+/** Bind host Row/Col once. Returns LayoutView; cells are `LayoutCell`. */
 export function createLayoutView(options: CreateLayoutViewOptions = {}): Component {
   const { Row, Col } = options as { Row?: JsxHost; Col?: JsxHost }
 
