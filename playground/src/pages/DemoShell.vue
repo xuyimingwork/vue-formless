@@ -64,7 +64,7 @@ const notes: Record<DemoId, { baseline: string; formless: string; compare: strin
   range: {
     baseline: '三列混排：行程日期 span 16 旁塞一格；开始+结束同样两列再塞一格。',
     formless:
-      "Range One 一格 `col:span=\"16\"`；Range Two widget `cell: embed`，页上 `:fl:cell=\"'wrap-embed'\"` 分组壳；备注是临场 FormView.Cell（`:fl:prop` / `col:span`）。",
+      "Range One 一格 `col:span=\"16\"`；Range Two widget `cell: embed`，页上 `:fl:cell=\"'wrap-embed'\"` 分组壳；备注是临场 FormCell（`:fl:prop` / `col:span`）。",
     compare: '对照两种 Range 都占两列的混排。',
   },
 }

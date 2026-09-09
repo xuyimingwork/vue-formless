@@ -53,7 +53,7 @@ HTML 的 form control = Input。MUI FormControl ≈ FormCell。本库 1.0 **不*
 
 [ADR-009](./009-controls-as-protagonist.md) 否掉的是 **键跟 DTO 走**（`User.AgencyId`），不是英文 Field 不能用。工厂改为 `createFormFields`；**键仍是控件名** `agency`，不是 `agencyId`。中文说「表单域 / 控件」，不要写成「接口字段」。
 
-公开作者面：`FormView`、`FormView.Cell`、`createFormFields`。embed 内部：`useFormCell(port)`。`FormField` 是内核组装件（工厂产出的标签就是一颗 Field）。
+公开作者面：`FormView`、`FormCell`、`createFormFields`。embed 内部：`useFormCell(port)`。`FormField` 是内核组装件（工厂产出的标签就是一颗 Field）。
 
 旧名 → 1.0：
 
@@ -61,7 +61,7 @@ HTML 的 form control = Input。MUI FormControl ≈ FormCell。本库 1.0 **不*
 LayoutItem              → LayoutCell
 FormItem                → FormCell
 FormControl             → FormField
-FormView.Item           → FormView.Cell
+FormView.Item           → FormCell
 useFormItem             → useFormCell
 createFormControls      → createFormFields
 item: 'self'            → cell: 'embed'
@@ -71,7 +71,7 @@ controlKey              → fieldKey（实现层一并改）
 
 ### 2. FormCell = 始终 LayoutCell，可选 ElFormItem
 
-手写 `<FormCell>` / `<FormView.Cell>` 时，预期 **具备布局**。因此 LayoutCell **划归 FormCell**，不由 FormField 单独决定 `wrapCol`。
+手写 `<FormCell>` 时，预期 **具备布局**。因此 LayoutCell **划归 FormCell**，不由 FormField 单独决定 `wrapCol`。
 
 ```text
 <LayoutCell span place>
@@ -86,9 +86,9 @@ controlKey              → fieldKey（实现层一并改）
 
 `item` 合并（只这一格、只 boolean）：标签 `fl:item` > schema `item` > 页 `FormView :fl:item`。没写 ≠ `true`（跟页）。`'self'` 非法。
 
-FormContext 给 Cell 的是 `Item` + `itemProps` + `isItemEnabled`，**不是** `wrap()` 函数。`createControlWrap` 并进 FormCell。
+FormContext 给 Cell 的是 `Item` + `itemProps` + `item`（本层 `:fl:item`），**不是** `wrap()` 函数。`createControlWrap` 并进 FormCell。
 
-Props：`col:span` / `col:place` → LayoutCell；无前缀 attrs → 宿主 Item（临场格）；`fl:item`；临场 `fl:prop` + slot `{ field }`。`FormView.Cell === FormCell`。
+Props：`col:span` / `col:place` → LayoutCell；无前缀 attrs → 宿主 Item（临场格）；`fl:item`；临场 `fl:prop` + slot `{ field }`。与 layout 一样并列导出（`FormView` + `FormCell`），不挂 `FormView.Cell`。
 
 ### 3. FormField 与 `cell` 三态
 
@@ -144,7 +144,7 @@ defineOptions({
 
 标签 `:fl:cell="'wrap'"` 盖住 widget 的 `'embed'` 会变成叶子树——这是配置错误。
 
-`:row:column` / `:row:gutter` 只对 `'wrap-embed'` 的内层 LayoutView 有效；打在 `'wrap'` 叶子上忽略（可 warn）。内层密度默认工厂 `layout.column`，**不**继承页 `:row:column`（与现第 4 档测试一致）。
+`:row:column` / `:row:gutter` 只对 `'wrap-embed'` 的内层 LayoutView 有效；打在 `'wrap'` 叶子上忽略（可 warn）。内层 LayoutView **不**继承页 `:fl:layout` / `:row:column` / 工厂 `layout.column`：省略则用 LayoutView 自身缺省（与 layout 包嵌套约定一致）。
 
 `useFormCell(port)`：同一颗 FormCell，binding 切到该 v-model 口。无参 FormCell 给临场格。禁止再为「外包」维护 `ControlFrame` / `getFrame()`。
 
@@ -152,7 +152,7 @@ defineOptions({
 
 仍：v-model 归集（嵌套可 inherit）、可选宿主 Form（`fl:form` auto）、页级 LayoutView（`:fl:layout` 只做 boolean 开关；密度工厂 + `:row:*`）。
 
-provide：`model` / `update`、宿主 `Item` + `itemProps`、`isItemEnabled`、工厂 `LayoutView` + `factoryColumn`（仅 FormField 在 `wrap-embed` 时用）。**不** provide `wrap`、**不**让 FormCell 读 `isLayoutEnabled` 来决定是否包 Col。
+provide：`model` / `update`、宿主 `Item` + `itemProps`、本层 `item`、工厂 `LayoutView`（wrap-embed 新建内层窗口）。**不** provide `wrap`、页 `layout` 开关、工厂 `column`；**不**让 FormCell 读 layout 决定是否包 Col。
 
 ### 5. 实现结构（目标）
 
@@ -168,7 +168,7 @@ provide：`model` / `update`、宿主 `Item` + `itemProps`、`isItemEnabled`、�
 建议落地顺序：
 
 1. 词表与类型：`cell` 三态、`item` 仅 boolean；LayoutCell 导出对齐。
-2. FormCell：inject Item、始终 LayoutCell；`FormView.Cell` 对齐；临场格测试。
+2. FormCell：inject Item、始终 LayoutCell；临场格测试。
 3. FormField：`switch (cell)` + binding/overlay；工厂改 `createFormFields`。
 4. DateRangeTwo：`cell: 'embed'`；分组 demo：`:fl:cell="'wrap-embed'"`。
 5. 删旧壳路径；修订 009/010/012/013/015 用词。

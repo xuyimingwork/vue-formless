@@ -3,7 +3,6 @@ import {
   defineComponent,
   inject,
   provide,
-  type Component,
   type DefineComponent,
   type PropType,
   type VNodeChild,
@@ -45,7 +44,7 @@ export interface FormCellSlotProps {
   field: Record<string, unknown>
 }
 
-/** Kernel keys on `<FormView.Cell>` / `useFormCell()`. Schema extras are prefixed automatically. */
+/** Kernel keys on `<FormCell>` / `useFormCell()`. Schema extras are prefixed automatically. */
 export type FormCellProps = FormCellTagProps & {
   'fl:item'?: boolean
 }
@@ -115,7 +114,7 @@ export const FormCell = defineComponent({
     /** page < field (schema/widget) < cell (tag). Near wins; undefined does not write. */
     const fl = computed(() =>
       overlayProps(
-        { item: ctx.isItemEnabled() },
+        { item: ctx.item },
         runtime
           ? overlayProps(runtime.extras, { item: runtime.item })
           : undefined,
@@ -182,7 +181,7 @@ export const FormCell = defineComponent({
 }) as FormCellComponent
 
 /**
- * No arg: page-level / wrap cell (`FormView.Cell`).
+ * No arg: page-level / wrap cell.
  * Port: slice one v-model mouth inside an embed widget.
  */
 export function useFormCell(port?: string): FormCellComponent {
@@ -207,10 +206,4 @@ export function useFormCell(port?: string): FormCellComponent {
       )
     },
   }) as FormCellComponent
-}
-
-export function attachFormViewCell<T extends Component>(view: T): T & { Cell: typeof FormCell } {
-  const attached = view as T & { Cell: typeof FormCell }
-  attached.Cell = FormCell
-  return attached
 }

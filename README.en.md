@@ -34,7 +34,7 @@ declare module 'vue-formless' {
 }
 
 export const FormView = createFormView({
-  layout: { Row: ElRow, Col: ElCol, column: 2, gutter: 16 },
+  layout: { Row: ElRow, Col: ElCol, column: 2 },
   form: {
     component: ElForm,
     props: (fl) => ({ model: fl.modelValue }),

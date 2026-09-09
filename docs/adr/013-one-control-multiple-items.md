@@ -8,7 +8,7 @@
   - 2026-08-19 — 关掉外层壳用 schema `item: false` + `layout: false`（与 FormView 同名，只覆盖缺省）；工厂走 `useFormItem()`；页面临场格是 `FormView.Item`（真 props，不是 `:formless`）。`shell` 废止。
   - 2026-09-01 — 关 Col 不再写 schema / 标签 `layout`；组合体 `'self'` 外层不包 Col，密度只在 FormView。见 [ADR-017](./017-composite-item-self.md)。
   - 2026-08-31 — 组合体关壳改为控件 `formless.item: 'self'`（一次去掉外层 Item+Col）；与业务 `item: false`（不要表单项、可留 Col）分开。见 [ADR-017](./017-composite-item-self.md)。
-  - 2026-09-09 — 基数仍是 1 Field : N Cell；默认外包 FormCell；组合体改 `cell` 三态，见 [ADR-020](./020-form-view-cell-field.md)。`FormView.Cell` / `useFormCell`。
+  - 2026-09-09 — 基数仍是 1 Field : N Cell；默认外包 FormCell；组合体改 `cell` 三态，见 [ADR-020](./020-form-view-cell-field.md)。`FormCell` / `useFormCell`。
 - **来源**：相对 [ADR-012](./012-input-item-and-rule-compile.md) / [ADR-011](./011-model-and-path.md) / [ADR-010](./010-controls-as-semantic-cluster.md)。日期范围要两套 `col-item-picker` 时，012 的「一颗 control 只 wrap 一次」把身份和壳焊死了。
 
 ## 背景

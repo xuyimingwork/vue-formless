@@ -16,13 +16,12 @@ import { createFormModelWriter } from './form-model-writer'
 import { createLayoutView } from '@vue-formless/layout'
 import type { ItemFl } from './item-adapter'
 import { overlayProps, resolveProps, type HostProps } from './overlay-props'
-import { attachFormViewCell, FormCell } from './FormCell'
+import { takePrefixed, toOptionalNumber } from './split-fallthrough'
 
 export interface FormViewLayoutBind {
   Row: Component
   Col: Component
   column?: number
-  gutter?: number
 }
 
 export interface FormViewHostBind<TFl> {
@@ -44,7 +43,7 @@ export type { HostProps } from './overlay-props'
 /** FormView `:fl:layout` is a boolean switch. Density is factory / `:row:*`. */
 export type FormLayoutProp = boolean
 
-/** Factory `layout.column` overlay; gutter lives on `FormViewLayoutBind`. */
+/** Factory `layout.column` overlay; other Row attrs use tag `:row:*`. */
 export type FormLayoutOptions = Pick<FormViewLayoutBind, 'column'>
 
 export type FormFormProp = boolean | 'auto'
@@ -52,16 +51,17 @@ export type FormFormProp = boolean | 'auto'
 /** Column density when factory `layout.column` and `:row:column` are omitted. */
 const DEFAULT_COLUMN = 1
 
+const ROW_PREFIX = 'row:'
+
 export interface FormViewProps {
   modelValue?: unknown
   /**
    * Grid hosting switch. Default `false`.
-   * Column density: factory `layout.column` plus `:row:column`. Nested FormView / extra rows
-   * do not inherit this instance overlay. `:row:gutter` and factory `layout.gutter` fall through to the host Row.
+   * Column density: factory `layout.column` plus `:row:column` for **this** page LayoutView only.
+   * wrap-embed inner LayoutView does not inherit them. Other `:row:*` (e.g. gutter) fall through to the host Row.
    */
   'fl:layout'?: FormLayoutProp
   'row:column'?: number
-  'row:gutter'?: number
   /**
    * Wrap the factory `form`. Default `'auto'`: on at the root, off when nested.
    * Explicit `true` / `false` win.
@@ -106,7 +106,6 @@ const formViewProps = {
     default: false,
   },
   'row:column': { type: Number, default: undefined },
-  'row:gutter': { type: Number, default: undefined },
   'fl:form': {
     type: [Boolean, String] as PropType<FormFormProp>,
     default: 'auto',
@@ -123,7 +122,7 @@ const formViewEmits = {
 
 export function isFlLayoutOn(value: unknown): boolean {
   if (value != null && typeof value === 'object') {
-    throw new Error('[vue-formless] fl:layout is boolean only; use :row:column / :row:gutter')
+    throw new Error('[vue-formless] fl:layout is boolean only; use :row:column / :row:*')
   }
   return value === true || value === ''
 }
@@ -148,13 +147,9 @@ function provideFormViewContext(options: {
   update: FormContext['update']
   Item?: Component
   itemProps?: HostProps<ItemFl>
-  isItemEnabled?: () => boolean
-  isLayoutEnabled: () => boolean
+  getItem?: () => boolean
   LayoutView: Component
-  factoryColumn: number
 }): void {
-  const isItemEnabled = options.isItemEnabled ?? (() => true)
-
   provide(
     FORM_VIEW_KEY,
     reactive({
@@ -164,10 +159,10 @@ function provideFormViewContext(options: {
       update: options.update,
       Item: options.Item ? markRaw(options.Item) : undefined,
       itemProps: options.itemProps,
-      isItemEnabled,
-      isLayoutEnabled: options.isLayoutEnabled,
+      get item() {
+        return options.getItem?.() ?? true
+      },
       LayoutView: markRaw(options.LayoutView),
-      factoryColumn: options.factoryColumn,
     }) as FormContext,
   )
 }
@@ -194,143 +189,149 @@ function resolveFormViewData(
   throw new Error('[vue-formless] FormView requires v-model unless nested inside another FormView.')
 }
 
-function resolveLayoutBind(layout: FormViewLayoutBind | undefined): FormViewLayoutBind | undefined {
-  if (layout == null) return undefined
-  if (layout.Row == null || layout.Col == null) {
-    throw new Error('[vue-formless] createFormView layout requires both Row and Col.')
-  }
+/** Peel `:row:*` for LayoutView; `column` is density, the rest fall through to host Row. */
+function splitRowChannel(
+  attrs: Record<string, unknown>,
+  declaredColumn: number | undefined,
+  column: number,
+): {
+  layoutProps: Record<string, unknown>
+  restAttrs: Record<string, unknown>
+} {
+  const { taken: rowTaken, rest: restAttrs } = takePrefixed(attrs, ROW_PREFIX)
+  const { column: rowColumnAttr, ...rowHostAttrs } = rowTaken
   return {
-    Row: markRaw(layout.Row),
-    Col: markRaw(layout.Col),
-    column: layout.column,
-    gutter: layout.gutter,
+    layoutProps: {
+      column: declaredColumn ?? toOptionalNumber(rowColumnAttr) ?? column,
+      ...rowHostAttrs,
+    },
+    restAttrs,
   }
 }
 
 /**
  * Bind host layout / form / item once; returns a FormView (ADR-008 / ADR-016 / ADR-020).
  *
- * Host shells stay in this closure. Ad-hoc cells go through `FormView.Cell`.
+ * Host shells stay in this closure. Ad-hoc cells use `FormCell`.
  *
  * @example
  * ```ts
  * export const FormView = createFormView({
- *   layout: { Row: ElRow, Col: ElCol, column: 2, gutter: 16 },
+ *   layout: { Row: ElRow, Col: ElCol, column: 2 },
  *   form: { component: ElForm, props: (fl) => ({ model: fl.modelValue }) },
  *   item: { component: ElFormItem, props: toEpItemProps },
  * })
  * ```
  */
 export function createFormView(options: CreateFormViewOptions = {}): FormViewComponent {
-  const bind = resolveLayoutBind(options.layout)
+  const { Row, Col, column = DEFAULT_COLUMN } = options.layout ?? {}
   const Form = options.form?.component ? markRaw(options.form.component) : undefined
   const formProps = options.form?.props
   const Item = options.item?.component ? markRaw(options.item.component) : undefined
   const itemProps = options.item?.props
-  const LayoutView = createLayoutView(
-    bind ? { Row: bind.Row, Col: bind.Col } : {},
-  )
-  const factoryColumn = bind?.column ?? DEFAULT_COLUMN
+  /** Page LayoutView density only; not provided to Context / wrap-embed. */
+  const LayoutView = createLayoutView({ Row, Col })
 
-  return attachFormViewCell(
-    defineComponent({
-      name: 'FormView',
-      inheritAttrs: false,
-      props: formViewProps,
-      emits: formViewEmits,
-      setup(props, { slots, emit, attrs, expose }) {
-        const hostForm = ref<object | null>(null)
-        expose(proxyExpose(hostForm))
+  return defineComponent({
+    name: 'FormView',
+    inheritAttrs: false,
+    props: formViewProps,
+    emits: formViewEmits,
+    setup(props, { slots, emit, attrs, expose }) {
+      const hostForm = ref<object | null>(null)
+      expose(proxyExpose(hostForm))
 
-        const nested = inject(FORM_VIEW_KEY, null) != null
-        const { getModel, update } = resolveFormViewData(
-          () => props.modelValue,
-          (next) => emit('update:modelValue', next),
+      const nested = inject(FORM_VIEW_KEY, null) != null
+      const { getModel, update } = resolveFormViewData(
+        () => props.modelValue,
+        (next) => emit('update:modelValue', next),
+      )
+
+      provideFormViewContext({
+        getModel,
+        update,
+        Item,
+        itemProps,
+        getItem: () => props['fl:item'] !== false,
+        LayoutView,
+      })
+
+      return (): VNodeChild => {
+        const enabled = isFlLayoutOn(props['fl:layout'])
+        const { layoutProps, restAttrs } = splitRowChannel(
+          attrs as Record<string, unknown>,
+          props['row:column'],
+          column,
+        )
+        const body = h(
+          LayoutView,
+          {
+            disabled: !enabled,
+            ...layoutProps,
+          },
+          { default: slots.default },
         )
 
-        provideFormViewContext({
-          getModel,
-          update,
-          Item,
-          itemProps,
-          isItemEnabled: () => props['fl:item'] !== false,
-          isLayoutEnabled: () => isFlLayoutOn(props['fl:layout']),
-          LayoutView,
-          factoryColumn,
-        })
+        const formOn = Form ? resolveFormOn(props['fl:form'] as FormFormProp, nested) : false
+        if (!Form || !formOn) return body
 
-        return (): VNodeChild => {
-          const enabled = isFlLayoutOn(props['fl:layout'])
-          const body = h(
-            LayoutView,
-            {
-              disabled: !enabled,
-              column: props['row:column'] ?? factoryColumn,
-              ...(bind?.gutter != null ? { gutter: bind.gutter } : {}),
-              ...(props['row:gutter'] != null ? { gutter: props['row:gutter'] } : {}),
-            },
-            { default: slots.default },
-          )
-
-          const formOn = Form ? resolveFormOn(props['fl:form'] as FormFormProp, nested) : false
-          if (!Form || !formOn) return body
-
-          const fl: FormFl = {
-            layout: enabled,
-            form: formOn,
-            item: props['fl:item'] !== false,
-            modelValue: getModel(),
-          }
-
-          return h(
-            Form,
-            {
-              ref: hostForm,
-              ...overlayProps(resolveProps(formProps, fl), attrs as Record<string, unknown>),
-            },
-            { default: () => body },
-          )
+        const fl: FormFl = {
+          layout: enabled,
+          form: formOn,
+          item: props['fl:item'] !== false,
+          modelValue: getModel(),
         }
-      },
-    }),
-  )
+
+        return h(
+          Form,
+          {
+            ref: hostForm,
+            ...overlayProps(resolveProps(formProps, fl), restAttrs),
+          },
+          { default: () => body },
+        )
+      }
+    },
+  })
 }
 
-export type FormViewComponent = Component & { Cell: typeof FormCell }
+export type FormViewComponent = Component
 
 const defaultLayoutView = createLayoutView()
 
 /**
  * Context-only FormView (no Row/Col/Form/Item). Prefer `createFormView({ layout: { Row, Col } })`.
  */
-export const FormView = attachFormViewCell(
-  defineComponent({
-    name: 'FormView',
-    inheritAttrs: false,
-    props: formViewProps,
-    emits: formViewEmits,
-    setup(props, { slots, emit }) {
-      const { getModel, update } = resolveFormViewData(
-        () => props.modelValue,
-        (next) => emit('update:modelValue', next),
+export const FormView = defineComponent({
+  name: 'FormView',
+  inheritAttrs: false,
+  props: formViewProps,
+  emits: formViewEmits,
+  setup(props, { slots, emit, attrs }) {
+    const { getModel, update } = resolveFormViewData(
+      () => props.modelValue,
+      (next) => emit('update:modelValue', next),
+    )
+    provideFormViewContext({
+      getModel,
+      update,
+      getItem: () => props['fl:item'] !== false,
+      LayoutView: defaultLayoutView,
+    })
+    return (): VNodeChild => {
+      const { layoutProps } = splitRowChannel(
+        attrs as Record<string, unknown>,
+        props['row:column'],
+        DEFAULT_COLUMN,
       )
-      provideFormViewContext({
-        getModel,
-        update,
-        isLayoutEnabled: () => isFlLayoutOn(props['fl:layout']),
-        LayoutView: defaultLayoutView,
-        factoryColumn: DEFAULT_COLUMN,
-      })
-      return (): VNodeChild =>
-        h(
-          defaultLayoutView,
-          {
-            disabled: !isFlLayoutOn(props['fl:layout']),
-            column: props['row:column'] ?? DEFAULT_COLUMN,
-            ...(props['row:gutter'] != null ? { gutter: props['row:gutter'] } : {}),
-          },
-          { default: slots.default },
-        )
-    },
-  }),
-)
+      return h(
+        defaultLayoutView,
+        {
+          disabled: !isFlLayoutOn(props['fl:layout']),
+          ...layoutProps,
+        },
+        { default: slots.default },
+      )
+    }
+  },
+})

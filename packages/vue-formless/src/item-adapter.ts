@@ -72,7 +72,9 @@ export type ItemFl = {
   [extra: string]: unknown
 } & FieldSchemaExtras
 
-/** Kernel `fl:` / `col:` / `row:` keys on `<User.Xxx />`. Schema extras are prefixed automatically. */
+/** Kernel `fl:` / `col:` / `row:` keys on `<User.Xxx />`. Schema extras are prefixed automatically.
+ * `row:column` is formless density; other `row:*` (e.g. gutter) stay attrs and fall through to LayoutView → Row.
+ */
 export type FormFieldProps = {
   'fl:prop'?: string | string[]
   'fl:item'?: boolean
@@ -80,10 +82,9 @@ export type FormFieldProps = {
   'col:span'?: string | number
   'col:place'?: 'auto' | 'start' | 'end'
   'row:column'?: number
-  'row:gutter'?: number
 } & FlExtraProps<FieldSchemaExtras>
 
-/** Kernel keys on `FormView.Cell` / `useFormCell()`. Schema extras are prefixed automatically. */
+/** Kernel keys on `FormCell` / `useFormCell()`. Schema extras are prefixed automatically. */
 export type FormCellTagProps = {
   'fl:prop'?: string | string[]
   'fl:item'?: boolean

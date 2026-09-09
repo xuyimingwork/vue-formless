@@ -15,7 +15,7 @@ const form = ref({
 </script>
 
 <template>
-  <FormView v-model="form" disabled label-width="96px" fl:layout>
+  <FormView v-model="form" disabled label-width="96px" fl:layout :row:gutter="16">
     <User.Name />
     <User.Gender />
     <User.Mobile />

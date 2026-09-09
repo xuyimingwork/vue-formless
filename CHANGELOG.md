@@ -8,7 +8,7 @@
 
 ### Changed
 
-- ADR-020：`createFormFields` / `FormField` / `FormCell` / `FormView.Cell`；`cell: 'wrap' | 'embed' | 'wrap-embed'`；`item` 仅 boolean；`fieldKey` / `FieldSchema`
+- ADR-020：`createFormFields` / `FormField` / `FormCell`（并列导出，不挂 `FormView.Cell`）；`cell: 'wrap' | 'embed' | 'wrap-embed'`；`item` 仅 boolean；`fieldKey` / `FieldSchema`
 - 删除 `createFormControls`、`useFormItem`、`FormView.Item`、`resolveControlShell`、`ControlFrame`
 
 ## [0.1.1] - 2026-09-02

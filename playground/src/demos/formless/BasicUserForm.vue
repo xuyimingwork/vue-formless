@@ -31,6 +31,7 @@ function onReset() {
     ref="formRef"
     v-model="form"
     fl:layout
+    :row:gutter="16"
     label-width="96px"
   >
     <User.Name />

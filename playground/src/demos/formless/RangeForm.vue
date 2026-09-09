@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import type { FormInstance } from 'element-plus'
 import { ElMessage } from 'element-plus'
-import { FormView } from '../../ep'
+import { FormView, FormCell } from '../../ep'
 import { Range } from './range'
 import { User } from './user'
 
@@ -48,9 +48,9 @@ function onReset() {
     <Range.DateRangeTwo :fl:cell="'wrap-embed'" col:span="max" />
     <User.IdCard />
     <User.Address />
-    <FormView.Cell :fl:prop="'remark'" label="备注" col:span="max" v-slot="{ field }">
+    <FormCell :fl:prop="'remark'" label="备注" col:span="max" v-slot="{ field }">
       <el-input v-bind="field" type="textarea" :rows="3" placeholder="可选" />
-    </FormView.Cell>
+    </FormCell>
   </FormView>
 
   <div class="pg-actions">

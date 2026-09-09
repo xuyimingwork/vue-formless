@@ -150,7 +150,7 @@ describe('createFormView', () => {
     const FormView = View()
     const html = await render(
       h(FormView, { modelValue: {}, 'fl:layout': true, 'row:column': 3, 'row:gutter': 12 }, () =>
-        h(FormView.Cell, { 'fl:prop': 'name' }),
+        h(FormCell, { 'fl:prop': 'name' }),
       ),
     )
     expect(html).toContain('gutter="12"')
@@ -162,7 +162,7 @@ describe('createFormView', () => {
   it('does not render Row or Col when layout is off', async () => {
     const FormView = View()
     const html = await render(
-      h(FormView, { modelValue: {} }, () => h(FormView.Cell, { 'fl:prop': 'name' })),
+      h(FormView, { modelValue: {} }, () => h(FormCell, { 'fl:prop': 'name' })),
     )
     expect(html).not.toContain('<row')
     expect(html).not.toContain('<grid-col')
@@ -173,7 +173,7 @@ describe('createFormView', () => {
     const html = await render(
       h(FormView, { modelValue: {} }, () =>
         h(FormView, { 'fl:layout': true, 'row:column': 3, 'row:gutter': 16 }, () =>
-          h(FormView.Cell, { 'fl:prop': 'name' }),
+          h(FormCell, { 'fl:prop': 'name' }),
         ),
       ),
     )
@@ -269,7 +269,7 @@ describe('createFormView', () => {
     const FormView = View()
     const html = await render(
       h(FormView, { modelValue: {}, 'fl:layout': true }, () =>
-        h(FormView.Cell, { 'fl:prop': 'name' }),
+        h(FormCell, { 'fl:prop': 'name' }),
       ),
     )
     expect(html).toContain('span="24"')
@@ -277,12 +277,12 @@ describe('createFormView', () => {
 
   it('lets factory density set default span', async () => {
     const FormView = createFormView({
-      layout: { Row, Col, column: 3, gutter: 16 },
+      layout: { Row, Col, column: 3 },
       item: { component: Item },
     })
     const html = await render(
-      h(FormView, { modelValue: {}, 'fl:layout': true }, () =>
-        h(FormView.Cell, { 'fl:prop': 'name' }),
+      h(FormView, { modelValue: {}, 'fl:layout': true, 'row:gutter': 16 }, () =>
+        h(FormCell, { 'fl:prop': 'name' }),
       ),
     )
     expect(html).toContain('gutter="16"')
@@ -296,7 +296,7 @@ describe('createFormView', () => {
     await expect(
       render(
         h(FormView, { modelValue: {}, 'fl:layout': { column: 3 } as never }, () =>
-          h(FormView.Cell, { 'fl:prop': 'name' }),
+          h(FormCell, { 'fl:prop': 'name' }),
         ),
       ),
     ).rejects.toThrow(/boolean only/)
@@ -314,11 +314,11 @@ const LabeledItem = defineComponent({
   },
 })
 
-describe('FormView.Cell', () => {
-  it('is FormCell on createFormView and the context-only FormView', () => {
+describe('FormCell', () => {
+  it('is a standalone export (not attached on FormView)', () => {
     const View = createFormView({ layout: { Row, Col } })
-    expect(View.Cell).toBe(FormCell)
-    expect(FormView.Cell).toBe(FormCell)
+    expect(FormCell).toBeTruthy()
+    expect((View as { Cell?: unknown }).Cell).toBeUndefined()
   })
 
   it('wraps the host Item when bound', async () => {
@@ -328,7 +328,7 @@ describe('FormView.Cell', () => {
     })
     const Cell = defineComponent({
       setup() {
-        return () => h(FormView.Cell, { 'fl:prop': 'name' }, { default: () => 'x' })
+        return () => h(FormCell, { 'fl:prop': 'name' }, { default: () => 'x' })
       },
     })
     const html = await render(
@@ -348,7 +348,7 @@ describe('FormView.Cell', () => {
     const Cell = defineComponent({
       setup() {
         return () =>
-          h(FormView.Cell, { 'fl:prop': 'name', 'fl:item': false }, { default: () => 'x' })
+          h(FormCell, { 'fl:prop': 'name', 'fl:item': false }, { default: () => 'x' })
       },
     })
     const html = await render(
@@ -364,7 +364,7 @@ describe('FormView.Cell', () => {
     const Cell = defineComponent({
       setup() {
         return () =>
-          h(FormView.Cell, { 'fl:prop': 'name', label: '姓名' }, { default: () => 'x' })
+          h(FormCell, { 'fl:prop': 'name', label: '姓名' }, { default: () => 'x' })
       },
     })
     const html = await render(
@@ -381,7 +381,7 @@ describe('FormView.Cell', () => {
     const Probe = defineComponent({
       setup() {
         return () =>
-          h(FormView.Cell, { 'fl:prop': 'name' }, {
+          h(FormCell, { 'fl:prop': 'name' }, {
             default: (slot: { field: { modelValue: unknown; 'onUpdate:modelValue': (n: unknown) => void } }) => {
               slot.field['onUpdate:modelValue']('Zed')
               return h('span', String(slot.field.modelValue ?? ''))

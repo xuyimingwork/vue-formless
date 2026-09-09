@@ -12,14 +12,10 @@ export interface FormContext {
   Item?: Component
   /** Defaults for the host Item (static or from the cell snapshot). */
   itemProps?: HostProps<ItemFl>
-  /** This FormView layer's Item switch. */
-  isItemEnabled: () => boolean
-  /** This FormView's `:fl:layout` switch (page). FormField wrap-embed uses it for the inner LayoutView. */
-  isLayoutEnabled: () => boolean
-  /** Factory `createLayoutView` result; reused for wrap-embed inner host. */
+  /** This FormView layer's `:fl:item`. */
+  item: boolean
+  /** Same factory-bound LayoutView; wrap-embed creates an inner window with it. */
   LayoutView: Component
-  /** `createFormView({ layout })` column density; inner extra rows use this, not the page `:row:column`. */
-  factoryColumn: number
 }
 
 /** Binding + extras the namespaced Field provides; FormCell reads it. */

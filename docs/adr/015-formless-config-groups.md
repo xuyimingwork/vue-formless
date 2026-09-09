@@ -12,7 +12,7 @@
   - 2026-09-01 — 增加 `row:` / `col:` 通道。`:fl:layout` 只保 boolean；宽用 `:col:span` / `:col:place`。布局对外 `createLayoutView` + `LayoutItem`。
   - 2026-09-03 — 去掉 `useLayoutItem`，直接导出 `LayoutItem`。
   - 2026-09-04 — `:col:take` 见 [ADR-018](./018-col-take-rest.md)；`:row:row` / `:col:show` 见 [ADR-019](./019-layout-row-window.md)。
-  - 2026-09-09 — 通道加 `cell`；`item` 仅 boolean；`FormView.Cell` / `useFormCell`；`FieldSchema` / `fieldKey`。废止 `'self'`，见 [ADR-020](./020-form-view-cell-field.md)。
+  - 2026-09-09 — 通道加 `cell`；`item` 仅 boolean；`FormCell` / `useFormCell`；`FieldSchema` / `fieldKey`。废止 `'self'`，见 [ADR-020](./020-form-view-cell-field.md)。
 - **来源**：[ADR-008](./008-form-view-vmodel-and-grid-gcd.md) / [ADR-011](./011-model-and-path.md) / [ADR-012](./012-input-item-and-rule-compile.md) / [ADR-013](./013-one-control-multiple-items.md) / [ADR-020](./020-form-view-cell-field.md)。本文钉 **配置怎么写、进哪一层**。不改 `component` 不含 Item、不改写口、不改 `useFormCell` 吃口名。
 
 ## 决策
@@ -25,7 +25,7 @@
 |------|--------|--------|-----------------|-----|
 | `User.Xxx` | → `component` | `prop` + boolean `item` + `cell` + extras | `col:span` `col:place` `col:take` `col:show`；`wrap-embed` 上 `row:column` `row:gutter` | `:item:` / `@item:` / `#item:` → 宿主 Item |
 | `FormView` | → 适配 Form | 组树 `layout`(boolean) / `form` / `item` | `row:column` `row:gutter` `row:row`（声明 props） | **`v-model` 是 FormView 写口** |
-| `FormView.Cell` | → 适配 Item | `prop` + extras + boolean `item`。**无 `fl:model`、无 `fl:layout`** | `col:span` `col:place` `col:take` `col:show` | 无 `:item:` |
+| `FormCell` | → 适配 Item | `prop` + extras + boolean `item`。**无 `fl:model`、无 `fl:layout`** | `col:span` `col:place` `col:take` `col:show` | 无 `:item:` |
 
 内核 `h(Form, overlay(form.props(snapshot), attrs))`；FormCell 内 `h(Item, overlay(item.props(snapshot), itemAttrs))`。Snapshot 只进 `props` 函数，不是宿主 prop。
 
@@ -44,16 +44,16 @@ FormCell **始终**包 LayoutCell；Col 是否画出跟最近 LayoutView（`:fl:
 | schema 或控件静态 `formless` | boolean 关/开 ElFormItem | `cell: 'wrap' \| 'embed' \| 'wrap-embed'` |
 | `User.Xxx` | `:fl:item` | `:fl:cell`；宽用 `:col:span` |
 
-`FormView.Cell` 临场格可写 `:fl:item` / `:fl:prop`；格上宽用 `:col:*`。
+`FormCell` 临场格可写 `:fl:item` / `:fl:prop`；格上宽用 `:col:*`。
 
 工厂产出 FormField：按 `cell` 组树。`item: false` = 有格、无 label/error。内层 `useFormCell('start')` 从同一份接线按口切开，壳跟页。
 
 ### 3. `useFormCell(port?)`
 
-- **无参**：页级 / wrap 格（`FormView.Cell`）。
+- **无参**：页级 / wrap 格（`FormCell`）。
 - **有参** `useFormCell('start')`：按 **口名**（不是叶子键）切开；须在 namespaced Field 内。
 - 标签上 **没有 `fl:model`**。控件内 `v-model="start"` 是控件自己的口（工厂已焊到 FormView）。
-- 页面 `<FormView.Cell><Input v-model="form.xxx" /></FormView.Cell>` **禁止**（须 `:fl:prop` + slot `{ field }`）。
+- 页面 `<FormCell><Input v-model="form.xxx" /></FormCell>` **禁止**（须 `:fl:prop` + slot `{ field }`）。
 
 ### 4. prop（不重开 [ADR-011](./011-model-and-path.md)）
 

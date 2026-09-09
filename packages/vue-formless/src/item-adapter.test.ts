@@ -17,7 +17,6 @@ describe('FieldSchema extras', () => {
       'col:span'?: string | number
       'col:place'?: 'auto' | 'start' | 'end'
       'row:column'?: number
-      'row:gutter'?: number
     }>()
     expectTypeOf<FormCellTagProps>().toEqualTypeOf<{
       'fl:prop'?: string | string[]

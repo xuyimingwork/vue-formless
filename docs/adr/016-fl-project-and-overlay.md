@@ -54,7 +54,7 @@ Form:  <FormView> 无前缀 > form.props
 - 组树开关（`:fl:form` / `:fl:item` / `:fl:layout`、`:col:span` / `:col:place`、`:row:*`）——内核自己用
 - 槽 / 事件（`#item:label`、`@item:validate`）——已有通道
 - FormView `expose` 代理内层 Form 的 `validate()`
-- `FormView.Cell` 手写 default、复合控件内部 picker：不自动吃到 field `props` 函数，不 clone 用户 vnode
+- `FormCell` 手写 default、复合控件内部 picker：不自动吃到 field `props` 函数，不 clone 用户 vnode
 
 ## 不纳入
 

@@ -35,11 +35,14 @@ import { overlayProps, resolveProps, type HostProps } from './overlay-props'
 import {
   splitFallthrough,
   splitFlAttrs,
-  splitLayoutAttrs,
   splitSlots,
+  takePrefixed,
   toOptionalNumber,
 } from './split-fallthrough'
 import type { ColPlace, ColSpanRaw } from '@vue-formless/layout'
+
+const COL_PREFIX = 'col:'
+const ROW_PREFIX = 'row:'
 
 export type { FormFieldProps } from './item-adapter'
 
@@ -65,7 +68,6 @@ const fieldFlProps = {
   'col:span': { type: [String, Number] as PropType<ColSpanRaw>, default: undefined },
   'col:place': { type: String as PropType<ColPlace>, default: undefined },
   'row:column': { type: Number, default: undefined },
-  'row:gutter': { type: Number, default: undefined },
 }
 
 function resolveCellMode(
@@ -126,7 +128,8 @@ export function createFormFieldComponent(
 
       return (): VNodeChild => {
         const { fl: attrFl, rest: afterFl } = splitFlAttrs(attrs as Record<string, unknown>)
-        const { row, col, rest } = splitLayoutAttrs(afterFl)
+        const { taken: colTaken, rest: afterCol } = takePrefixed(afterFl, COL_PREFIX)
+        const { taken: rowTaken, rest } = takePrefixed(afterCol, ROW_PREFIX)
         const tagFl = { ...attrFl, ...declaredFl(fieldProps as Record<string, unknown>) }
         const binding = resolveControlBinding(
           fieldKey,
@@ -152,15 +155,13 @@ export function createFormFieldComponent(
           stripPortBindings(inputAttrs, binding.models),
         )
         const modelBindings = applyControlBinding(ctx.model, binding, ctx.update)
-        const displayProp = binding.props[0] ?? fieldKey
-        const label = typeof snapshot.label === 'string' ? snapshot.label : undefined
 
-        const colSpan = (fieldProps['col:span'] ?? col.span) as ColSpanRaw | undefined
-        const colPlace = (fieldProps['col:place'] ?? col.place) as ColPlace | undefined
-        const rowColumn = toOptionalNumber(fieldProps['row:column'] ?? row.column)
-        const rowGutter = toOptionalNumber(fieldProps['row:gutter'] ?? row.gutter)
+        const colSpan = (fieldProps['col:span'] ?? colTaken.span) as ColSpanRaw | undefined
+        const colPlace = (fieldProps['col:place'] ?? colTaken.place) as ColPlace | undefined
+        const rowColumn = toOptionalNumber(fieldProps['row:column'] ?? rowTaken.column)
+        const { column: _rowColumnAttr, ...rowHostAttrs } = rowTaken
 
-        if (cell !== 'wrap-embed' && (rowColumn != null || rowGutter != null)) {
+        if (cell !== 'wrap-embed' && (rowColumn != null || Object.keys(rowHostAttrs).length > 0)) {
           console.warn('[vue-formless] :row:* is ignored on a leaf field')
         }
 
@@ -173,14 +174,7 @@ export function createFormFieldComponent(
               },
               inputSlots,
             )
-          : h(
-              'div',
-              { class: 'vue-formless-field', 'data-field': fieldKey },
-              [
-                label ? h('label', { class: 'vue-formless-field__label' }, String(label)) : null,
-                String(getIn(ctx.model, displayProp) ?? ''),
-              ],
-            )
+          : null
 
         if (cell === 'embed') {
           return input
@@ -202,9 +196,8 @@ export function createFormFieldComponent(
             ? h(
                 ctx.LayoutView,
                 {
-                  disabled: !ctx.isLayoutEnabled(),
-                  column: rowColumn ?? ctx.factoryColumn,
-                  ...(rowGutter != null ? { gutter: rowGutter } : {}),
+                  ...(rowColumn != null ? { column: rowColumn } : {}),
+                  ...rowHostAttrs,
                 },
                 () => input,
               )

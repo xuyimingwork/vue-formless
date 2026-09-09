@@ -293,12 +293,10 @@ describe('createFormFields', () => {
   })
 })
 
-describe('FormView.Cell', () => {
-  it('is attached on createFormView and the context-only FormView', () => {
-    const Dummy = defineComponent({ setup: () => () => null })
-    const View = createFormView({ layout: { Row: Dummy, Col: Dummy } })
-    expect(View.Cell).toBe(FormCell)
-    expect(FormView.Cell).toBe(FormCell)
+describe('FormCell', () => {
+  it('is exported as a standalone cell (not FormView.Cell)', () => {
+    expect(FormCell).toBeTruthy()
+    expect(FormCell.name).toBe('FormCell')
   })
 })
 
@@ -471,7 +469,7 @@ describe('createFormFields props overlay', () => {
     expect(html).toContain('class="col"')
   })
 
-  it('wraps only outer Item when wrap-embed and layout is off', async () => {
+  it('keeps an inner Row when wrap-embed and page layout is off', async () => {
     const Fields = createFormFields({
       range: { label: '签证', component: Two, prop: ['fromTime', 'toTime'] },
     })
@@ -484,8 +482,9 @@ describe('createFormFields props overlay', () => {
     )
     expect(html.match(/class="item"/g)?.length).toBe(3)
     expect(html).toContain('data-label="签证"')
-    expect(html).not.toContain('class="col"')
-    expect(html).not.toContain('data-gutter')
+    expect(html).toContain('class="row"')
+    // Outer FormCell has no Col (page LayoutView disabled); inner cells still Col.
+    expect(html.match(/class="col"/g)?.length).toBe(2)
   })
 
   it('uses field :row:column for the inner LayoutView', async () => {
@@ -505,7 +504,7 @@ describe('createFormFields props overlay', () => {
     expect(spans.filter((s) => s === '12')).toHaveLength(2)
   })
 
-  it('does not inherit the page :row:column onto an inner row', async () => {
+  it('inner LayoutView uses its own default density, not the page :row:column', async () => {
     const Fields = createFormFields({
       range: { label: '签证', component: Two, prop: ['fromTime', 'toTime'] },
     })
