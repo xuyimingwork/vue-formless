@@ -1,17 +1,22 @@
-const SHELL_KEYS = new Set(['item', 'layout', 'model', 'span'])
+import type { FieldCell } from './item-adapter'
+
+const SHELL_KEYS = new Set(['item', 'layout', 'model', 'span', 'cell'])
 const SCHEMA_CORE_KEYS = new Set([
   'component',
   'props',
   'model',
   'prop',
   'item',
+  'cell',
   // leftover schema `layout` must not leak into Item snapshot extras
   'layout',
 ])
 
 export interface WidgetFormless {
   model?: string | string[]
-  item?: boolean | 'self'
+  item?: boolean
+  cell?: FieldCell
+  prop?: string | string[]
 }
 
 declare module 'vue' {
@@ -43,9 +48,9 @@ export function omitShellKeys(fl: Record<string, unknown>): Record<string, unkno
 }
 
 /** Non-core schema keys (label, validation, …) forwarded to Item `fl`. */
-export function schemaExtras(control: Record<string, unknown>): Record<string, unknown> {
+export function schemaExtras(field: Record<string, unknown>): Record<string, unknown> {
   const extras: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(control)) {
+  for (const [key, value] of Object.entries(field)) {
     if (!SCHEMA_CORE_KEYS.has(key) && value !== undefined) extras[key] = value
   }
   return extras
@@ -55,8 +60,8 @@ export function readWidgetFormless(component: unknown): WidgetFormless {
   if (component == null || typeof component !== 'object') return {}
   const bag = (component as { formless?: unknown }).formless
   if (bag == null || typeof bag !== 'object') return {}
-  const { model, item } = bag as WidgetFormless
-  return omitUndefined({ model, item }) as WidgetFormless
+  const { model, item, cell, prop } = bag as WidgetFormless
+  return omitUndefined({ model, item, cell, prop }) as WidgetFormless
 }
 
 /** Kernel `fl:*` declared as component props (`fl:prop` → `prop`). */

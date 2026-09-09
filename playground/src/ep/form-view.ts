@@ -5,7 +5,7 @@ import { createFormView, resolveFormItemProp, type ItemFl } from 'vue-formless'
 export function toEpItemProps(fl: ItemFl): Record<string, unknown> {
   return {
     label: fl.label,
-    prop: resolveFormItemProp(fl.binding, fl.controlKey),
+    prop: resolveFormItemProp(fl.binding, fl.fieldKey),
   }
 }
 

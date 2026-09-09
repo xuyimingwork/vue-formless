@@ -1,8 +1,8 @@
-import { createFormControls } from 'vue-formless'
+import { createFormFields } from 'vue-formless'
 import DateRangeOne from './DateRangeOne.vue'
 import DateRangeTwo from './DateRangeTwo.vue'
 
-export const Range = createFormControls({
+export const Range = createFormFields({
   dateRangeOne: {
     label: '行程日期',
     component: DateRangeOne,

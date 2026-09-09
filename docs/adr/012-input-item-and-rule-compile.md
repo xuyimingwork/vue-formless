@@ -16,6 +16,7 @@
   - 2026-08-25 — 丢掉 `:formless` 袋。通道改为 `fl:` + Form/Item `props.fl`；`:item:` 仍只给 `User.Xxx`。内核不再导出 `identity-rules`。见 [ADR-015](./015-formless-config-groups.md)。
   - 2026-08-26 — Form/Item 不再吃 `props.fl`。转化是 `item.props` / control `props`（对象或函数）；覆盖见 [ADR-016](./016-fl-project-and-overlay.md)。
   - 2026-09-01 — 无 Col：不开 FormView `:fl:layout`，或 `'self'` 外层；不再用 schema `layout: false`。
+  - 2026-09-09 — `component` 仍只接 Input；壳是 FormCell；组合体 `cell` 三态见 [ADR-020](./020-form-view-cell-field.md)。`item` 仅 boolean（ElFormItem）。
 - **来源**：相对 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md) / [ADR-010](./010-controls-as-semantic-cluster.md) 的后续收口（`component` 接什么、Item 挂在哪、规则与策略如何变成宿主 `rules`、一颗标签如何分流）
 
 ## 背景
@@ -47,7 +48,7 @@ agency: { label: '机构', component: AgencySelect }
 | `disabled` / `readonly` | `validation`、错误展示 |
 | placeholder、options、控件自己的槽 / 事件 | Item 的 `prop`、Col 的 `span` |
 
-`ElSelect` + `options` → 选项列表 这类薄封装仍算输入侧适配，和 FormItem 不是一层。换控件位写在本页 `createFormControls`，**标签不得覆盖 `component`**。
+`ElSelect` + `options` → 选项列表 这类薄封装仍算输入侧适配，和 FormItem 不是一层。换控件位写在本页 `createFormFields`，**标签不得覆盖 `component`**。
 
 ### 2. Form / Item 挂在 `createFormView`；slot 由内核填
 
@@ -73,7 +74,7 @@ h(Form?, { ...form.props(fl), ...attrs }, { default: () =>
 - **body 由 formless 渲**：`slots.default` 一定是字段树或输入。适配只 `h(ElForm, …, slots)` / `h(ElFormItem, 转换(snapshot), slots)`，必须转发 default。
 - **无 Form / 无 Item / 无 Col**：内核 **不** `h()` 那一层（工厂不传、`:form="false"` / `:item="false"`、schema `item: false` / `'self'`、不开 `layout`）。不要在适配里 `if` 丢掉 default。
 - Control **不** `h(Item)` / `h(Col)` / `h(Form)`。Item/Col/Form 不得放进深 `reactive` 的 FormContext。
-- 内核 **不**写死 `label` / `prop` / `rules`；转换是工厂 `item.props`（playground `toEpItemProps` / `toEpRules`）。snapshot 给 `controlKey`、`binding`、`getValues()`、`validation` / `validate`；宿主 `prop` 由 `item.props` 编码（与 Form 投影键必须一致，见 [ADR-014](./014-multi-vmodel-host-validation.md)）。见 [ADR-016](./016-fl-project-and-overlay.md)。
+- 内核 **不**写死 `label` / `prop` / `rules`；转换是工厂 `item.props`（playground `toEpItemProps` / `toEpRules`）。snapshot 给 `fieldKey`、`binding`、`getValues()`、`validation` / `validate`；宿主 `prop` 由 `item.props` 编码（与 Form 投影键必须一致，见 [ADR-014](./014-multi-vmodel-host-validation.md)）。见 [ADR-016](./016-fl-project-and-overlay.md)。
 - `:item:` attrs 盖在适配转换结果上（协议见 §5）。
 
 有 `Form` 时页面 **不**手写 `el-form`；`validate()` / `resetFields()` 走 FormView expose。整表 `disabled` 是落到 `Form` 的 attrs。无 `Form`（表格、非表单）字段树照渲。
@@ -84,7 +85,7 @@ h(Form?, { ...form.props(fl), ...attrs }, { default: () =>
 
 ### 3. `validation` 在 Schema，策略在 `:formless.validate`
 
-**静态（ControlSchema）**：这个输入会什么。校验收成一组 `validation`，不要和 `component` / `label` 平铺，也不要叫 `rules`（以免像 ElForm）。**不得**出现 `required: true`、`trigger`。标签 **不能** 覆盖 `validation` 或 `component`。
+**静态（FieldSchema）**：这个输入会什么。校验收成一组 `validation`，不要和 `component` / `label` 平铺，也不要叫 `rules`（以免像 ElForm）。**不得**出现 `required: true`、`trigger`。标签 **不能** 覆盖 `validation` 或 `component`。
 
 ```ts
 mobile: {

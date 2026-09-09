@@ -25,10 +25,10 @@ peer：`vue` ^3.3。
 
 ```ts
 import { ElCol, ElForm, ElFormItem, ElInput, ElRow } from 'element-plus'
-import { createFormControls, createFormView, resolveFormItemProp, type ItemFl } from 'vue-formless'
+import { createFormFields, createFormView, resolveFormItemProp, type ItemFl } from 'vue-formless'
 
 declare module 'vue-formless' {
-  interface ControlSchema {
+  interface FieldSchema {
     label?: string
   }
 }
@@ -43,12 +43,12 @@ export const FormView = createFormView({
     component: ElFormItem,
     props: (fl: ItemFl) => ({
       label: fl.label,
-      prop: resolveFormItemProp(fl.binding, fl.controlKey),
+      prop: resolveFormItemProp(fl.binding, fl.fieldKey),
     }),
   },
 })
 
-export const User = createFormControls({
+export const User = createFormFields({
   name: { label: '姓名', component: ElInput },
 })
 ```

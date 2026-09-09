@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { LayoutItem, type ColPlace, type ColSpanRaw } from '@vue-formless/layout'
+import { LayoutCell, type ColPlace, type ColSpanRaw } from '@vue-formless/layout'
 
 defineProps<{
   span?: ColSpanRaw
@@ -9,9 +9,9 @@ defineProps<{
 </script>
 
 <template>
-  <LayoutItem :span="span" :place="place">
+  <LayoutCell :span="span" :place="place">
     <div :class="{ 'pg-cell': !plain }">
       <slot />
     </div>
-  </LayoutItem>
+  </LayoutCell>
 </template>

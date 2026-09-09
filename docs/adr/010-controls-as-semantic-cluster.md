@@ -1,4 +1,4 @@
-# ADR-010：`createFormControls` 是语义输入簇，不是表单 schema
+# ADR-010：`createFormFields` 是语义输入簇，不是表单 schema
 
 - **状态**：Accepted（修订）
 - **日期**：2026-08-18
@@ -9,6 +9,7 @@
   - 2026-08-18 — Schema `validation` 不是 ElForm 数组；标签策略 `:formless.validate`。见 [ADR-012](./012-input-item-and-rule-compile.md)。
   - 2026-08-19 — 一颗区间控件可以铺多格 Item，身份仍是一份 `validation`。见 [ADR-013](./013-one-control-multiple-items.md)。
   - 2026-08-19 — 多口挂到 ElForm 上见 [ADR-014](./014-multi-vmodel-host-validation.md)。
+  - 2026-09-09 — 工厂更名 `createFormFields`；英文 Field 见 [ADR-020](./020-form-view-cell-field.md)。仍不是表单 schema。
 - **来源**：相对 [ADR-009](./009-controls-as-protagonist.md) 的定位收口（工厂是什么、故意不做什么）
 
 ## 背景
@@ -20,15 +21,15 @@
 | 每个输入一个 `.vue` | 太碎：`NameInput.vue` 的文件和道具税，姓名这种不配拥有一个文件 |
 | 一个 `UserForm.vue` | 太整：布局、必填、筛选/编辑、提交焊死；下一页只要三个字段或改两列，只能拷贝或开一堆 props |
 
-[ADR-009](./009-controls-as-protagonist.md) 已把主角收成控件、工厂收成 `createFormControls`。若把工厂当成「字段登记处」或「表单描述块」，就会往表上堆联动、**本场是否必填**、跨格规则——抽象从「批量声明组件」膨胀成表单引擎。
+[ADR-009](./009-controls-as-protagonist.md) 已把主角收成可摆放单元、工厂收成 `createFormFields`。若把工厂当成「字段登记处」或「表单描述块」，就会往表上堆联动、**本场是否必填**、跨格规则——抽象从「批量声明组件」膨胀成表单引擎。
 
-需要钉死：**多出来的那一层抽象是什么，以及写进 controls 即越界的事。**
+需要钉死：**多出来的那一层抽象是什么，以及写进 fields 即越界的事。**
 
 ## 决策
 
 ### 1. 补的是中间层：有名字的输入，还不是一张表单
 
-`createFormControls` = **快捷声明一簇逻辑上相关的语义输入**（命名 + 默认画法 + 默认绑定）。产出的 `<User.Name />` 就是组件，只是用一张表批量声明，不必先变成文件，也不必先变成 Form。
+`createFormFields` = **快捷声明一簇逻辑上相关的语义输入**（命名 + 默认画法 + 默认绑定）。产出的 `<User.Name />` 就是组件，只是用一张表批量声明，不必先变成文件，也不必先变成 Form。
 
 簇里的「有关联」是同一套业务词汇和默认绑定（都是 User 身上的输入，默认绑 `name` / `mobile`），**不是**同一套排版、同一套必填、同一次提交。
 

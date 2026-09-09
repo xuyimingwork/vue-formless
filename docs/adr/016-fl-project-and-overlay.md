@@ -24,7 +24,7 @@ createFormView({
   item: { component: ElFormItem, props: toEpItemProps },
 })
 
-createFormControls(schema, {
+createFormFields(schema, {
   props: (fl) => ({
     placeholder: typeof fl.label === 'string' ? `请填写${fl.label}` : undefined,
   }),
@@ -54,12 +54,12 @@ Form:  <FormView> 无前缀 > form.props
 - 组树开关（`:fl:form` / `:fl:item` / `:fl:layout`、`:col:span` / `:col:place`、`:row:*`）——内核自己用
 - 槽 / 事件（`#item:label`、`@item:validate`）——已有通道
 - FormView `expose` 代理内层 Form 的 `validate()`
-- `FormView.Item` 手写 default、复合控件内部 picker：不自动吃到 control `props` 函数，不 clone 用户 vnode
+- `FormView.Cell` 手写 default、复合控件内部 picker：不自动吃到 field `props` 函数，不 clone 用户 vnode
 
 ## 不纳入
 
 - 开放自定义 merge
-- `createFormControls` 上的 Item / Form 映射
+- `createFormFields` 上的 Item / Form 映射
 - Form 投影 model（[ADR-014](./014-multi-vmodel-host-validation.md)）；`form.props` 留位
 
 ## 关联

@@ -8,10 +8,10 @@ import {
   resolveControlBinding,
   resolveFormItemProp,
 } from './control-model'
-import { createFormControls, type ComponentPublicProps } from './create-form-controls'
+import { createFormFields, type ComponentPublicProps } from './create-form-fields'
 import { readWidgetFormless } from './fl-config'
 import { createFormView, FormView } from './create-form-view'
-import { FormViewItem, useFormItem } from './use-form-item'
+import { FormCell, useFormCell } from './FormCell'
 
 describe('case', () => {
   it('converts camelCase ↔ PascalCase', () => {
@@ -23,7 +23,7 @@ describe('case', () => {
 })
 
 describe('resolveControlBinding', () => {
-  it('omits to modelValue + controlKey prop', () => {
+  it('omits to modelValue + fieldKey prop', () => {
     expect(resolveControlBinding('name')).toEqual({
       models: ['modelValue'],
       props: ['name'],
@@ -168,7 +168,7 @@ describe('applyControlBinding', () => {
 })
 
 describe('resolveFormItemProp', () => {
-  it('uses the sole prop, otherwise control key (Element helper)', () => {
+  it('uses the sole prop, otherwise field key (Element helper)', () => {
     expect(
       resolveFormItemProp({ models: ['modelValue'], props: ['title'] }, 'name'),
     ).toBe('title')
@@ -209,7 +209,7 @@ describe('bindingForPort', () => {
 })
 
 describe('readWidgetFormless', () => {
-  it('reads model / item from the component static bag', () => {
+  it('reads model / item / cell from the component static bag', () => {
     expect(
       readWidgetFormless({
         formless: { item: false, model: ['start', 'end'] },
@@ -217,21 +217,21 @@ describe('readWidgetFormless', () => {
     ).toEqual({ item: false, model: ['start', 'end'] })
     expect(
       readWidgetFormless({
-        formless: { item: 'self', model: ['start', 'end'] },
+        formless: { cell: 'embed', model: ['start', 'end'] },
       }),
-    ).toEqual({ item: 'self', model: ['start', 'end'] })
+    ).toEqual({ cell: 'embed', model: ['start', 'end'] })
     expect(
       readWidgetFormless({
-        formless: { item: 'self', layout: false, model: ['start', 'end'] },
+        formless: { cell: 'embed', layout: false, model: ['start', 'end'] },
       }),
-    ).toEqual({ item: 'self', model: ['start', 'end'] })
+    ).toEqual({ cell: 'embed', model: ['start', 'end'] })
     expect(readWidgetFormless({})).toEqual({})
   })
 })
 
-describe('createFormControls', () => {
-  it('exposes PascalCase components for camelCase control keys', () => {
-    const User = createFormControls({
+describe('createFormFields', () => {
+  it('exposes PascalCase components for camelCase field keys', () => {
+    const User = createFormFields({
       name: {},
       timeRange: {
         model: ['start', 'end'],
@@ -246,7 +246,7 @@ describe('createFormControls', () => {
   })
 
   it('types PascalCase keys without a string index', () => {
-    const User = createFormControls({
+    const User = createFormFields({
       name: {},
       idCard: {},
     })
@@ -263,7 +263,7 @@ describe('createFormControls', () => {
       },
       setup: () => () => null,
     })
-    const User = createFormControls({
+    const User = createFormFields({
       remark: { component: Input },
     })
     type RemarkProps = ComponentPublicProps<typeof User.Remark>
@@ -283,7 +283,7 @@ describe('createFormControls', () => {
       },
       setup: () => () => null,
     })
-    const Fields = createFormControls({
+    const Fields = createFormFields({
       time: { component: Range, model: ['start', 'end'] },
     })
     type TimeProps = ComponentPublicProps<typeof Fields.Time>
@@ -293,16 +293,16 @@ describe('createFormControls', () => {
   })
 })
 
-describe('FormView.Item', () => {
+describe('FormView.Cell', () => {
   it('is attached on createFormView and the context-only FormView', () => {
     const Dummy = defineComponent({ setup: () => () => null })
     const View = createFormView({ layout: { Row: Dummy, Col: Dummy } })
-    expect(View.Item).toBe(FormViewItem)
-    expect(FormView.Item).toBe(FormViewItem)
+    expect(View.Cell).toBe(FormCell)
+    expect(FormView.Cell).toBe(FormCell)
   })
 })
 
-describe('createFormControls props overlay', () => {
+describe('createFormFields props overlay', () => {
   const Dummy = defineComponent({ setup: () => () => null })
   const Passthrough = defineComponent({
     inheritAttrs: false,
@@ -327,14 +327,14 @@ describe('createFormControls props overlay', () => {
       h('div', { class: 'item', 'data-label': p.label }, slots.default?.()),
   })
   const Two = defineComponent({
-    formless: { item: 'self' as const, model: ['start', 'end'] },
+    formless: { cell: 'embed' as const, model: ['start', 'end'] },
     props: {
       start: { default: undefined },
       end: { default: undefined },
     },
     setup() {
-      const Start = useFormItem('start')
-      const End = useFormItem('end')
+      const Start = useFormCell('start')
+      const End = useFormCell('end')
       return () => [
         h(Start, { label: '开始' }, () => h('input', { class: 's' })),
         h(End, { label: '结束' }, () => h('input', { class: 'e' })),
@@ -353,7 +353,7 @@ describe('createFormControls props overlay', () => {
     })
   }
 
-  it('merges cluster, control, then tag; functions see label', async () => {
+  it('merges cluster, field, then tag; functions see label', async () => {
     const seen: Record<string, unknown>[] = []
     const Input = defineComponent({
       inheritAttrs: false,
@@ -362,7 +362,7 @@ describe('createFormControls props overlay', () => {
         return () => h('input')
       },
     })
-    const User = createFormControls(
+    const User = createFormFields(
       {
         name: {
           label: '姓名',
@@ -396,20 +396,8 @@ describe('createFormControls props overlay', () => {
     expect(seen[2]).toMatchObject({ placeholder: '姓名', clearable: true })
   })
 
-  it('throws when widget self conflicts with schema item false', () => {
-    const Two = defineComponent({
-      formless: { item: 'self' },
-      setup: () => () => null,
-    })
-    expect(() =>
-      createFormControls({
-        range: { component: Two, item: false },
-      }),
-    ).toThrow(/conflicts/)
-  })
-
-  it('does not wrap a self widget in an outer Item', async () => {
-    const Fields = createFormControls({
+  it('does not wrap an embed widget in an outer Item', async () => {
+    const Fields = createFormFields({
       range: { component: Two, prop: ['fromTime', 'toTime'] },
     })
     const html = await render(
@@ -426,15 +414,15 @@ describe('createFormControls props overlay', () => {
     expect(html).toContain('class="e"')
   })
 
-  it('wraps self plus explicit fl:item in Col-Item-Row', async () => {
-    const Fields = createFormControls({
+  it('wraps wrap-embed in Col-Item-Row', async () => {
+    const Fields = createFormFields({
       range: { label: '签证', component: Two, prop: ['fromTime', 'toTime'] },
     })
     const html = await render(
       h(
         shellView(),
         { modelValue: { fromTime: '', toTime: '' }, 'fl:layout': true },
-        () => h(Fields.Range, { 'fl:item': true, 'col:span': 24 }),
+        () => h(Fields.Range, { 'fl:cell': 'wrap-embed', 'col:span': 24 }),
       ),
     )
     expect(html.match(/class="item"/g)?.length).toBe(3)
@@ -448,7 +436,7 @@ describe('createFormControls props overlay', () => {
       inheritAttrs: false,
       setup: () => () => h('input', { class: 'agency' }),
     })
-    const Fields = createFormControls({
+    const Fields = createFormFields({
       list: { component: Input, item: false },
     })
     const html = await render(
@@ -468,7 +456,7 @@ describe('createFormControls props overlay', () => {
       inheritAttrs: false,
       setup: () => () => h('input', { class: 'agency' }),
     })
-    const Fields = createFormControls({
+    const Fields = createFormFields({
       list: { label: '机构', component: Input, item: false },
     })
     const html = await render(
@@ -483,15 +471,15 @@ describe('createFormControls props overlay', () => {
     expect(html).toContain('class="col"')
   })
 
-  it('wraps only outer Item when self plus fl:item and layout is off', async () => {
-    const Fields = createFormControls({
+  it('wraps only outer Item when wrap-embed and layout is off', async () => {
+    const Fields = createFormFields({
       range: { label: '签证', component: Two, prop: ['fromTime', 'toTime'] },
     })
     const html = await render(
       h(
         shellView(),
         { modelValue: { fromTime: '', toTime: '' } },
-        () => h(Fields.Range, { 'fl:item': true }),
+        () => h(Fields.Range, { 'fl:cell': 'wrap-embed' }),
       ),
     )
     expect(html.match(/class="item"/g)?.length).toBe(3)
@@ -500,15 +488,15 @@ describe('createFormControls props overlay', () => {
     expect(html).not.toContain('data-gutter')
   })
 
-  it('uses control :row:column for the inner LayoutView', async () => {
-    const Fields = createFormControls({
+  it('uses field :row:column for the inner LayoutView', async () => {
+    const Fields = createFormFields({
       range: { label: '签证', component: Two, prop: ['fromTime', 'toTime'] },
     })
     const html = await render(
       h(
         shellView(),
         { modelValue: { fromTime: '', toTime: '' }, 'fl:layout': true, 'row:column': 3 },
-        () => h(Fields.Range, { 'fl:item': true, 'row:column': 2 }),
+        () => h(Fields.Range, { 'fl:cell': 'wrap-embed', 'row:column': 2 }),
       ),
     )
     expect(html).toContain('class="row"')
@@ -517,15 +505,15 @@ describe('createFormControls props overlay', () => {
     expect(spans.filter((s) => s === '12')).toHaveLength(2)
   })
 
-  it('does not inherit the page :row:column onto an extra row', async () => {
-    const Fields = createFormControls({
+  it('does not inherit the page :row:column onto an inner row', async () => {
+    const Fields = createFormFields({
       range: { label: '签证', component: Two, prop: ['fromTime', 'toTime'] },
     })
     const html = await render(
       h(
         shellView(),
         { modelValue: { fromTime: '', toTime: '' }, 'fl:layout': true, 'row:column': 3 },
-        () => h(Fields.Range, { 'fl:item': true }),
+        () => h(Fields.Range, { 'fl:cell': 'wrap-embed' }),
       ),
     )
     const spans = [...html.matchAll(/data-span="(\d+)"/g)].map((m) => m[1])

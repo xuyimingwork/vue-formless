@@ -53,6 +53,26 @@ export interface LayoutAttrBags {
   rest: Record<string, unknown>
 }
 
+/**
+ * Peel `prefix` keys and strip the prefix (`col:span` → `span`).
+ * Open bag: unknown names stay in `taken` for the host to ignore.
+ */
+export function takePrefixed(
+  attrs: Record<string, unknown>,
+  prefix: string,
+): { taken: Record<string, unknown>; rest: Record<string, unknown> } {
+  const taken: Record<string, unknown> = {}
+  const rest: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(attrs)) {
+    if (key.startsWith(prefix) && key.length > prefix.length) {
+      taken[key.slice(prefix.length)] = value
+    } else {
+      rest[key] = value
+    }
+  }
+  return { taken, rest }
+}
+
 /** Peel closed `row:` / `col:` keys. Unknown names are dropped (dev warn). */
 export function splitLayoutAttrs(attrs: Record<string, unknown>): LayoutAttrBags {
   const row: LayoutAttrBags['row'] = {}

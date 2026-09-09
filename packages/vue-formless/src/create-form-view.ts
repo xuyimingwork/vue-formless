@@ -11,13 +11,12 @@ import {
   type PropType,
   type VNodeChild,
 } from 'vue'
-import { formContextKey, type FormContext } from './context'
+import { FORM_VIEW_KEY, type FormContext } from './injection-keys'
 import { createFormModelWriter } from './form-model-writer'
 import { createLayoutView } from '@vue-formless/layout'
 import type { ItemFl } from './item-adapter'
 import { overlayProps, resolveProps, type HostProps } from './overlay-props'
-import { createControlWrap } from './wrap-control'
-import { attachFormViewItem, FormViewItem } from './use-form-item'
+import { attachFormViewCell, FormCell } from './FormCell'
 
 export interface FormViewLayoutBind {
   Row: Component
@@ -154,21 +153,17 @@ function provideFormViewContext(options: {
   LayoutView: Component
   factoryColumn: number
 }): void {
-  const wrap = createControlWrap({
-    Item: options.Item,
-    itemProps: options.itemProps,
-    isItemEnabled: options.isItemEnabled,
-  })
   const isItemEnabled = options.isItemEnabled ?? (() => true)
 
   provide(
-    formContextKey,
+    FORM_VIEW_KEY,
     reactive({
       get model() {
         return options.getModel()
       },
       update: options.update,
-      wrap,
+      Item: options.Item ? markRaw(options.Item) : undefined,
+      itemProps: options.itemProps,
       isItemEnabled,
       isLayoutEnabled: options.isLayoutEnabled,
       LayoutView: markRaw(options.LayoutView),
@@ -181,7 +176,7 @@ function resolveFormViewData(
   getBoundModel: () => unknown,
   emitUpdate: (next: unknown) => void,
 ): { getModel: () => unknown; update: FormContext['update'] } {
-  const parent = inject(formContextKey, null)
+  const parent = inject(FORM_VIEW_KEY, null)
   const incoming = hasIncomingVModel(getCurrentInstance()?.vnode.props as Record<string, unknown> | null)
 
   if (incoming) {
@@ -213,9 +208,9 @@ function resolveLayoutBind(layout: FormViewLayoutBind | undefined): FormViewLayo
 }
 
 /**
- * Bind host layout / form / item once; returns a FormView (ADR-008 / ADR-016).
+ * Bind host layout / form / item once; returns a FormView (ADR-008 / ADR-016 / ADR-020).
  *
- * Host shells stay in this closure. Cells go through `useFormItem` / `FormView.Item`.
+ * Host shells stay in this closure. Ad-hoc cells go through `FormView.Cell`.
  *
  * @example
  * ```ts
@@ -237,7 +232,7 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
   )
   const factoryColumn = bind?.column ?? DEFAULT_COLUMN
 
-  return attachFormViewItem(
+  return attachFormViewCell(
     defineComponent({
       name: 'FormView',
       inheritAttrs: false,
@@ -247,7 +242,7 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
         const hostForm = ref<object | null>(null)
         expose(proxyExpose(hostForm))
 
-        const nested = inject(formContextKey, null) != null
+        const nested = inject(FORM_VIEW_KEY, null) != null
         const { getModel, update } = resolveFormViewData(
           () => props.modelValue,
           (next) => emit('update:modelValue', next),
@@ -265,7 +260,6 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
         })
 
         return (): VNodeChild => {
-          const children = slots.default?.() ?? null
           const enabled = isFlLayoutOn(props['fl:layout'])
           const body = h(
             LayoutView,
@@ -275,7 +269,7 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
               ...(bind?.gutter != null ? { gutter: bind.gutter } : {}),
               ...(props['row:gutter'] != null ? { gutter: props['row:gutter'] } : {}),
             },
-            () => children,
+            { default: slots.default },
           )
 
           const formOn = Form ? resolveFormOn(props['fl:form'] as FormFormProp, nested) : false
@@ -302,14 +296,14 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
   )
 }
 
-export type FormViewComponent = Component & { Item: typeof FormViewItem }
+export type FormViewComponent = Component & { Cell: typeof FormCell }
 
 const defaultLayoutView = createLayoutView()
 
 /**
  * Context-only FormView (no Row/Col/Form/Item). Prefer `createFormView({ layout: { Row, Col } })`.
  */
-export const FormView = attachFormViewItem(
+export const FormView = attachFormViewCell(
   defineComponent({
     name: 'FormView',
     inheritAttrs: false,
@@ -335,7 +329,7 @@ export const FormView = attachFormViewItem(
             column: props['row:column'] ?? DEFAULT_COLUMN,
             ...(props['row:gutter'] != null ? { gutter: props['row:gutter'] } : {}),
           },
-          () => slots.default?.() ?? null,
+          { default: slots.default },
         )
     },
   }),

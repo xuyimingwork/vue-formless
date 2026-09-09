@@ -1,5 +1,5 @@
 import { ElInput, ElSelect } from 'element-plus'
-import { createFormControls } from 'vue-formless'
+import { createFormFields } from 'vue-formless'
 
 const genderOptions = [
   { label: '男', value: 'male' },
@@ -8,7 +8,7 @@ const genderOptions = [
 ]
 
 /** Shared User cluster for formless demos (ADR-009 opt-in). */
-export const User = createFormControls(
+export const User = createFormFields(
   {
     name: {
       label: '姓名',

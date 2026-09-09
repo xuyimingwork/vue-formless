@@ -1,30 +1,10 @@
-import { inject, type Component, type InjectionKey, type Ref } from 'vue'
-import type { WrapControl } from './wrap-control'
+import { inject, type Ref } from 'vue'
+import { FORM_VIEW_KEY, type FormContext } from './injection-keys'
 
-export interface FormContext {
-  /** Current FormView `modelValue` (parent snapshot; do not mutate). */
-  model: unknown
-  /** Report a field write; FormView patches and emits `update:modelValue`. */
-  update: (prop: string, value: unknown) => void
-  /**
-   * FormView-owned Item shell.
-   * Used by `useFormItem` / `FormView.Item`, not by widget authors.
-   */
-  wrap: WrapControl
-  /** This FormView layer's Item switch. */
-  isItemEnabled: () => boolean
-  /** This FormView's `:fl:layout` switch (page, not nearest LayoutView). */
-  isLayoutEnabled: () => boolean
-  /** Factory `createLayoutView` result; reused for gear-4 inner host. */
-  LayoutView: Component
-  /** `createFormView({ layout })` column density; inner extra rows use this, not the page `:row:column`. */
-  factoryColumn: number
-}
-
-export const formContextKey: InjectionKey<FormContext> = Symbol('vue-formless.formContext')
+export type { FormContext } from './injection-keys'
 
 export function useFormContext(): FormContext {
-  const ctx = inject(formContextKey, null)
+  const ctx = inject(FORM_VIEW_KEY, null)
   if (!ctx) {
     throw new Error('[vue-formless] useFormContext() must be used inside <FormView>.')
   }

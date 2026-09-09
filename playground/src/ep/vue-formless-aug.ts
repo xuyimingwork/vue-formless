@@ -1,5 +1,5 @@
 declare module 'vue-formless' {
-  interface ControlSchema {
+  interface FieldSchema {
     label?: string
   }
 }

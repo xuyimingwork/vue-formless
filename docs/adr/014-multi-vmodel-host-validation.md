@@ -56,7 +56,7 @@ timeRange: {
 
 DateRangeOneInput（默认 wrap 一次）一格挂不住两个叶子。Element 适配通常把宿主 Item `prop` 编成 **控件键**，不是两个叶子，也不是 `'$startTime,endTime'`。这是 **适配内部约定**，不是内核 snapshot 字段；Naive 等可以换成别的挂载点。
 
-内核只给 `binding` + `controlKey` + `getValues()`。`item.props` 写出 `prop`；Form 投影键须用 **同一套编码**（真实叶子 + 该键 → 现取口值，如 `timeRange → [start, end]`）。ElFormItem 的 `fieldValue` 才能对上、watch 才能随改随消红字。投影的 setter（`resetFields`）必须拆回叶子再走 `update` / `emit`，禁止就地改 DTO。
+内核只给 `binding` + `fieldKey` + `getValues()`。`item.props` 写出 `prop`；Form 投影键须用 **同一套编码**（真实叶子 + 该键 → 现取口值，如 `timeRange → [start, end]`）。ElFormItem 的 `fieldValue` 才能对上、watch 才能随改随消红字。投影的 setter（`resetFields`）必须拆回叶子再走 `update` / `emit`，禁止就地改 DTO。
 
 DTO（`FormView` 的 `v-model`）**没有** `timeRange`。有适配 `Form` 时，投影发生在 Form 适配里，不是内核替 ElForm 选键。
 
@@ -82,7 +82,7 @@ await formRef.value?.validate()
 
 | | OneInput（一格） | TwoInput（两格） |
 |--|------------------|------------------|
-| 壳 | 013：工厂 `useFormItem()` 一次 | 017：`item: 'self'` + `useFormItem('start'/'end')` |
+| 壳 | 013：工厂外包 FormCell 一次 | 020：`cell: 'embed'` + `useFormCell('start'/'end')`；分组 `:fl:cell="'wrap-embed'"` |
 | 宿主 Item `prop` | 适配编码（Element 常用控件键） | 适配按口叶子路径（`fieldValue` 是真值） |
 | `empty` / required | 本文：对 **整份口值** 判空 | 该格 ElForm `value`（单叶子）；策略仍是标签上那一份 `:formless.validate` |
 | 区间 `format` | 本文：对整份口值 | 仍是该 control 的 `validation`；用同一套口值（闭包 `getValues()`），不要在 `toEpRules` 里写另一端叶子名 |

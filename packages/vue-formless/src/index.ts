@@ -12,23 +12,20 @@ export {
   type FormLayoutOptions,
 } from './create-form-view'
 export {
-  createFormControls,
-  mergeInternalItem,
-  resolveControlShell,
-  type ControlSchema,
-  type CreateFormControlsOptions,
+  createFormFields,
+  type FieldSchema,
+  type FieldCell,
+  type CreateFormFieldsOptions,
   type ControlProp,
   type ControlVModel,
-  type ControlItemSetting,
-  type ResolvedControlShell,
-  type FormControlsSchema,
-  type FormControlProps,
-  type FormControlComponent,
-  type NamespacedControls,
+  type FormFieldsSchema,
+  type FormFieldProps,
+  type FormFieldComponent,
+  type NamespacedFields,
   type ComponentPublicProps,
   type WidgetTagProps,
   type LockedVModelKeys,
-} from './create-form-controls'
+} from './create-form-fields'
 export { overlayProps, resolveProps, type HostProps } from './overlay-props'
 export {
   resolveControlBinding,
@@ -50,23 +47,32 @@ export {
   type ColSpanRaw,
   type ColPlace,
   createLayoutView,
-  LayoutItem,
+  LayoutCell,
   type CreateLayoutViewOptions,
   type LayoutViewProps,
-  type LayoutItemProps,
+  type LayoutCellProps as LayoutCellProps,
 } from '@vue-formless/layout'
 export { camelToPascal, pascalToCamel, type CamelToPascal } from './case'
 export {
   useFormContext,
-  formContextKey,
   type FormContext,
 } from './context'
 export {
-  useFormItem,
-  FormViewItem,
-  type FormViewItemProps,
-  type FormViewItemSlotProps,
-} from './use-form-item'
-export type { ItemFl } from './item-adapter'
+  FORM_VIEW_KEY,
+  FIELD_RUNTIME_KEY,
+  FORM_CELL_PORT_KEY,
+  type FieldRuntime,
+} from './injection-keys'
+export {
+  FormCell,
+  useFormCell,
+  type FormCellProps,
+  type FormCellSlotProps,
+} from './FormCell'
+export type {
+  ItemFl,
+  FormCellTagProps,
+  FormViewItemProps,
+  FieldSchemaExtras,
+} from './item-adapter'
 export type { WidgetFormless } from './fl-config'
-export type { WrapControl, WrapControlMeta } from './wrap-control'

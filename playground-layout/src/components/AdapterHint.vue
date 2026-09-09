@@ -10,7 +10,7 @@
 
 <script setup lang="ts">
 const sketch = `import { ElRow, ElCol } from 'element-plus'
-import { createLayoutView, LayoutItem } from 'vue-formless'
+import { createLayoutView, LayoutCell } from 'vue-formless'
 
 export const LayoutView = createLayoutView({
   Row: ElRow,

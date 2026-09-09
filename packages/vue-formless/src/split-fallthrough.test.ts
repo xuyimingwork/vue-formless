@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
-import { splitFallthrough, splitFlAttrs, splitLayoutAttrs, splitSlots, toOptionalNumber } from './split-fallthrough'
+import {
+  splitFallthrough,
+  splitFlAttrs,
+  splitLayoutAttrs,
+  splitSlots,
+  takePrefixed,
+  toOptionalNumber,
+} from './split-fallthrough'
 import type { Slot, Slots } from 'vue'
 
 describe('splitFlAttrs', () => {
@@ -13,6 +20,17 @@ describe('splitFlAttrs', () => {
     })
     expect(fl).toEqual({ prop: 'buyers[0].name', span: 24, validate: 'required' })
     expect(rest).toEqual({ placeholder: 'x', 'item:label-width': 96 })
+  })
+})
+
+describe('takePrefixed', () => {
+  it('strips the prefix and keeps an open bag', () => {
+    const { taken, rest } = takePrefixed(
+      { 'col:span': '2x', 'col:take': 'rest', label: 'x' },
+      'col:',
+    )
+    expect(taken).toEqual({ span: '2x', take: 'rest' })
+    expect(rest).toEqual({ label: 'x' })
   })
 })
 

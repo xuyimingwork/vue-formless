@@ -8,6 +8,7 @@
   - 2026-08-18 — 绑定拆成 `model`（控件口）、`prop`（叶子）、`path`（导航串）。见 [ADR-011](./011-model-and-path.md)。
   - 2026-08-18 — 表格一层 FormView + 行上的 `:fl:prop`。
   - 2026-08-27 — 取消独立 `path`；位置只写 `prop`。见 [ADR-011](./011-model-and-path.md)。
+  - 2026-09-09 — 1.0 英文主角改为 Field；工厂 `createFormFields`；壳见 [ADR-020](./020-form-view-cell-field.md)。键仍是控件名（`agency`），不是 DTO。
 - **来源**：相对 [ADR-003](./003-namespaced-field-components.md) / [ADR-004](./004-form-layout-and-context.md) / [ADR-005](./005-view-model-as-unit.md) 的后续澄清（命名、共享边界、换绑、数组行）
 
 ## 背景
@@ -25,21 +26,21 @@ ADR-005 已规定配置最小单元是控件，不是 DB 列。实现与文档�
 
 ## 决策
 
-### 1. 主角是控件，不是接口字段
+### 1. 主角是可摆放单元（Field），不是接口字段
 
-工厂产出的是**控件集合**。模板标签按控件命名：
+工厂产出的是**域 / Field 集合**（中文仍说「表单域 / 控件」）。模板标签按控件命名：
 
 ```text
 <User.Agency />     ✅ 用户身上的机构控件
 <User.AgencyId />   ❌ 用户身上的 agencyId 字段控件
 ```
 
-schema 键跟随控件（`agency`），不跟随 DTO（`agencyId`）。控件通过 `prop` / `path` 接到 FormView 模型（见 [ADR-011](./011-model-and-path.md)）；`model` 声明组件 v-model 口。
+schema 键跟随控件（`agency`），不跟随 DTO（`agencyId`）。Field 通过 `prop` 接到 FormView 模型（见 [ADR-011](./011-model-and-path.md)）；`model` 声明组件 v-model 口。
 
-工厂名：**`createFormControls`**。
+工厂名：**`createFormFields`**。
 
 ```ts
-const User = createFormControls({
+const User = createFormFields({
   agency: { label: '机构', component: AgencySelect },
   name: { label: '姓名', component: ElInput, validation: { empty: { /* trim */ } } },
   timeRange: {
@@ -144,4 +145,4 @@ xxx: {
 
 - **正向**：命名与 ADR-005 对齐；页级声明让换控件影响面局部；表格一层 FormView + `:fl:prop`；主故事更好讲。
 - **代价**：不再默认「一份 User 打编辑+筛选+详情」；重复的声明若出现，需有意识抽取。ADR-001「模型放静态 TS 单例」、ADR-004「Fields 跨页单例」降为进阶，不再是主路径。
-- **关联**：工厂是语义输入簇、controls 非目标见 [ADR-010](./010-controls-as-semantic-cluster.md)；`model` / `prop` 见 [ADR-011](./011-model-and-path.md)；输入 / Item / 校验合成见 [ADR-012](./012-input-item-and-rule-compile.md)；控件单元见 [ADR-005](./005-view-model-as-unit.md)；命名空间标签见 [ADR-003](./003-namespaced-field-components.md)；Context / FormView 见 [ADR-004](./004-form-layout-and-context.md)、[ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。工厂以 `createFormControls` 为准。
+- **关联**：工厂是语义输入簇、controls 非目标见 [ADR-010](./010-controls-as-semantic-cluster.md)；`model` / `prop` 见 [ADR-011](./011-model-and-path.md)；输入 / Item / 校验合成见 [ADR-012](./012-input-item-and-rule-compile.md)；控件单元见 [ADR-005](./005-view-model-as-unit.md)；命名空间标签见 [ADR-003](./003-namespaced-field-components.md)；Context / FormView 见 [ADR-004](./004-form-layout-and-context.md)、[ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。工厂以 `createFormFields` 为准；壳与词表见 [ADR-020](./020-form-view-cell-field.md)。

@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createSSRApp, defineComponent, h, nextTick, type PropType, type VNode } from 'vue'
 import { renderToString } from 'vue/server-renderer'
-import { createFormView } from './create-form-view'
+import { createFormView, FormView } from './create-form-view'
+import { FormCell } from './FormCell'
 import { useFormContext } from './context'
 
 const Row = defineComponent({
@@ -16,7 +17,7 @@ const Col = defineComponent({
   name: 'DummyCol',
   props: { span: { type: Number, default: 0 } },
   setup(props, { slots }) {
-    return () => h('col', { span: String(props.span) }, slots.default?.())
+    return () => h('grid-col', { span: String(props.span) }, slots.default?.())
   },
 })
 
@@ -149,22 +150,22 @@ describe('createFormView', () => {
     const FormView = View()
     const html = await render(
       h(FormView, { modelValue: {}, 'fl:layout': true, 'row:column': 3, 'row:gutter': 12 }, () =>
-        h(FormView.Item, { 'fl:prop': 'name' }),
+        h(FormView.Cell, { 'fl:prop': 'name' }),
       ),
     )
     expect(html).toContain('gutter="12"')
     expect(html).toContain('span="8"')
     expect(html).toContain('<row')
-    expect(html).toContain('<col')
+    expect(html).toContain('<grid-col')
   })
 
   it('does not render Row or Col when layout is off', async () => {
     const FormView = View()
     const html = await render(
-      h(FormView, { modelValue: {} }, () => h(FormView.Item, { 'fl:prop': 'name' })),
+      h(FormView, { modelValue: {} }, () => h(FormView.Cell, { 'fl:prop': 'name' })),
     )
     expect(html).not.toContain('<row')
-    expect(html).not.toContain('<col')
+    expect(html).not.toContain('<grid-col')
   })
 
   it('nests layout only on the inner FormView', async () => {
@@ -172,7 +173,7 @@ describe('createFormView', () => {
     const html = await render(
       h(FormView, { modelValue: {} }, () =>
         h(FormView, { 'fl:layout': true, 'row:column': 3, 'row:gutter': 16 }, () =>
-          h(FormView.Item, { 'fl:prop': 'name' }),
+          h(FormView.Cell, { 'fl:prop': 'name' }),
         ),
       ),
     )
@@ -268,7 +269,7 @@ describe('createFormView', () => {
     const FormView = View()
     const html = await render(
       h(FormView, { modelValue: {}, 'fl:layout': true }, () =>
-        h(FormView.Item, { 'fl:prop': 'name' }),
+        h(FormView.Cell, { 'fl:prop': 'name' }),
       ),
     )
     expect(html).toContain('span="24"')
@@ -281,7 +282,7 @@ describe('createFormView', () => {
     })
     const html = await render(
       h(FormView, { modelValue: {}, 'fl:layout': true }, () =>
-        h(FormView.Item, { 'fl:prop': 'name' }),
+        h(FormView.Cell, { 'fl:prop': 'name' }),
       ),
     )
     expect(html).toContain('gutter="16"')
@@ -295,11 +296,104 @@ describe('createFormView', () => {
     await expect(
       render(
         h(FormView, { modelValue: {}, 'fl:layout': { column: 3 } as never }, () =>
-          h(FormView.Item, { 'fl:prop': 'name' }),
+          h(FormView.Cell, { 'fl:prop': 'name' }),
         ),
       ),
     ).rejects.toThrow(/boolean only/)
     warn.mockRestore()
     error.mockRestore()
+  })
+})
+
+const LabeledItem = defineComponent({
+  name: 'LabeledItem',
+  inheritAttrs: false,
+  props: { label: { type: String, default: '' } },
+  setup(props, { slots }) {
+    return () => h('item', { 'data-label': props.label }, slots.default?.())
+  },
+})
+
+describe('FormView.Cell', () => {
+  it('is FormCell on createFormView and the context-only FormView', () => {
+    const View = createFormView({ layout: { Row, Col } })
+    expect(View.Cell).toBe(FormCell)
+    expect(FormView.Cell).toBe(FormCell)
+  })
+
+  it('wraps the host Item when bound', async () => {
+    const FormView = createFormView({
+      layout: { Row, Col },
+      item: { component: LabeledItem, props: (fl) => ({ label: fl.fieldKey }) },
+    })
+    const Cell = defineComponent({
+      setup() {
+        return () => h(FormView.Cell, { 'fl:prop': 'name' }, { default: () => 'x' })
+      },
+    })
+    const html = await render(
+      h(FormView, { modelValue: {}, 'fl:layout': true }, () => h(Cell)),
+    )
+    expect(html).toContain('<grid-col')
+    expect(html).toContain('<item')
+    expect(html).toContain('data-label="name"')
+    expect(html).toContain('x')
+  })
+
+  it('drops Item when fl:item is false but keeps Col', async () => {
+    const FormView = createFormView({
+      layout: { Row, Col },
+      item: { component: LabeledItem },
+    })
+    const Cell = defineComponent({
+      setup() {
+        return () =>
+          h(FormView.Cell, { 'fl:prop': 'name', 'fl:item': false }, { default: () => 'x' })
+      },
+    })
+    const html = await render(
+      h(FormView, { modelValue: {}, 'fl:layout': true }, () => h(Cell)),
+    )
+    expect(html).toContain('<grid-col')
+    expect(html).not.toContain('<item')
+    expect(html).toContain('x')
+  })
+
+  it('never wraps Item when the factory omitted item.component', async () => {
+    const FormView = createFormView({ layout: { Row, Col } })
+    const Cell = defineComponent({
+      setup() {
+        return () =>
+          h(FormView.Cell, { 'fl:prop': 'name', label: '姓名' }, { default: () => 'x' })
+      },
+    })
+    const html = await render(
+      h(FormView, { modelValue: {}, 'fl:layout': true }, () => h(Cell)),
+    )
+    expect(html).toContain('<grid-col')
+    expect(html).not.toContain('<item')
+    expect(html).toContain('x')
+  })
+
+  it('lets fl:prop drive the field slot write', async () => {
+    const emit = vi.fn()
+    const FormView = createFormView({ layout: { Row, Col }, item: { component: Item } })
+    const Probe = defineComponent({
+      setup() {
+        return () =>
+          h(FormView.Cell, { 'fl:prop': 'name' }, {
+            default: (slot: { field: { modelValue: unknown; 'onUpdate:modelValue': (n: unknown) => void } }) => {
+              slot.field['onUpdate:modelValue']('Zed')
+              return h('span', String(slot.field.modelValue ?? ''))
+            },
+          })
+      },
+    })
+    await render(
+      h(FormView, { modelValue: { name: 'Ada' }, 'onUpdate:modelValue': emit }, () => h(Probe)),
+    )
+    await nextTick()
+    expect(emit).toHaveBeenCalledTimes(1)
+    expect(emit.mock.calls[0]![0]).toEqual({ name: 'Zed' })
   })
 })

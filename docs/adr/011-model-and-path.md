@@ -6,7 +6,7 @@
   - 2026-08-18 — 原「path = 数据键」作废；曾拆成 **`prop`（叶子）+ `path`（导航）**。
   - 2026-08-18 — `prop` 可短于 `model`（前缀接线）。
   - 2026-08-19 — 多叶子时 `formItemProp` 退回控件键，只适用于 **一格 Item**（OneInput）。两格按口投影，见 [ADR-013](./013-one-control-multiple-items.md)。
-  - 2026-08-19 — 宿主 Item `prop` 由适配器编码，内核 snapshot 只给 `binding` + `controlKey` + `getValues()`。见 [ADR-014](./014-multi-vmodel-host-validation.md)。
+  - 2026-08-19 — 宿主 Item `prop` 由适配器编码，内核 snapshot 只给 `binding` + `fieldKey` + `getValues()`。见 [ADR-014](./014-multi-vmodel-host-validation.md)。
   - 2026-08-25 — 标签覆盖改为 `:fl:prop`（[ADR-015](./015-formless-config-groups.md)）。`prop` 禁止空串。`model` 锁在 component / 控件 `formless`；格上无 `fl:model`。
   - 2026-08-27 — **取消独立 `path`**。位置只写 `prop`（可含 `buyers[0].name` / `` `buyers[${$index}].name` ``）。原先 `path` + 叶子的拆分多一个名字，表格用完整 `prop` 即可。
 - **来源**：相对 [ADR-009](./009-controls-as-protagonist.md) §6 的修订
@@ -79,7 +79,7 @@ FormView writer 解析 `[index]`，对数组段 **clone 再 emit**，禁止 `arr
 
 ### 6. 宿主 Item `prop` 不由内核决定
 
-内核 Item `fl` 只给 `binding`、`controlKey`、`getValues()`，**不**预计算 ElFormItem `prop`。
+内核 Item `fl` 只给 `binding`、`fieldKey`、`getValues()`，**不**预计算 ElFormItem `prop`。
 
 Element 适配可用 `resolveFormItemProp`（单一位置 → `formItemProp` → `buyers.0.name`；多口一格 → 控件键）或自己编码。Form 投影键必须与 Item 写出的 `prop` 一致。见 [ADR-012](./012-input-item-and-rule-compile.md) / [ADR-014](./014-multi-vmodel-host-validation.md)。
 

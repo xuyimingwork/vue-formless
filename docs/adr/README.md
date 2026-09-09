@@ -15,10 +15,10 @@
 | [007](./007-layout-adapter-and-span-priority.md) | 外部栅格适配、span 优先级与 Layout 级响应式 | Accepted（修订） |
 | [008](./008-form-view-vmodel-and-grid-gcd.md) | FormView、`v-model` 与栅格适配公约数 | Accepted（修订） |
 | [009](./009-controls-as-protagonist.md) | 控件主角、页级控件表与列表上下文 | Accepted（修订） |
-| [010](./010-controls-as-semantic-cluster.md) | `createFormControls` 是语义输入簇，不是表单 schema | Accepted（修订） |
+| [010](./010-controls-as-semantic-cluster.md) | `createFormFields` 是语义输入簇，不是表单 schema | Accepted（修订） |
 | [011](./011-model-and-path.md) | `model` 与 `prop`（位置） | Accepted（修订） |
 | [012](./012-input-item-and-rule-compile.md) | 输入、Item 与校验合成 | Accepted（修订） |
-| [013](./013-one-control-multiple-items.md) | 一颗 control、多格 Item | Accepted（修订） |
+| [013](./013-one-control-multiple-items.md) | 一颗 Field、多格 Cell | Accepted（修订） |
 | [014](./014-multi-vmodel-host-validation.md) | 多口 control 与宿主校验 | Accepted（修订） |
 | [015](./015-formless-config-groups.md) | Formless 配置通道 | Accepted |
 | [016](./016-fl-project-and-overlay.md) | fl → 宿主 props | Accepted |
@@ -34,7 +34,7 @@
  ├── 002 模型进 Schema，布局留 Template
  ├── 005 配置单元 = 控件（View-Model）
  │    └── 009 主角是可摆放单元；页级声明；列表一层 FormView + :fl:prop；1.0 英文 Field 见 020
- │         └── 010 工厂 = 语义输入簇；validation + 标签策略；不配联动 / 布局
+ │         └── 010 工厂 = 语义输入簇（createFormFields）；validation + 标签策略；不配联动 / 布局
  │              ├── 011 model = v-model 口；prop = 从根到叶子的位置
  │              │    └── 014 多口：Form 投影；host prop 由适配编码；validate 在 FormView
  │              └── 012 component = 输入；Form / Item 适配 + slot；壳是 FormCell（020）

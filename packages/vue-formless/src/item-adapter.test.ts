@@ -1,25 +1,27 @@
 import { describe, expectTypeOf, it } from 'vitest'
 import type {
-  ControlSchemaExtras,
+  FieldSchemaExtras,
   FlExtraProps,
-  FormControlProps,
-  FormViewItemProps,
+  FormFieldProps,
+  FormCellTagProps,
   ItemFl,
 } from './item-adapter'
 
-describe('ControlSchema extras', () => {
-  it('kernel FormControlProps are only the fl shell keys', () => {
-    expectTypeOf<ControlSchemaExtras>().toEqualTypeOf<{}>()
-    expectTypeOf<FormControlProps>().toEqualTypeOf<{
+describe('FieldSchema extras', () => {
+  it('kernel FormFieldProps are only the fl shell keys', () => {
+    expectTypeOf<FieldSchemaExtras>().toEqualTypeOf<{}>()
+    expectTypeOf<FormFieldProps>().toEqualTypeOf<{
       'fl:prop'?: string | string[]
       'fl:item'?: boolean
+      'fl:cell'?: 'wrap' | 'embed' | 'wrap-embed'
       'col:span'?: string | number
       'col:place'?: 'auto' | 'start' | 'end'
       'row:column'?: number
       'row:gutter'?: number
     }>()
-    expectTypeOf<FormViewItemProps>().toEqualTypeOf<{
+    expectTypeOf<FormCellTagProps>().toEqualTypeOf<{
       'fl:prop'?: string | string[]
+      'fl:item'?: boolean
       'col:span'?: string | number
       'col:place'?: 'auto' | 'start' | 'end'
     }>()
@@ -33,7 +35,7 @@ describe('ControlSchema extras', () => {
   })
 
   it('ItemFl keeps kernel wiring', () => {
-    expectTypeOf<ItemFl>().toHaveProperty('controlKey')
+    expectTypeOf<ItemFl>().toHaveProperty('fieldKey')
     expectTypeOf<ItemFl>().toHaveProperty('binding')
     expectTypeOf<ItemFl>().toHaveProperty('getValues')
   })

@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import { useFormItem } from 'vue-formless'
+import { useFormCell } from 'vue-formless'
 
 defineOptions({
-    formless: {
-      item: 'self',
-      model: ['start', 'end'],
-    },
+  formless: {
+    cell: 'embed',
+    model: ['start', 'end'],
+  },
 })
 
 const start = defineModel<string>('start')
 const end = defineModel<string>('end')
 
-const StartItem = useFormItem('start')
-const EndItem = useFormItem('end')
+const StartItem = useFormCell('start')
+const EndItem = useFormCell('end')
 </script>
 
 <template>

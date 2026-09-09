@@ -2,11 +2,11 @@ import { describe, expect, expectTypeOf, it } from 'vitest'
 import './vue-formless-aug'
 import { toEpItemProps } from './form-view'
 import { User } from '../demos/formless/user'
-import type { ComponentPublicProps, FormControlProps, FormViewItemProps, ItemFl } from 'vue-formless'
+import type { ComponentPublicProps, FormFieldProps, FormCellTagProps, ItemFl } from 'vue-formless'
 
 describe('toEpItemProps', () => {
   const mobileFl: ItemFl = {
-    controlKey: 'mobile',
+    fieldKey: 'mobile',
     label: '手机',
     binding: { models: ['modelValue'], props: ['mobile'] },
     getValues: () => [''],
@@ -18,7 +18,7 @@ describe('toEpItemProps', () => {
     expect(props.prop).toBe('mobile')
   })
 
-  it('encodes host prop: one leaf path vs multi-port control key', () => {
+  it('encodes host prop: one leaf path vs multi-port field key', () => {
     expect(
       toEpItemProps({
         ...mobileFl,
@@ -28,25 +28,25 @@ describe('toEpItemProps', () => {
     expect(
       toEpItemProps({
         ...mobileFl,
-        controlKey: 'timeRange',
+        fieldKey: 'timeRange',
         binding: { models: ['start', 'end'], props: ['startTime', 'endTime'] },
       }).prop,
     ).toBe('timeRange')
   })
 })
 
-describe('ControlSchema extras inference', () => {
+describe('FieldSchema extras inference', () => {
   it('lifts label onto ItemFl and fl: tag props', () => {
     expectTypeOf<ItemFl>().toHaveProperty('label')
     expectTypeOf<ItemFl['label']>().toEqualTypeOf<string | undefined>()
-    expectTypeOf<FormControlProps>().toHaveProperty('fl:label')
-    expectTypeOf<FormControlProps['fl:label']>().toEqualTypeOf<string | undefined>()
-    expectTypeOf<FormViewItemProps>().toHaveProperty('fl:label')
-    expectTypeOf<FormViewItemProps['fl:label']>().toEqualTypeOf<string | undefined>()
+    expectTypeOf<FormFieldProps>().toHaveProperty('fl:label')
+    expectTypeOf<FormFieldProps['fl:label']>().toEqualTypeOf<string | undefined>()
+    expectTypeOf<FormCellTagProps>().toHaveProperty('fl:label')
+    expectTypeOf<FormCellTagProps['fl:label']>().toEqualTypeOf<string | undefined>()
   })
 })
 
-describe('namespaced control widget props', () => {
+describe('namespaced field widget props', () => {
   it('exposes ElInput props on User.Remark', () => {
     type RemarkProps = ComponentPublicProps<typeof User.Remark>
     expectTypeOf<RemarkProps>().toHaveProperty('placeholder')
