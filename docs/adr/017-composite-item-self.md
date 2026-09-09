@@ -1,6 +1,6 @@
 # ADR-017：组合体 control、`item: 'self'` 与壳合并
 
-- **状态**：Accepted（修订）
+- **状态**：Superseded — 由 [ADR-020](./020-form-view-cell-field.md) 废止（`cell` 三态；`item` 仅 boolean）。
 - **日期**：2026-08-31
 - **修订**：
   - 2026-08-31 — 初版：`item: 'self'`；标签壳通道无效。
