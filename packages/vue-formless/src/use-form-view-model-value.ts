@@ -58,10 +58,6 @@ export function useFormViewModelValue(
   // must stay in setup scope — `model` / `update` only read it lazily.
   const parent = inject(FORM_VIEW_KEY, null)
 
-  const model = computed(() =>
-    ownsVModel.value ? toValue(modelValue) : parent?.model,
-  )
-
   if (!ownsVModel.value && parent == null) {
     // Root FormView without v-model: cells still render, but `update` has no
     // writer to own the write and no ancestor to forward to, so it is dropped.
@@ -70,6 +66,10 @@ export function useFormViewModelValue(
         'fields render but updates are dropped. Bind v-model or nest it inside another FormView.',
     )
   }
+
+  const model = computed(() =>
+    ownsVModel.value ? toValue(modelValue) : parent?.model,
+  )
 
   function update(prop: string, value: unknown): void {
     if (ownsVModel.value) {

@@ -4,19 +4,6 @@
  */
 import { parsePath, type PathSegment } from './parse-model-path'
 
-/** Walk `subPath` down from `root` and return the node it lands on. */
-function descend(root: unknown, subPath: PathSegment[]): unknown {
-  let node: unknown = root
-  for (const seg of subPath) {
-    if (seg.type === 'key') {
-      node = (node as Record<string, unknown>)[seg.key]
-    } else {
-      node = (node as unknown[])[seg.index]
-    }
-  }
-  return node
-}
-
 /** Shape-mismatch reads already warned about, so one mistake doesn't spam. */
 const warnedReads = new Set<string>()
 
@@ -27,6 +14,15 @@ function warnOnce(id: string, message: string): void {
 }
 
 /**
+ * Values that can hold a child at a path segment: plain objects and arrays.
+ * Primitives and missing nodes are not containers, so reads through them stop
+ * and resolve to `undefined`.
+ */
+function isContainer(value: unknown): value is Record<string, unknown> | unknown[] {
+  return value != null && typeof value === 'object'
+}
+
+/**
  * Read the value stored on `container` under `segment` (record key or array
  * index). A shape mismatch — key over an array, index over an object — reads
  * as `undefined` and warns once per path: under the B-track grammar the two
@@ -34,8 +30,12 @@ function warnOnce(id: string, message: string): void {
  * so a mismatch is usually a spelling mix-up worth surfacing.
  */
 function readChild(container: unknown, segment: PathSegment, path: string): unknown {
+  // Nothing to descend into: missing nodes and primitives read as `undefined`.
+  if (!isContainer(container)) return undefined
+
+  // One block per segment type, each pairing its shape guard with its read, so
+  // the branches stay symmetric and no type is treated as "the default".
   if (segment.type === 'key') {
-    if (container == null || typeof container !== 'object') return undefined
     if (Array.isArray(container)) {
       if (container.length > 0) {
         warnOnce(
@@ -46,28 +46,46 @@ function readChild(container: unknown, segment: PathSegment, path: string): unkn
       }
       return undefined
     }
-    return (container as Record<string, unknown>)[segment.key]
+    return container[segment.key]
   }
-  if (container == null) return undefined
-  if (!Array.isArray(container)) {
-    if (typeof container === 'object' && Object.keys(container).length > 0) {
-      warnOnce(
-        `index-on-object:${path}`,
-        `reading array index "[${segment.index}]" from an object — bracket indexes address arrays only; ` +
-          `to read an object key write ".${segment.index}" or '["${segment.index}"]'. (path "${path}")`,
-      )
+
+  if (segment.type === 'index') {
+    if (!Array.isArray(container)) {
+      if (Object.keys(container).length > 0) {
+        warnOnce(
+          `index-on-object:${path}`,
+          `reading array index "[${segment.index}]" from an object — bracket indexes address arrays only; ` +
+            `to read an object key write ".${segment.index}" or '["${segment.index}"]'. (path "${path}")`,
+        )
+      }
+      return undefined
     }
-    return undefined
+    return container[segment.index]
   }
-  return container[segment.index]
+
+  // Unreachable while `PathSegment` stays a closed union; it exists so a future
+  // segment type reads as `undefined` with a trace instead of falling into
+  // whichever branch happens to come last.
+  warnOnce(
+    `unknown-segment-type:${path}`,
+    `unknown path segment type — ignoring it (path "${path}")`,
+  )
+  return undefined
 }
 
+/**
+ * Immutable read at a full `path` location (`buyers[0].name`). Every segment
+ * goes through `readChild`, so a missing intermediate node reads as
+ * `undefined` instead of throwing, and shape checks apply at every depth.
+ */
 export function getIn(root: unknown, path: string): unknown {
   const segments = parsePath(path)
   if (segments.length === 0) return undefined
-  const leaf = segments[segments.length - 1]!
-  const parent = descend(root, segments.slice(0, -1))
-  return readChild(parent, leaf, path)
+  let node: unknown = root
+  for (const segment of segments) {
+    node = readChild(node, segment, path)
+  }
+  return node
 }
 
 /**

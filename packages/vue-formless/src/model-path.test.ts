@@ -29,6 +29,22 @@ describe('getIn', () => {
       expect(getIn({ a: 1 }, 'a.b')).toBeUndefined()
     })
 
+    it("returns undefined when reading 'a.b.c' where 'a' is missing", () => {
+      expect(getIn({}, 'a.b.c')).toBeUndefined()
+    })
+
+    it("returns undefined when reading 'a.b.c' where 'a' is an empty object", () => {
+      expect(getIn({ a: {} }, 'a.b.c')).toBeUndefined()
+    })
+
+    it("returns undefined when the root is null", () => {
+      expect(getIn(null, 'a.b')).toBeUndefined()
+    })
+
+    it("returns undefined when the root is undefined", () => {
+      expect(getIn(undefined, 'a.b.c')).toBeUndefined()
+    })
+
     it("returns undefined when reading the key 'name' on an array root", () => {
       expect(getIn([{ name: 'Ada' }], 'name')).toBeUndefined()
     })
@@ -187,6 +203,13 @@ describe('shape-mismatch guards', () => {
       expect(getIn({ m: { '0': { name: 'Ada' } } }, 'm[0]')).toBeUndefined()
       expect(spy).toHaveBeenCalledTimes(1)
       expect(spy.mock.calls[0]![0]).toMatch(/reading array index "\[0\]" from an object/)
+    })
+
+    it('warns when an intermediate key segment reads from an array', () => {
+      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      expect(getIn([{ name: 'Ada' }], 'email.foo')).toBeUndefined()
+      expect(spy).toHaveBeenCalledTimes(1)
+      expect(spy.mock.calls[0]![0]).toMatch(/reading object key "email" from an array/)
     })
   })
 
