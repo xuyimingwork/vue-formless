@@ -4,13 +4,20 @@
  * Grammar of a `path` string (e.g. `name`, `buyers[0].name`, `[2].title`,
  * `map.0.name`, `map["x.y"].title`):
  *
- *   path       := segment ('.'? segment)*   dots are optional separators
+ *   path       := segment ('.'? segment)*   one optional '.' between segments;
+ *                                            a leading '.', a trailing '.' and
+ *                                            '..' are all rejected
  *   segment    := name | '[' index ']' | '[' quoted ']'
  *   name       := [a-zA-Z_$0-9][a-zA-Z0-9_$]*   object key (digits allowed)
  *   index      := [0-9]+                         array index
- *   quoted     := '"' key chars '"' | "'" key chars "'"
- *                key chars: any char, except the closing quote and unescaped
+ *   quoted     := '"' keychar* '"' | "'" keychar* "'"
+ *                keychar: any char, except the closing quote and unescaped
  *                backslash; '\' escapes the next character (ADR-011)
+ *
+ * The quoted form is the **total** escape hatch: it carries any string key a
+ * JS object can hold — spaces, dots, brackets, and the empty string (`obj['']`
+ * is legal and stays reachable here). Only the *unquoted* `name` form is
+ * restricted, and only because it is sugar, not because the key is illegal.
  *
  * Array items are addressed **only** by bracket numerals (`[0]`); a dot-form
  * numeral (`map.0.name`) or a quoted segment (`map["0"].name`) is an *object*
@@ -18,14 +25,41 @@
  * indexes, so a numeric segment is unambiguous without runtime shape checks.
  *
  * Implemented as a character-driven state machine in the style of a toy
- * HTML tokenizer: every state is a function that consumes one character
- * and returns the next state, and a single `EOF` sentinel is fed after the
- * input runs out. That makes "unterminated bracket" an ordinary transition
- * error instead of a special case after the loop:
+ * HTML tokenizer: every state is a function that consumes one character and
+ * returns the next state, and a single `EOF` sentinel is fed after the input
+ * runs out. That makes "unterminated bracket" an ordinary transition error
+ * instead of a special case after the loop.
  *
- *   betweenSegments --'['--> inBracket --quote--> quotedBody --quote--> quotedEnd --']'--> betweenSegments
- *        ^   |                \--digits--> ']' + valid index ---------------------/
- *        |    \-- name chars (keyName), reconsume the terminator -----------------/
+ * The separator gets its own state (`afterDot`): a single `betweenSegments`
+ * that swallows '.' in a loop also accepts `a..b`, `.a` and `a.`, none of
+ * which the grammar allows. Splitting it into expectSegment / afterSegment /
+ * afterDot makes "at most one dot, never leading or trailing" fall out of the
+ * transitions instead of needing a lookahead flag.
+ *
+ *   expectSegment  a segment must start here — path start, or right after '.'
+ *   afterSegment   a segment just ended; one optional '.' may follow
+ *   afterDot       just consumed the '.'; a segment is mandatory
+ *   keyName        inside an identifier; its terminator is reconsumed
+ *   inBracket      inside '[': digits (index), a quote (key), or ']'
+ *   quotedBody     inside a quoted key; '\' → quotedEscape
+ *   quotedEscape   take the next char literally, then back to quotedBody
+ *   quotedEnd      after the closing quote: ']' must follow
+ *
+ *   expectSegment  --'['--> inBracket           -- name chars --> keyName
+ *                  -- EOF --> clean end         -- else --> error (incl. leading '.')
+ *   keyName        -- ident chars --> keyName
+ *                  -- terminator (reconsumed) --> afterSegment
+ *   inBracket      -- digits --> inBracket      -- quote --> quotedBody
+ *                  -- ']' + valid index --> afterSegment
+ *                  -- EOF --> error (unclosed bracket)
+ *   quotedBody     -- '\' --> quotedEscape      -- closing quote --> quotedEnd
+ *                  -- EOF --> error (unclosed quoted key)
+ *   quotedEscape   -- any char (literal) --> quotedBody
+ *   quotedEnd      -- ']' --> afterSegment      -- EOF --> error (unclosed bracket)
+ *   afterSegment   -- '.' --> afterDot          -- else --> expectSegment
+ *   afterDot       -- '[' / name chars --> inBracket / keyName
+ *                  -- EOF --> error (trailing '.')
+ *                  -- '.' --> error (consecutive '.')
  */
 export type PathSegment =
   | { type: 'key'; key: string }
@@ -49,16 +83,45 @@ export function parsePath(path: string): PathSegment[] {
   let quote = '' // the quote char opening the current quoted key
   let cursor = 0 // index of the character the current state call consumes
 
-  /** Between segments: consume '.', '[' or the first char of an identifier. */
-  function betweenSegments(c: Char): State | undefined {
-    if (c === '.') return betweenSegments // optional separator: skip and stay
+  /**
+   * A segment must start here: at the beginning of the path or right after a
+   * '.'. `EOF` is the clean end of input (a non-empty path's last segment
+   * always ends by landing here). This is also the initial state, so a leading
+   * '.' is rejected.
+   */
+  function expectSegment(c: Char): State | undefined {
     if (c === '[') return inBracket
     if (c === EOF) return undefined // clean end of input
     if (typeof c === 'string' && IDENT_START.test(c)) {
       buffer = c
       return keyName
     }
-    throw new Error(`Invalid path "${path}" at position ${cursor}`)
+    throw new Error(
+      `Invalid path "${path}" at position ${cursor}: expected an identifier, "[index]" or a quoted key`,
+    )
+  }
+
+  /**
+   * A segment just ended: at most one optional '.' may separate the next one.
+   * Everything else — '[' , an identifier start or `EOF` — is handed back to
+   * `expectSegment`, so those behave identically in both positions.
+   */
+  function afterSegment(c: Char): State | undefined {
+    if (c === '.') return afterDot
+    return expectSegment(c)
+  }
+
+  /**
+   * Right after a '.': a segment is mandatory. A trailing '.' ends on `EOF`
+   * and `a..b` surfaces as a second '.' here, which is what keeps separators
+   * to a single dot.
+   */
+  function afterDot(c: Char): State | undefined {
+    if (c === EOF) throw new Error(`Invalid path "${path}": trailing "."`)
+    if (c === '.') {
+      throw new Error(`Invalid path "${path}": consecutive "." at position ${cursor}`)
+    }
+    return expectSegment(c)
   }
 
   /** Inside an identifier; on the first non-identifier char, reconsume it. */
@@ -69,7 +132,7 @@ export function parsePath(path: string): PathSegment[] {
     }
     segments.push({ type: 'key', key: buffer })
     buffer = ''
-    return betweenSegments(c) // reconsume the terminating character
+    return afterSegment(c) // reconsume the terminating character
   }
 
   /**
@@ -100,7 +163,7 @@ export function parsePath(path: string): PathSegment[] {
     }
     segments.push({ type: 'index', index })
     buffer = ''
-    return betweenSegments
+    return afterSegment
   }
 
   /** Inside a quoted key body: keep chars until the matching quote. */
@@ -125,15 +188,14 @@ export function parsePath(path: string): PathSegment[] {
     if (c !== ']') {
       throw new Error(`Invalid path "${path}": expected "]" after the quoted key`)
     }
-    if (buffer === '') {
-      throw new Error(`Invalid path "${path}": quoted key cannot be empty`)
-    }
+    // A quoted key carries any string, including '' — the empty-string key is
+    // legal in JS (`obj['']`) and stays reachable (ADR-011).
     segments.push({ type: 'key', key: buffer })
     buffer = ''
-    return betweenSegments
+    return afterSegment
   }
 
-  let state: State = betweenSegments
+  let state: State = expectSegment
   for (; cursor < path.length; cursor++) {
     // Real characters never terminate the machine — only `EOF` does — so the
     // transition always yields the next state.

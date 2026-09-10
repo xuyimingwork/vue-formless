@@ -133,6 +133,41 @@ describe('keyed-map models (B-track: dot numerals and ["…"] are object keys)',
   })
 })
 
+describe('quoted keys that are not identifiers (reachability: any string key)', () => {
+  it("reads the empty-string key in '[\"\"]'", () => {
+    expect(getIn({ '': 'Ada' }, '[""]')).toBe('Ada')
+  })
+
+  it("reads a blank key in '[\"  \"]' without trimming it", () => {
+    const model = { '  ': 'blank', '': 'empty' }
+    expect(getIn(model, '["  "]')).toBe('blank')
+    expect(getIn(model, '[""]')).toBe('empty')
+  })
+
+  it("reads a key containing dots in '[\"a.b\"]', not the nested path", () => {
+    expect(getIn({ 'a.b': 'flat', a: { b: 'nested' } }, '["a.b"]')).toBe('flat')
+  })
+
+  it("reads a key containing brackets in '[\"a[b]\"]'", () => {
+    expect(getIn({ 'a[b]': 'Ada' }, '["a[b]"]')).toBe('Ada')
+  })
+
+  it("writes the empty-string key in '[\"\"]' as an own property", () => {
+    expect(setIn({ keep: 1 }, '[""]', 'Bob')).toEqual({ keep: 1, '': 'Bob' })
+  })
+
+  it("writes a blank key in 'a[\"  \"].name' and keeps siblings", () => {
+    expect(setIn({ a: { '  ': { name: 'Ada' }, keep: 1 } }, 'a["  "].name', 'Bob')).toEqual({
+      a: { '  ': { name: 'Bob' }, keep: 1 },
+    })
+  })
+
+  it("writes a dotted key in '[\"a.b\"]' alongside the nested 'a.b' path", () => {
+    const next = setIn({ a: { b: 'nested' } }, '["a.b"]', 'flat')
+    expect(next).toEqual({ a: { b: 'nested' }, 'a.b': 'flat' })
+  })
+})
+
 describe('shape-mismatch guards', () => {
   afterEach(() => {
     vi.restoreAllMocks()

@@ -10,6 +10,7 @@
 
 - ADR-020：`createFormFields` / `FormField` / `FormCell`（并列导出，不挂 `FormView.Cell`）；`cell: 'wrap' | 'embed' | 'wrap-embed'`；`item` 仅 boolean；`fieldKey` / `FieldSchema`
 - 删除 `createFormControls`、`useFormItem`、`FormView.Item`、`resolveControlShell`、`ControlFrame`
+- ADR-011：引号键段全称化——可承载任意字符串键（空白 / `.` / `[]` / 空串 `[""]`）；「键段禁止空串」收紧为「不加引号的键段禁止空串」，`prop: ''` 仍禁止
 
 ## [0.1.1] - 2026-09-02
 

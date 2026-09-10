@@ -25,6 +25,10 @@ describe('parsePath', () => {
         { type: 'key', key: 'name' },
       ])
     })
+
+    it("returns no segments for the empty path '' (rejected later, by setIn)", () => {
+      expect(parsePath('')).toEqual([])
+    })
   })
 
   describe('rejects an invalid prop', () => {
@@ -34,6 +38,38 @@ describe('parsePath', () => {
 
     it("throws on an unclosed bracket in 'buyers['", () => {
       expect(() => parsePath('buyers[')).toThrow(/unclosed/)
+    })
+
+    it("throws on a doubled dot in 'a..b'", () => {
+      expect(() => parsePath('a..b')).toThrow(/consecutive "\."/)
+    })
+
+    it("throws on a leading dot in '.a'", () => {
+      expect(() => parsePath('.a')).toThrow(/expected an identifier/)
+    })
+
+    it("throws on a trailing dot in 'a.'", () => {
+      expect(() => parsePath('a.')).toThrow(/trailing "\."/)
+    })
+
+    it("throws on a dots-only path in '..' instead of parsing to no segments", () => {
+      expect(() => parsePath('..')).toThrow(/expected an identifier/)
+    })
+
+    it("throws on a dot after a bracket in '[0].'", () => {
+      expect(() => parsePath('[0].')).toThrow(/trailing "\."/)
+    })
+
+    it("throws on an empty bracket in 'buyers[]' instead of an empty key", () => {
+      expect(() => parsePath('buyers[]')).toThrow(/non-negative integer/)
+    })
+
+    it("throws on unquoted whitespace in a bracket in 'buyers[ ]'", () => {
+      expect(() => parsePath('buyers[ ]')).toThrow(/quoted object key/)
+    })
+
+    it("throws on a whitespace-only unquoted path in '  '", () => {
+      expect(() => parsePath('  ')).toThrow(/expected an identifier/)
     })
   })
 
@@ -99,8 +135,49 @@ describe('parsePath', () => {
       expect(() => parsePath('map["x')).toThrow(/unclosed quoted key/)
     })
 
-    it("throws on an empty quoted key in 'map[\"\"]'", () => {
-      expect(() => parsePath('map[""]')).toThrow(/cannot be empty/)
+    // A quoted segment is the total escape hatch: any string key a JS object
+    // can hold is reachable, including '' (`obj['']` is legal) and blanks —
+    // nothing is trimmed or rejected (ADR-011). Only the *unquoted* form is
+    // restricted, and only because it is sugar.
+    it("parses an empty quoted key in 'map[\"\"]' as the empty-string key", () => {
+      expect(parsePath('map[""]')).toEqual([
+        { type: 'key', key: 'map' },
+        { type: 'key', key: '' },
+      ])
+      expect(parsePath("map['']")).toEqual([
+        { type: 'key', key: 'map' },
+        { type: 'key', key: '' },
+      ])
+    })
+
+    it("parses a root empty quoted key in '[\"\"]'", () => {
+      expect(parsePath('[""]')).toEqual([{ type: 'key', key: '' }])
+      expect(parsePath("['']")).toEqual([{ type: 'key', key: '' }])
+    })
+
+    it("keeps an empty and a blank key distinct in 'map[\"\"].name' / 'map[\"  \"].name'", () => {
+      expect(parsePath('map[""].name')).toEqual([
+        { type: 'key', key: 'map' },
+        { type: 'key', key: '' },
+        { type: 'key', key: 'name' },
+      ])
+      expect(parsePath('map["  "].name')).toEqual([
+        { type: 'key', key: 'map' },
+        { type: 'key', key: '  ' },
+        { type: 'key', key: 'name' },
+      ])
+    })
+
+    it("parses a whitespace-only root quoted key in '[\"  \"]'", () => {
+      expect(parsePath('["  "]')).toEqual([{ type: 'key', key: '  ' }])
+      expect(parsePath("['  ']")).toEqual([{ type: 'key', key: '  ' }])
+    })
+
+    it('keeps tabs and mixed whitespace literal inside a quoted key', () => {
+      expect(parsePath('map[" \t "]')).toEqual([
+        { type: 'key', key: 'map' },
+        { type: 'key', key: ' \t ' },
+      ])
     })
 
     it("throws when the bracket does not close right after the quote in 'map[\"x\"y]'", () => {
