@@ -12,6 +12,7 @@
   - 2026-09-09 — 宿主 Item `prop` 的 **dot 编码**（`resolveFormItemProp` / `toDotPath`）移出内核到 Element 适配层；内核只保留 `parsePath` 语法解析 + `getIn` / `setIn` 读写。
   - 2026-09-09 — **键文法扩展**：`.` 数字段与 `["…"]` 引号段 = **对象键**（数字键 map、含点键可达）；`[n]` 仍是数组段唯一写法。shape 错配读写带提示（读 warn / 写 throw）。
   - 2026-09-10 — **引号段全称化**：引号键可承载任意字符串键——空白、`.` / `[]`、以及空串 `[""]`（`obj['']` 合法）。原「键段禁止空串」收紧为「**不加引号**的键段禁止空串」；`prop: ''`（整个绑定为空）仍禁止。可达性只由内核 `parsePath` / `getIn` / `setIn` 保证；宿主编码表达不了时（如 Element 的 dot）由适配层与使用侧自行收窄 `prop`，见 §6。
+  - 2026-09-10 — **读写沉默化 + 写侧覆盖**：`parsePath` 对非法 / 空 `path` 返回 `undefined`，不再 throw / warn（调用方自己排查 `path`）；`getIn` 读侧错配一律读作 `undefined`、不再 warn；`setIn` 由「错配 throw」改为「形状匹配即合并 / 不匹配即覆盖」，覆盖时不提示（与读侧一致，内核读写全程不 warn、不 throw）。内核读写对称化为 `readSegments` / `readSegment` 与 `writeSegments` / `writeSegment`。
 - **来源**：相对 [ADR-009](./009-controls-as-protagonist.md) §6 的修订
 
 ## 背景
@@ -55,7 +56,7 @@ agency: {
 - 组合：`buyers[0].name`、`buyers[0].addresses[1].city`、`map.0.name`。
 - **`prop` array** 只表示多口接线（与 `model` 前缀对齐），不是路径段数组。不要 `prop: ['buyers', 0, 'name']`。
 
-FormView writer 解析 `[index]`，对数组段 **clone 再 emit**，禁止 `arr[i] = x` 绕过 v-model。内核 shape 错配给提示：键段落在数组 / 下标落在对象时 **读 warn 一次**（同一 path 去重）、**写 throw**（防把 keyed map 静默改写成数组）。
+FormView writer 解析 `[index]`，对数组段 **clone 再 emit**，禁止 `arr[i] = x` 绕过 v-model。内核 shape 错配：**读侧沉默**——错配段读作 `undefined`，不 warn；**写侧形状匹配即合并、不匹配即覆盖**（键落在数组 → 对象；下标落在对象 → 数组），覆盖同样不提示，不 throw。`parsePath` 对非法 / 空 `path` 返回 `undefined`，`getIn` 读作 `undefined`、`setIn` 原样返回 `root`，均不 throw、不 warn。
 
 keyed-map **行编辑 UI**（遍历键 / 增删键）不属于内核：`getIn` / `setIn` 只保证这类 model 的**数据读写可达**，表格/列表行编辑仍是数组向的 `[${$index}]` 故事。
 

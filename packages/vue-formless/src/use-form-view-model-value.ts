@@ -105,22 +105,23 @@ export function createModelWriter(
     if (!pending) {
       pending = []
       nextTick(() => {
-        try {
-          // Invariant: non-empty while a flush is scheduled; the guard just
-          // keeps a (hypothetical) empty batch from emitting an unchanged model.
-          if (!pending?.length) return
-          let next = getModel()
-          for (const item of pending) {
-            next = setIn(next, item.prop, item.value)
-          }
-          emit(next)
-        } catch (error) {
-          // A failing flush (bad path, setIn on a mismatched node, ...) must
-          // not wedge the writer: reset below so later updates flush again.
-          console.error('[vue-formless] flush of coalesced model writes failed:', error)
-        } finally {
-          pending = null
+        // Detach the batch before flushing: a throwing `getModel` / `emit`
+        // must not wedge the writer, since `pending` is already null and the
+        // next update schedules a fresh flush. It also keeps a re-entrant
+        // update (fired synchronously from `emit`) out of this batch instead
+        // of appending it to an array this flush is about to drop.
+        const batch = pending
+        pending = null
+
+        // Invariant: non-empty while a flush is scheduled; the guard just
+        // keeps a (hypothetical) empty batch from emitting an unchanged model.
+        if (!batch?.length) return
+
+        let next = getModel()
+        for (const item of batch) {
+          next = setIn(next, item.prop, item.value)
         }
+        emit(next)
       })
     }
     pending.push({ prop, value })

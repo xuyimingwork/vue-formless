@@ -13,11 +13,11 @@ import {
  * it lives with the adapter, not in vue-formless core.
  */
 
-/** Convert one kernel location to ElFormItem `prop` dot notation. */
-function toDotPath(path: string): string {
-  return parsePath(path)
-    .map((seg) => (seg.type === 'key' ? seg.key : String(seg.index)))
-    .join('.')
+/** Convert one kernel location to ElFormItem `prop` dot notation; undefined when unparsable. */
+function toDotPath(path: string): string | undefined {
+  const segments = parsePath(path)
+  if (!segments) return undefined
+  return segments.map((seg) => (seg.type === 'key' ? seg.key : String(seg.index))).join('.')
 }
 
 /** One location → dotted host prop; several v-model ports in one cell → field key (ADR-011 §6). */
@@ -26,7 +26,7 @@ export function resolveFormItemProp(
   fieldKey: string,
 ): string {
   if (binding.props.length === 1) {
-    return toDotPath(binding.props[0]!)
+    return toDotPath(binding.props[0]!) ?? fieldKey
   }
   return fieldKey
 }

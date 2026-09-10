@@ -38,9 +38,9 @@ declare module 'vue-formless' {
 function toItemProp(binding: ItemFl['binding'], fieldKey: string): string {
   if (binding.props.length > 1) return fieldKey // multi-port in one cell
   const [location] = binding.props
-  return parsePath(location)
-    .map((seg) => (seg.type === 'key' ? seg.key : String(seg.index)))
-    .join('.')
+  const segments = parsePath(location)
+  if (!segments) return fieldKey // unparsable / empty prop: fall back to the control key
+  return segments.map((seg) => (seg.type === 'key' ? seg.key : String(seg.index))).join('.')
 }
 
 export const FormView = createFormView({

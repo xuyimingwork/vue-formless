@@ -37,9 +37,9 @@ declare module 'vue-formless' {
 function toItemProp(binding: ItemFl['binding'], fieldKey: string): string {
   if (binding.props.length > 1) return fieldKey // 多口一格退回控件键
   const [location] = binding.props
-  return parsePath(location)
-    .map((seg) => (seg.type === 'key' ? seg.key : String(seg.index)))
-    .join('.')
+  const segments = parsePath(location)
+  if (!segments) return fieldKey // 非法 / 空 prop：退回控件键
+  return segments.map((seg) => (seg.type === 'key' ? seg.key : String(seg.index))).join('.')
 }
 
 export const FormView = createFormView({

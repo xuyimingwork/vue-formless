@@ -26,50 +26,50 @@ describe('parsePath', () => {
       ])
     })
 
-    it("returns no segments for the empty path '' (rejected later, by setIn)", () => {
-      expect(parsePath('')).toEqual([])
+    it("returns undefined for the empty path '' (not a legal location)", () => {
+      expect(parsePath('')).toBeUndefined()
     })
   })
 
-  describe('rejects an invalid prop', () => {
-    it("throws on a non-integer index in 'buyers[abc]'", () => {
-      expect(() => parsePath('buyers[abc]')).toThrow(/index/)
+  describe('returns undefined for an invalid prop instead of throwing', () => {
+    it("returns undefined for a non-integer index in 'buyers[abc]'", () => {
+      expect(parsePath('buyers[abc]')).toBeUndefined()
     })
 
-    it("throws on an unclosed bracket in 'buyers['", () => {
-      expect(() => parsePath('buyers[')).toThrow(/unclosed/)
+    it("returns undefined for an unclosed bracket in 'buyers['", () => {
+      expect(parsePath('buyers[')).toBeUndefined()
     })
 
-    it("throws on a doubled dot in 'a..b'", () => {
-      expect(() => parsePath('a..b')).toThrow(/consecutive "\."/)
+    it("returns undefined for a doubled dot in 'a..b'", () => {
+      expect(parsePath('a..b')).toBeUndefined()
     })
 
-    it("throws on a leading dot in '.a'", () => {
-      expect(() => parsePath('.a')).toThrow(/expected an identifier/)
+    it("returns undefined for a leading dot in '.a'", () => {
+      expect(parsePath('.a')).toBeUndefined()
     })
 
-    it("throws on a trailing dot in 'a.'", () => {
-      expect(() => parsePath('a.')).toThrow(/trailing "\."/)
+    it("returns undefined for a trailing dot in 'a.'", () => {
+      expect(parsePath('a.')).toBeUndefined()
     })
 
-    it("throws on a dots-only path in '..' instead of parsing to no segments", () => {
-      expect(() => parsePath('..')).toThrow(/expected an identifier/)
+    it("returns undefined for a dots-only path in '..'", () => {
+      expect(parsePath('..')).toBeUndefined()
     })
 
-    it("throws on a dot after a bracket in '[0].'", () => {
-      expect(() => parsePath('[0].')).toThrow(/trailing "\."/)
+    it("returns undefined for a dot after a bracket in '[0].'", () => {
+      expect(parsePath('[0].')).toBeUndefined()
     })
 
-    it("throws on an empty bracket in 'buyers[]' instead of an empty key", () => {
-      expect(() => parsePath('buyers[]')).toThrow(/non-negative integer/)
+    it("returns undefined for an empty bracket in 'buyers[]' instead of an empty key", () => {
+      expect(parsePath('buyers[]')).toBeUndefined()
     })
 
-    it("throws on unquoted whitespace in a bracket in 'buyers[ ]'", () => {
-      expect(() => parsePath('buyers[ ]')).toThrow(/quoted object key/)
+    it("returns undefined for unquoted whitespace in a bracket in 'buyers[ ]'", () => {
+      expect(parsePath('buyers[ ]')).toBeUndefined()
     })
 
-    it("throws on a whitespace-only unquoted path in '  '", () => {
-      expect(() => parsePath('  ')).toThrow(/expected an identifier/)
+    it("returns undefined for a whitespace-only unquoted path in '  '", () => {
+      expect(parsePath('  ')).toBeUndefined()
     })
   })
 
@@ -131,8 +131,8 @@ describe('parsePath', () => {
       expect(parsePath('["0"]')).toEqual([{ type: 'key', key: '0' }])
     })
 
-    it("throws on an unclosed quoted key in 'map[\"x'", () => {
-      expect(() => parsePath('map["x')).toThrow(/unclosed quoted key/)
+    it("returns undefined for an unclosed quoted key in 'map[\"x'", () => {
+      expect(parsePath('map["x')).toBeUndefined()
     })
 
     // A quoted segment is the total escape hatch: any string key a JS object
@@ -180,12 +180,12 @@ describe('parsePath', () => {
       ])
     })
 
-    it("throws when the bracket does not close right after the quote in 'map[\"x\"y]'", () => {
-      expect(() => parsePath('map["x"y]')).toThrow(/expected "\]"/)
+    it("returns undefined when the bracket does not close right after the quote in 'map[\"x\"y]'", () => {
+      expect(parsePath('map["x"y]')).toBeUndefined()
     })
 
-    it("throws on an unclosed bracket after a closing quote in 'map[\"x\"'", () => {
-      expect(() => parsePath('map["x"')).toThrow(/unclosed bracket/)
+    it("returns undefined for an unclosed bracket after a closing quote in 'map[\"x\"'", () => {
+      expect(parsePath('map["x"')).toBeUndefined()
     })
   })
 })

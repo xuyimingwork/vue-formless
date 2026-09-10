@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { getIn, setIn } from './model-path'
 
 describe('getIn', () => {
@@ -52,6 +52,22 @@ describe('getIn', () => {
     it("returns undefined when reading '[5].name' on a 1-item array", () => {
       expect(getIn([{ name: 'Ada' }], '[5].name')).toBeUndefined()
     })
+
+    it("returns undefined when reading an invalid prop like 'a..b'", () => {
+      expect(getIn({ name: 'Ada' }, 'a..b')).toBeUndefined()
+    })
+  })
+
+  it('stays silent on a shape mismatch instead of warning', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      expect(getIn([{ name: 'Ada' }], 'email')).toBeUndefined()
+      expect(getIn({ m: { '0': { name: 'Ada' } } }, 'm[0]')).toBeUndefined()
+      expect(getIn([{ name: 'Ada' }], 'email.foo')).toBeUndefined()
+      expect(spy).not.toHaveBeenCalled()
+    } finally {
+      spy.mockRestore()
+    }
   })
 })
 
@@ -104,13 +120,15 @@ describe('setIn', () => {
     })
   })
 
-  describe('throws on an invalid prop', () => {
-    it("throws 'Cannot set an empty path' when setting '' to 'Bob'", () => {
-      expect(() => setIn({ name: 'Ada' }, '', 'Bob')).toThrow(/empty path/)
+  describe('leaves the root unchanged on an invalid or empty prop', () => {
+    it("returns the root unchanged when setting '' to 'Bob'", () => {
+      const root = { name: 'Ada' }
+      expect(setIn(root, '', 'Bob')).toEqual({ name: 'Ada' })
     })
 
-    it("throws when setting the key 'length' on an array root", () => {
-      expect(() => setIn(['Ada'], 'length', 2)).toThrow(/array/)
+    it("returns the root unchanged when setting an invalid prop like 'a..b'", () => {
+      const root = { name: 'Ada' }
+      expect(setIn(root, 'a..b', 'Bob')).toEqual({ name: 'Ada' })
     })
   })
 })
@@ -184,38 +202,32 @@ describe('quoted keys that are not identifiers (reachability: any string key)', 
   })
 })
 
-describe('shape-mismatch guards', () => {
-  afterEach(() => {
-    vi.restoreAllMocks()
+describe('shape mismatch on write (merge when the shape matches, overwrite when it does not)', () => {
+  it("overwrites an array with an object when a key lands on it: setIn(['Ada'], 'length', 2)", () => {
+    expect(setIn(['Ada'], 'length', 2)).toEqual({ length: 2 })
   })
 
-  describe('reads warn once per path instead of returning wrong data silently', () => {
-    it('warns when a key segment reads from an array', () => {
-      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-      expect(getIn([{ name: 'Ada' }], 'email')).toBeUndefined()
-      expect(getIn([{ name: 'Ada' }], 'email')).toBeUndefined() // deduped
-      expect(spy).toHaveBeenCalledTimes(1)
-      expect(spy.mock.calls[0]![0]).toMatch(/reading object key "email" from an array/)
-    })
-
-    it('warns when an index segment reads from an object', () => {
-      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-      expect(getIn({ m: { '0': { name: 'Ada' } } }, 'm[0]')).toBeUndefined()
-      expect(spy).toHaveBeenCalledTimes(1)
-      expect(spy.mock.calls[0]![0]).toMatch(/reading array index "\[0\]" from an object/)
-    })
-
-    it('warns when an intermediate key segment reads from an array', () => {
-      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
-      expect(getIn([{ name: 'Ada' }], 'email.foo')).toBeUndefined()
-      expect(spy).toHaveBeenCalledTimes(1)
-      expect(spy.mock.calls[0]![0]).toMatch(/reading object key "email" from an array/)
+  it("overwrites an object with an array when an index lands on it: 'm[0].name' over a keyed map", () => {
+    expect(setIn({ m: { '0': { name: 'Ada' } } }, 'm[0].name', 'Bob')).toEqual({
+      m: [{ name: 'Bob' }],
     })
   })
 
-  it("throws when an index segment lands on a non-empty object in 'm[0].name'", () => {
-    expect(() => setIn({ m: { '0': { name: 'Ada' } } }, 'm[0].name', 'Bob')).toThrow(
-      /object node/,
-    )
+  it('stays silent on every overwrite instead of warning', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      // Non-empty containers dropped by a mismatch — previously warned.
+      expect(setIn(['Ada'], 'length', 2)).toEqual({ length: 2 })
+      expect(setIn({ m: { '0': { name: 'Ada' } } }, 'm[0].name', 'Bob')).toEqual({
+        m: [{ name: 'Bob' }],
+      })
+      // Empty containers and missing nodes grow silently.
+      expect(setIn({}, 'buyers[0].name', 'Bob')).toEqual({ buyers: [{ name: 'Bob' }] })
+      expect(setIn({ a: {} }, 'a[0].name', 'Bob')).toEqual({ a: [{ name: 'Bob' }] })
+      expect(setIn({ a: 1 }, 'a.b', 'Bob')).toEqual({ a: { b: 'Bob' } })
+      expect(spy).not.toHaveBeenCalled()
+    } finally {
+      spy.mockRestore()
+    }
   })
 })

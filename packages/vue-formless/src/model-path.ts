@@ -4,145 +4,104 @@
  */
 import { parsePath, type PathSegment } from './parse-model-path'
 
-/** Shape-mismatch reads already warned about, so one mistake doesn't spam. */
-const warnedReads = new Set<string>()
-
-function warnOnce(id: string, message: string): void {
-  if (warnedReads.has(id)) return
-  warnedReads.add(id)
-  console.warn(`[vue-formless] ${message}`)
-}
-
 /**
  * Values that can hold a child at a path segment: plain objects and arrays.
  * Primitives and missing nodes are not containers, so reads through them stop
  * and resolve to `undefined`.
  */
-function isContainer(value: unknown): value is Record<string, unknown> | unknown[] {
-  return value != null && typeof value === 'object'
+function isObjectLike(value: unknown): value is Record<string, unknown> | unknown[] {
+  return typeof value === 'object' && value !== null
 }
 
 /**
  * Read the value stored on `container` under `segment` (record key or array
- * index). A shape mismatch — key over an array, index over an object — reads
- * as `undefined` and warns once per path: under the B-track grammar the two
- * spellings are fixed (keys are `name` / `.0` / `["…"]`, arrays are `[n]`),
- * so a mismatch is usually a spelling mix-up worth surfacing.
+ * index) — the per-segment step of `readSegments`, and the descent step `setIn`
+ * reuses. A shape mismatch — key over an array, index over an object — reads as
+ * `undefined` and stays silent: under the B-track grammar the two spellings are
+ * fixed (keys are `name` / `.0` / `["…"]`, arrays are `[n]`), so a mismatch is a
+ * caller-side `path` bug, and reads never guess or warn (ADR-011).
  */
-function readChild(container: unknown, segment: PathSegment, path: string): unknown {
+function readSegment(container: unknown, segment: PathSegment): unknown {
   // Nothing to descend into: missing nodes and primitives read as `undefined`.
-  if (!isContainer(container)) return undefined
+  if (!isObjectLike(container)) return undefined
 
   // One block per segment type, each pairing its shape guard with its read, so
   // the branches stay symmetric and no type is treated as "the default".
   if (segment.type === 'key') {
-    if (Array.isArray(container)) {
-      if (container.length > 0) {
-        warnOnce(
-          `key-on-array:${path}`,
-          `reading object key "${segment.key}" from an array — object keys never address array items; ` +
-            `did you mean a "[index]" segment? (path "${path}")`,
-        )
-      }
-      return undefined
-    }
-    return container[segment.key]
+    return Array.isArray(container) ? undefined : container[segment.key]
   }
 
   if (segment.type === 'index') {
-    if (!Array.isArray(container)) {
-      if (Object.keys(container).length > 0) {
-        warnOnce(
-          `index-on-object:${path}`,
-          `reading array index "[${segment.index}]" from an object — bracket indexes address arrays only; ` +
-            `to read an object key write ".${segment.index}" or '["${segment.index}"]'. (path "${path}")`,
-        )
-      }
-      return undefined
-    }
-    return container[segment.index]
+    return Array.isArray(container) ? container[segment.index] : undefined
   }
 
-  // Unreachable while `PathSegment` stays a closed union; it exists so a future
-  // segment type reads as `undefined` with a trace instead of falling into
-  // whichever branch happens to come last.
-  warnOnce(
-    `unknown-segment-type:${path}`,
-    `unknown path segment type — ignoring it (path "${path}")`,
-  )
+  // Unreachable while `PathSegment` stays a closed union; a future segment type
+  // reads as `undefined` instead of falling into whichever branch comes last.
   return undefined
 }
 
 /**
- * Immutable read at a full `path` location (`buyers[0].name`). Every segment
- * goes through `readChild`, so a missing intermediate node reads as
- * `undefined` instead of throwing, and shape checks apply at every depth.
+ * Left fold over `segments`: one `readSegment` per level, so a missing
+ * intermediate node reads as `undefined` instead of throwing. `setIn` is the
+ * mirror image — the same walk, folding right while cloning each level.
  */
-export function getIn(root: unknown, path: string): unknown {
-  const segments = parsePath(path)
-  if (segments.length === 0) return undefined
+function readSegments(root: unknown, segments: PathSegment[]): unknown {
   let node: unknown = root
-  for (const segment of segments) {
-    node = readChild(node, segment, path)
-  }
+  for (const segment of segments) node = readSegment(node, segment)
   return node
 }
 
 /**
- * Recursive core of `setIn`: clone `node` along `segments` down to `depth`
- * and return the new subtree, leaving the input untouched.
+ * Immutable read at a full `path` location (`buyers[0].name`). An invalid or
+ * empty `path` reads as `undefined`: `parsePath` reports failure with
+ * `undefined` instead of throwing, and the caller owns fixing `path` (ADR-011).
  */
-function setInRec(
-  node: unknown,
-  segments: PathSegment[],
-  depth: number,
-  value: unknown,
-): unknown {
-  const seg = segments[depth]!
-  const isLeaf = depth === segments.length - 1
-
-  if (seg.type === 'key') {
-    if (Array.isArray(node)) {
-      throw new Error(`Cannot set "${seg.key}" on an array node`)
-    }
-    const record: Record<string, unknown> =
-      node != null && typeof node === 'object' ? (node as Record<string, unknown>) : {}
-    if (isLeaf) return { ...record, [seg.key]: value }
-    return {
-      ...record,
-      [seg.key]: setInRec(record[seg.key], segments, depth + 1, value),
-    }
-  }
-
-  // Bracket indexes address arrays only. Landing one on a non-empty object
-  // would silently replace the object with an array, dropping its keys — a
-  // likely `.0` / `["0"]` vs `[0]` mix-up, so refuse loudly. Empty objects
-  // and missing nodes still grow into arrays (ADR-011 tolerant writes).
-  if (
-    node != null &&
-    typeof node === 'object' &&
-    !Array.isArray(node) &&
-    Object.keys(node).length > 0
-  ) {
-    throw new Error(
-      `Cannot set "[${seg.index}]" on an object node — bracket indexes address arrays only; ` +
-        `to write an object key use ".${seg.index}" or '["${seg.index}"]'`,
-    )
-  }
-  const arr = Array.isArray(node) ? [...node] : []
-  if (isLeaf) {
-    arr[seg.index] = value
-    return arr
-  }
-  arr[seg.index] = setInRec(arr[seg.index], segments, depth + 1, value)
-  return arr
+export function getIn(root: unknown, path: string): unknown {
+  const segments = parsePath(path)
+  return segments ? readSegments(root, segments) : undefined
 }
 
-/** Immutable write at a full `path` location (`buyers[0].name`). Arrays are cloned. */
+/**
+ * Immutable write at a full `path` location (`buyers[0].name`). Contract
+ * (ADR-011): the write side stays as silent as the read side.
+ *
+ * - walk `segments` with `readSegment` above; an invalid or empty `path` returns
+ *   `root` unchanged (no throw, no warn);
+ * - a segment whose shape matches the node merges, keeping siblings — a `key`
+ *   over an object, or an `index` over an array (clone the array first);
+ * - a segment whose shape mismatches overwrites the node with the shape the
+ *   segment addresses rather than throwing: a `key` over an array becomes an
+ *   object, an `index` over an object becomes an array, and the overwrite never
+ *   warns — a mismatched `path` is a caller-side bug and reads already stay
+ *   quiet about it;
+ * - never mutate `root`: clone every level on the way to the leaf.
+ */
 export function setIn(root: unknown, path: string, value: unknown): unknown {
   const segments = parsePath(path)
-  if (segments.length === 0) {
-    throw new Error('Cannot set an empty path')
+  return segments ? writeSegments(root, segments, value) : root
+}
+
+function writeSegments(root: unknown, segments: PathSegment[], value: unknown): unknown {
+  if (!segments.length) return root
+  if (segments.length === 1) return writeSegment(root, segments[0], value)
+  
+  const [segment, ...rest] = segments
+  return writeSegment(
+    root, 
+    segment, 
+    writeSegments(readSegment(root, segment), rest, value)
+  )
+}
+
+function writeSegment(root: unknown, segment: PathSegment, value: unknown): unknown {
+  if (segment.type === 'key') {
+    const base = isObjectLike(root) && !Array.isArray(root) ? root : {}
+    return { ...base, [segment.key]: value }
   }
-  return setInRec(root, segments, 0, value)
+  if (segment.type === 'index') {
+    const arr = Array.isArray(root) ? [...root] : []
+    arr[segment.index] = value
+    return arr
+  }
+  return root
 }
