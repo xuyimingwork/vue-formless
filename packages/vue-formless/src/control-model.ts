@@ -4,7 +4,7 @@
  * - `prop`  — location(s) from FormView root (`name`, `buyers[0].name`). Default: field key.
  * `prop` array pairs with `model` (prefix-aligned). Extra model ports are unbound.
  */
-import { formItemProp, getIn } from './model-path'
+import { getIn } from './model-path'
 
 export type ControlVModel = string | readonly string[]
 export type ControlProp = string | readonly string[]
@@ -49,21 +49,6 @@ export function resolveControlBinding(
   }
 
   return { models, props }
-}
-
-/**
- * Optional Element-style encoding: one location → dotted path; several →
- * field key. Kernel does not put this on Item `fl` — the adapter Item
- * calls this (or encodes another way) when mapping to host `prop`.
- */
-export function resolveFormItemProp(
-  binding: ResolvedControlBinding,
-  fieldKey: string,
-): string {
-  if (binding.props.length === 1) {
-    return formItemProp(binding.props[0]!)
-  }
-  return fieldKey
 }
 
 /** Slice a multi-port binding to one v-model port (ADR-013 / ADR-020 `useFormCell('start')`). */

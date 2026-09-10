@@ -64,16 +64,6 @@ export function readWidgetFormless(component: unknown): WidgetFormless {
   return omitUndefined({ model, item, cell, prop }) as WidgetFormless
 }
 
-/** Kernel `fl:*` declared as component props (`fl:prop` → `prop`). */
-export function declaredFl(props: Record<string, unknown>): Record<string, unknown> {
-  const out: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(props)) {
-    if (!key.startsWith('fl:') || key.length <= 3 || value === undefined) continue
-    out[key.slice(3)] = value
-  }
-  return out
-}
-
 /** Page attrs must not override factory v-model ports on the widget. */
 export function stripPortBindings(
   attrs: Record<string, unknown>,

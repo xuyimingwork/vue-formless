@@ -1,6 +1,6 @@
 import {
+  computed,
   defineComponent,
-  getCurrentInstance,
   h,
   inject,
   markRaw,
@@ -8,15 +8,16 @@ import {
   reactive,
   ref,
   type Component,
+  type DefineComponent,
   type PropType,
   type VNodeChild,
 } from 'vue'
-import { FORM_VIEW_KEY, type FormContext } from './injection-keys'
-import { createFormModelWriter } from './form-model-writer'
 import { createLayoutView } from '@vue-formless/layout'
+import { FORM_VIEW_KEY, type FormContext } from './injection-keys'
+import { useFormViewModelValue } from './use-form-view-model-value'
 import type { ItemFl } from './item-adapter'
 import { overlayProps, resolveProps, type HostProps } from './overlay-props'
-import { takePrefixed, toOptionalNumber } from './split-fallthrough'
+import { toAttrBoolean, useFormlessProps } from './split-fallthrough'
 
 export interface FormViewLayoutBind {
   Row: Component
@@ -51,9 +52,13 @@ export type FormFormProp = boolean | 'auto'
 /** Column density when factory `layout.column` and `:row:column` are omitted. */
 const DEFAULT_COLUMN = 1
 
-const ROW_PREFIX = 'row:'
-
 export interface FormViewProps {
+  /**
+   * FormView write model (the DTO). Declared as a real prop so the value
+   * never falls through into the host Form's fallthrough bag. The
+   * `onUpdate:modelValue` listener is read from `attrs` by
+   * `useFormViewModelValue` and is peeled off the host Form props.
+   */
   modelValue?: unknown
   /**
    * Grid hosting switch. Default `false`.
@@ -72,10 +77,12 @@ export interface FormViewProps {
 }
 
 export interface FormFl {
-  layout: boolean
-  form: boolean
-  item: boolean
-  /** FormView write-model; map to the host via `form.props` (e.g. `{ model: fl.modelValue }`). */
+  /**
+   * FormView write model (the DTO). `form.props` maps it to the host's model
+   * source (e.g. `{ model: fl.modelValue }`). Function `props` receive only
+   * this today; a per-field shape for host projection (ADR-014 `fields`) is
+   * deferred — add members here when it lands.
+   */
   modelValue: unknown
 }
 
@@ -96,50 +103,21 @@ function proxyExpose(host: { value: object | null }): object {
   )
 }
 
-const formViewProps = {
-  modelValue: {
-    type: [Object, Array] as PropType<unknown>,
-    default: undefined,
-  },
-  'fl:layout': {
-    type: Boolean as PropType<FormLayoutProp>,
-    default: false,
-  },
-  'row:column': { type: Number, default: undefined },
-  'fl:form': {
-    type: [Boolean, String] as PropType<FormFormProp>,
-    default: 'auto',
-  },
-  'fl:item': {
-    type: Boolean,
-    default: true,
-  },
-}
-
-const formViewEmits = {
-  'update:modelValue': (_value: unknown) => true,
-}
-
-export function isFlLayoutOn(value: unknown): boolean {
-  if (value != null && typeof value === 'object') {
-    throw new Error('[vue-formless] fl:layout is boolean only; use :row:column / :row:*')
-  }
-  return value === true || value === ''
-}
-
-function resolveFormOn(value: FormFormProp, nested: boolean): boolean {
+function resolveFormOn(value: unknown, nested: boolean): boolean {
   if (value === true || value === false) return value
+  if (value === 'true' || value === '') return true
+  if (value === 'false') return false
   return !nested
 }
 
-function hasIncomingVModel(raw: Record<string, unknown> | null | undefined): boolean {
-  if (raw == null) return false
-  return (
-    'modelValue' in raw ||
-    'model-value' in raw ||
-    'onUpdate:modelValue' in raw ||
-    'onUpdate:model-value' in raw
-  )
+/** FormView owns the v-model port; keep it off the host Form's bag. */
+function stripVModelPort(attrs: Record<string, unknown>): Record<string, unknown> {
+  const rest: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(attrs)) {
+    if (key === 'onUpdate:modelValue' || key === 'onUpdate:model-value') continue
+    rest[key] = value
+  }
+  return rest
 }
 
 function provideFormViewContext(options: {
@@ -165,48 +143,6 @@ function provideFormViewContext(options: {
       LayoutView: markRaw(options.LayoutView),
     }) as FormContext,
   )
-}
-
-function resolveFormViewData(
-  getBoundModel: () => unknown,
-  emitUpdate: (next: unknown) => void,
-): { getModel: () => unknown; update: FormContext['update'] } {
-  const parent = inject(FORM_VIEW_KEY, null)
-  const incoming = hasIncomingVModel(getCurrentInstance()?.vnode.props as Record<string, unknown> | null)
-
-  if (incoming) {
-    const writer = createFormModelWriter(getBoundModel, emitUpdate)
-    return { getModel: getBoundModel, update: writer.update }
-  }
-
-  if (parent) {
-    return {
-      getModel: () => parent.model,
-      update: parent.update,
-    }
-  }
-
-  throw new Error('[vue-formless] FormView requires v-model unless nested inside another FormView.')
-}
-
-/** Peel `:row:*` for LayoutView; `column` is density, the rest fall through to host Row. */
-function splitRowChannel(
-  attrs: Record<string, unknown>,
-  declaredColumn: number | undefined,
-  column: number,
-): {
-  layoutProps: Record<string, unknown>
-  restAttrs: Record<string, unknown>
-} {
-  const { taken: rowTaken, rest: restAttrs } = takePrefixed(attrs, ROW_PREFIX)
-  const { column: rowColumnAttr, ...rowHostAttrs } = rowTaken
-  return {
-    layoutProps: {
-      column: declaredColumn ?? toOptionalNumber(rowColumnAttr) ?? column,
-      ...rowHostAttrs,
-    },
-    restAttrs,
-  }
 }
 
 /**
@@ -235,103 +171,69 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
   return defineComponent({
     name: 'FormView',
     inheritAttrs: false,
-    props: formViewProps,
-    emits: formViewEmits,
-    setup(props, { slots, emit, attrs, expose }) {
+    props: {
+      modelValue: {
+        type: [Object, Array] as PropType<unknown>,
+        default: undefined,
+      },
+    },
+    setup(props, { slots, attrs, expose }) {
       const hostForm = ref<object | null>(null)
       expose(proxyExpose(hostForm))
 
       const nested = inject(FORM_VIEW_KEY, null) != null
-      const { getModel, update } = resolveFormViewData(
+      const { props: hostAttrs, rowProps, formlessProps } = useFormlessProps(
+        attrs as Record<string, unknown>,
+      )
+
+      /** v-model write port: fallthrough listener (camel or DOM-case tag). */
+      const { model, update } = useFormViewModelValue(
         () => props.modelValue,
-        (next) => emit('update:modelValue', next),
+        () => {
+          const raw = attrs['onUpdate:modelValue'] || attrs['onUpdate:model-value']
+          return typeof raw === 'function' ? (raw as (next: unknown) => void) : undefined
+        },
       )
 
       provideFormViewContext({
-        getModel,
+        getModel: () => model.value,
         update,
         Item,
         itemProps,
-        getItem: () => props['fl:item'] !== false,
+        getItem: () => toAttrBoolean(formlessProps.value.item, true),
         LayoutView,
       })
 
       return (): VNodeChild => {
-        const enabled = isFlLayoutOn(props['fl:layout'])
-        const { layoutProps, restAttrs } = splitRowChannel(
-          attrs as Record<string, unknown>,
-          props['row:column'],
-          column,
-        )
         const body = h(
           LayoutView,
           {
-            disabled: !enabled,
-            ...layoutProps,
+            ...overlayProps({ column }, rowProps.value),
+            disabled: !toAttrBoolean(formlessProps.value.layout, false),
           },
           { default: slots.default },
         )
 
-        const formOn = Form ? resolveFormOn(props['fl:form'] as FormFormProp, nested) : false
+        const formOn = Form ? resolveFormOn(formlessProps.value.form, nested) : false
         if (!Form || !formOn) return body
 
-        const fl: FormFl = {
-          layout: enabled,
-          form: formOn,
-          item: props['fl:item'] !== false,
-          modelValue: getModel(),
-        }
+        // Function form.props(fl) gets the DTO only (ADR-016; fields deferred).
+        const fl: FormFl = { modelValue: model.value }
 
+        // Factory form.props(fl) sets host defaults; tag host attrs overlay (near wins).
+        // The v-model value is a declared prop and its update:modelValue listener
+        // is owned by useFormViewModelValue — neither lands on the host Form.
         return h(
           Form,
           {
             ref: hostForm,
-            ...overlayProps(resolveProps(formProps, fl), restAttrs),
+            ...overlayProps(resolveProps(formProps, fl), stripVModelPort(hostAttrs.value)),
           },
           { default: () => body },
         )
       }
     },
-  })
+  }) as FormViewComponent
 }
 
-export type FormViewComponent = Component
-
-const defaultLayoutView = createLayoutView()
-
-/**
- * Context-only FormView (no Row/Col/Form/Item). Prefer `createFormView({ layout: { Row, Col } })`.
- */
-export const FormView = defineComponent({
-  name: 'FormView',
-  inheritAttrs: false,
-  props: formViewProps,
-  emits: formViewEmits,
-  setup(props, { slots, emit, attrs }) {
-    const { getModel, update } = resolveFormViewData(
-      () => props.modelValue,
-      (next) => emit('update:modelValue', next),
-    )
-    provideFormViewContext({
-      getModel,
-      update,
-      getItem: () => props['fl:item'] !== false,
-      LayoutView: defaultLayoutView,
-    })
-    return (): VNodeChild => {
-      const { layoutProps } = splitRowChannel(
-        attrs as Record<string, unknown>,
-        props['row:column'],
-        DEFAULT_COLUMN,
-      )
-      return h(
-        defaultLayoutView,
-        {
-          disabled: !isFlLayoutOn(props['fl:layout']),
-          ...layoutProps,
-        },
-        { default: slots.default },
-      )
-    }
-  },
-})
+export type FormViewComponent = DefineComponent<FormViewProps>

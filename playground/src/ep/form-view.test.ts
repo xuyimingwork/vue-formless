@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it } from 'vitest'
 import './vue-formless-aug'
-import { toEpItemProps } from './form-view'
+import { resolveFormItemProp, toEpItemProps } from './form-view'
 import { User } from '../demos/formless/user'
 import type { ComponentPublicProps, FormFieldProps, FormCellTagProps, ItemFl } from 'vue-formless'
 
@@ -31,6 +31,29 @@ describe('toEpItemProps', () => {
         fieldKey: 'timeRange',
         binding: { models: ['start', 'end'], props: ['startTime', 'endTime'] },
       }).prop,
+    ).toBe('timeRange')
+  })
+})
+
+describe('resolveFormItemProp', () => {
+  describe('single-port binding: kernel location → dotted ElFormItem prop', () => {
+    it.each([
+      ['name', 'name'],
+      ['buyers[0].name', 'buyers.0.name'],
+      ['[2].title', '2.title'],
+    ])("converts '%s' into '%s'", (location, expected) => {
+      expect(
+        resolveFormItemProp({ models: ['modelValue'], props: [location] }, 'name'),
+      ).toBe(expected)
+    })
+  })
+
+  it('multi-port binding in one cell falls back to the field key', () => {
+    expect(
+      resolveFormItemProp(
+        { models: ['start', 'end'], props: ['startTime', 'endTime'] },
+        'timeRange',
+      ),
     ).toBe('timeRange')
   })
 })

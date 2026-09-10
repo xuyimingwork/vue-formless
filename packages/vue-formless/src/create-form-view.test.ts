@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createSSRApp, defineComponent, h, nextTick, type PropType, type VNode } from 'vue'
 import { renderToString } from 'vue/server-renderer'
-import { createFormView, FormView } from './create-form-view'
+import { createFormView } from './create-form-view'
 import { FormCell } from './FormCell'
 import { useFormContext } from './context'
 
@@ -68,11 +68,13 @@ async function render(vnode: VNode): Promise<string> {
 }
 
 describe('createFormView', () => {
-  it('throws at the root when v-model is omitted', async () => {
+  it('warns but still renders at the root when v-model is omitted', async () => {
     const FormView = View()
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const error = vi.spyOn(console, 'error').mockImplementation(() => {})
-    await expect(render(h(FormView))).rejects.toThrow(/requires v-model/)
+    await expect(render(h(FormView))).resolves.toContain('<form')
+    expect(warn).toHaveBeenCalledTimes(1)
+    expect(warn.mock.calls[0]![0]).toContain('Root FormView has no v-model')
     warn.mockRestore()
     error.mockRestore()
   })
@@ -92,6 +94,41 @@ describe('createFormView', () => {
     expect(emit).toHaveBeenCalledTimes(1)
     expect(emit.mock.calls[0]![0]).toEqual({ name: 'Bob' })
     expect(emit.mock.calls[0]![0]).not.toBe(source)
+  })
+
+  it('writes into a root array v-model and clones on emit', async () => {
+    const FormView = View()
+    const source = [{ name: 'Ada' }]
+    const emit = vi.fn()
+    await render(
+      h(
+        FormView,
+        { modelValue: source, 'onUpdate:modelValue': emit },
+        () => h(Writer('[0].name', 'Bob')),
+      ),
+    )
+    await nextTick()
+    expect(emit).toHaveBeenCalledTimes(1)
+    expect(emit.mock.calls[0]![0]).toEqual([{ name: 'Bob' }])
+    expect(emit.mock.calls[0]![0]).not.toBe(source)
+    expect(source[0]).toEqual({ name: 'Ada' })
+  })
+
+  it('merges same-tick nested array writes into one emit', async () => {
+    const FormView = View()
+    const source = { buyers: [{ name: 'Ada', gender: 'f' }] }
+    const emit = vi.fn()
+    await render(
+      h(
+        FormView,
+        { modelValue: source, 'onUpdate:modelValue': emit },
+        () => h('div', [h(Writer('buyers[0].name', 'Bob')), h(Writer('buyers[0].gender', 'm'))]),
+      ),
+    )
+    await nextTick()
+    expect(emit).toHaveBeenCalledTimes(1)
+    expect(emit.mock.calls[0]![0]).toEqual({ buyers: [{ name: 'Bob', gender: 'm' }] })
+    expect(source.buyers[0]).toEqual({ name: 'Ada', gender: 'f' })
   })
 
   it('wraps Form at the root by default and skips it for nested auto', async () => {
@@ -287,21 +324,6 @@ describe('createFormView', () => {
     )
     expect(html).toContain('gutter="16"')
     expect(html).toContain('span="8"')
-  })
-
-  it('throws when fl:layout is an object', async () => {
-    const FormView = View()
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
-    await expect(
-      render(
-        h(FormView, { modelValue: {}, 'fl:layout': { column: 3 } as never }, () =>
-          h(FormCell, { 'fl:prop': 'name' }),
-        ),
-      ),
-    ).rejects.toThrow(/boolean only/)
-    warn.mockRestore()
-    error.mockRestore()
   })
 })
 

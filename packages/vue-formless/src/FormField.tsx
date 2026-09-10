@@ -4,7 +4,6 @@ import {
   provide,
   type Component,
   type DefineComponent,
-  type PropType,
   type VNodeChild,
 } from 'vue'
 import { camelToPascal } from './case'
@@ -16,7 +15,6 @@ import {
 } from './control-model'
 import { useFormContext } from './context'
 import {
-  declaredFl,
   omitShellKeys,
   readWidgetFormless,
   schemaExtras,
@@ -32,17 +30,8 @@ import type {
 } from './item-adapter'
 import { getIn } from './model-path'
 import { overlayProps, resolveProps, type HostProps } from './overlay-props'
-import {
-  splitFallthrough,
-  splitFlAttrs,
-  splitSlots,
-  takePrefixed,
-  toOptionalNumber,
-} from './split-fallthrough'
+import { splitFallthrough, splitSlots, useFormlessProps } from './split-fallthrough'
 import type { ColPlace, ColSpanRaw } from '@vue-formless/layout'
-
-const COL_PREFIX = 'col:'
-const ROW_PREFIX = 'row:'
 
 export type { FormFieldProps } from './item-adapter'
 
@@ -60,15 +49,6 @@ export type FieldSchemaInput = Omit<FieldSchema, 'component'> & {
 }
 
 export type FormFieldComponent<P = {}> = DefineComponent<FormFieldProps & P>
-
-const fieldFlProps = {
-  'fl:prop': { type: [String, Array] as PropType<string | string[]>, default: undefined },
-  'fl:item': { type: Boolean, default: undefined },
-  'fl:cell': { type: String as PropType<FieldCell>, default: undefined },
-  'col:span': { type: [String, Number] as PropType<ColSpanRaw>, default: undefined },
-  'col:place': { type: String as PropType<ColPlace>, default: undefined },
-  'row:column': { type: Number, default: undefined },
-}
 
 function resolveCellMode(
   tagCell: unknown,
@@ -115,8 +95,7 @@ export function createFormFieldComponent(
   return defineComponent({
     name: `Field_${camelToPascal(fieldKey)}`,
     inheritAttrs: false,
-    props: fieldFlProps,
-    setup(fieldProps, { attrs, slots }) {
+    setup(_, { attrs, slots }) {
       const ctx = useFormContext()
       const runtime: FieldRuntime = {
         fieldKey,
@@ -126,11 +105,12 @@ export function createFormFieldComponent(
       }
       provide(FIELD_RUNTIME_KEY, runtime)
 
+      const { props, rowProps, colProps, formlessProps } = useFormlessProps(
+        attrs as Record<string, unknown>,
+      )
+
       return (): VNodeChild => {
-        const { fl: attrFl, rest: afterFl } = splitFlAttrs(attrs as Record<string, unknown>)
-        const { taken: colTaken, rest: afterCol } = takePrefixed(afterFl, COL_PREFIX)
-        const { taken: rowTaken, rest } = takePrefixed(afterCol, ROW_PREFIX)
-        const tagFl = { ...attrFl, ...declaredFl(fieldProps as Record<string, unknown>) }
+        const tagFl = formlessProps.value
         const binding = resolveControlBinding(
           fieldKey,
           { model: lockedModel, prop: lockedProp },
@@ -147,7 +127,7 @@ export function createFormFieldComponent(
         runtime.item = internalItem
 
         const { itemSlots, inputSlots } = splitSlots(slots)
-        const { itemAttrs, itemOn, inputAttrs } = splitFallthrough(rest)
+        const { itemAttrs, itemOn, inputAttrs } = splitFallthrough(props.value)
         const snapshot = fieldSnapshot(ctx, fieldKey, binding, extras, tagFl)
         const mergedProps = overlayProps(
           resolveProps(cluster?.props, snapshot),
@@ -156,10 +136,9 @@ export function createFormFieldComponent(
         )
         const modelBindings = applyControlBinding(ctx.model, binding, ctx.update)
 
-        const colSpan = (fieldProps['col:span'] ?? colTaken.span) as ColSpanRaw | undefined
-        const colPlace = (fieldProps['col:place'] ?? colTaken.place) as ColPlace | undefined
-        const rowColumn = toOptionalNumber(fieldProps['row:column'] ?? rowTaken.column)
-        const { column: _rowColumnAttr, ...rowHostAttrs } = rowTaken
+        const colSpan = colProps.value.span as ColSpanRaw | undefined
+        const colPlace = colProps.value.place as ColPlace | undefined
+        const { column: rowColumn, ...rowHostAttrs } = rowProps.value
 
         if (cell !== 'wrap-embed' && (rowColumn != null || Object.keys(rowHostAttrs).length > 0)) {
           console.warn('[vue-formless] :row:* is ignored on a leaf field')

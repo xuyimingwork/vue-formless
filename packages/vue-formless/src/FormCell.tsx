@@ -4,7 +4,6 @@ import {
   inject,
   provide,
   type DefineComponent,
-  type PropType,
   type VNodeChild,
 } from 'vue'
 import { LayoutCell } from '@vue-formless/layout'
@@ -16,7 +15,7 @@ import {
   type ResolvedControlBinding,
 } from './control-model'
 import { useFormContext } from './context'
-import { declaredFl, omitShellKeys } from './fl-config'
+import { omitShellKeys } from './fl-config'
 import {
   FIELD_RUNTIME_KEY,
   FORM_CELL_PORT_KEY,
@@ -25,15 +24,7 @@ import {
 import type { FormCellTagProps, ItemFl } from './item-adapter'
 import { getIn } from './model-path'
 import { overlayProps, resolveProps } from './overlay-props'
-import {
-  splitFallthrough,
-  splitFlAttrs,
-  splitSlots,
-  takePrefixed,
-} from './split-fallthrough'
-
-const COL_PREFIX = 'col:'
-const ROW_PREFIX = 'row:'
+import { splitFallthrough, splitSlots, useFormlessProps } from './split-fallthrough'
 
 /** `Component` is a union; JSX needs a constructable host. */
 type JsxHost = new () => { $props: Record<string, unknown> }
@@ -50,12 +41,6 @@ export type FormCellProps = FormCellTagProps & {
 }
 
 export type FormCellComponent = DefineComponent<FormCellProps>
-
-/** Only keys the kernel reads; `col:*` stay in attrs and fall through to LayoutCell. */
-const formCellProps = {
-  'fl:prop': { type: [String, Array] as PropType<string | string[]>, default: undefined },
-  'fl:item': { type: Boolean, default: undefined },
-}
 
 function resolveAdHocBinding(tagFl: Record<string, unknown>): {
   fieldKey: string
@@ -87,8 +72,7 @@ function resolveAdHocBinding(tagFl: Record<string, unknown>): {
 export const FormCell = defineComponent({
   name: 'FormCell',
   inheritAttrs: false,
-  props: formCellProps,
-  setup(props, { slots, attrs }) {
+  setup(_, { slots, attrs }) {
     const ctx = useFormContext()
     const runtime = inject(FIELD_RUNTIME_KEY, null)
     const port = inject(FORM_CELL_PORT_KEY, null)
@@ -96,20 +80,9 @@ export const FormCell = defineComponent({
       throw new Error('[vue-formless] useFormCell(port) must be used inside a namespaced field.')
     }
 
-    const bags = computed(() => {
-      const { fl: attrFl, rest: afterFl } = splitFlAttrs(attrs as Record<string, unknown>)
-      const { taken: colProps, rest: afterCol } = takePrefixed(afterFl, COL_PREFIX)
-      const { taken: row, rest } = takePrefixed(afterCol, ROW_PREFIX)
-      const cellFl = overlayProps(attrFl, declaredFl(props as Record<string, unknown>))
-      const { itemAttrs, itemOn: itemListeners, inputAttrs } = splitFallthrough(rest)
-      return {
-        colProps,
-        row,
-        cellFl,
-        itemAttrs: { ...itemAttrs, ...inputAttrs },
-        itemListeners,
-      }
-    })
+    const { props, rowProps, colProps, formlessProps } = useFormlessProps(
+      attrs as Record<string, unknown>,
+    )
 
     /** page < field (schema/widget) < cell (tag). Near wins; undefined does not write. */
     const fl = computed(() =>
@@ -118,7 +91,7 @@ export const FormCell = defineComponent({
         runtime
           ? overlayProps(runtime.extras, { item: runtime.item })
           : undefined,
-        bags.value.cellFl,
+        formlessProps.value,
       ),
     )
 
@@ -128,7 +101,7 @@ export const FormCell = defineComponent({
           port != null ? bindingForPort(runtime.binding, port) : runtime.binding
         return { fieldKey: runtime.fieldKey, binding }
       }
-      return resolveAdHocBinding(bags.value.cellFl)
+      return resolveAdHocBinding(formlessProps.value)
     })
 
     const itemFl = computed((): ItemFl => {
@@ -147,16 +120,17 @@ export const FormCell = defineComponent({
 
     const itemOn = computed(() => ctx.Item != null && fl.value.item === true)
 
-    const itemProps = computed(() =>
-      overlayProps(
+    const itemProps = computed(() => {
+      const { itemAttrs, itemOn: itemListeners, inputAttrs } = splitFallthrough(props.value)
+      return overlayProps(
         resolveProps(ctx.itemProps, itemFl.value),
-        bags.value.itemAttrs,
-        bags.value.itemListeners,
-      ),
-    )
+        { ...itemAttrs, ...inputAttrs },
+        itemListeners,
+      )
+    })
 
     return (): VNodeChild => {
-      if (Object.keys(bags.value.row).length > 0) {
+      if (Object.keys(rowProps.value).length > 0) {
         console.warn('[vue-formless] :row:* is ignored on a leaf cell')
       }
       const { itemSlots } = splitSlots(slots)
@@ -175,7 +149,7 @@ export const FormCell = defineComponent({
           inner
         )
 
-      return <LayoutCell {...bags.value.colProps}>{body}</LayoutCell>
+      return <LayoutCell {...colProps.value}>{body}</LayoutCell>
     }
   },
 }) as FormCellComponent

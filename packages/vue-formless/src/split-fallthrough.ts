@@ -1,4 +1,4 @@
-import type { Slot, Slots } from 'vue'
+import { computed, type ComputedRef, type Slot, type Slots } from 'vue'
 
 const ITEM_PREFIX = 'item:'
 const ITEM_ON_PREFIX = 'onItem:'
@@ -105,6 +105,50 @@ export function toOptionalNumber(value: unknown): number | undefined {
   const n = typeof value === 'number' ? value : Number(value)
   if (!Number.isFinite(n)) return undefined
   return n
+}
+
+/**
+ * Vue attr / boolean-attr → boolean.
+ * `true` / `''` (bare attr) → true; `false` / `'false'` → false; missing → `defaultValue`.
+ */
+export function toAttrBoolean(value: unknown, defaultValue = false): boolean {
+  if (value === undefined || value === null) return defaultValue
+  if (value === true || value === '') return true
+  if (value === false || value === 'false') return false
+  if (value === 'true') return true
+  return defaultValue
+}
+
+export interface FormlessPropBags {
+  /** Unprefixed host fallthrough (`item:` / listeners stay here). */
+  props: Record<string, unknown>
+  rowProps: Record<string, unknown>
+  colProps: Record<string, unknown>
+  formlessProps: Record<string, unknown>
+}
+
+/** Peel `fl:` / `row:` / `col:` once. */
+export function splitFormlessProps(attrs: Record<string, unknown>): FormlessPropBags {
+  const { fl: formlessProps, rest: afterFl } = splitFlAttrs(attrs)
+  const { taken: colProps, rest: afterCol } = takePrefixed(afterFl, COL_PREFIX)
+  const { taken: rowProps, rest: props } = takePrefixed(afterCol, ROW_PREFIX)
+  return { props, rowProps, colProps, formlessProps }
+}
+
+/** Reactive bags over Vue `attrs` (or any attr record). Shared by FormView / Field / Cell. */
+export function useFormlessProps(attrs: Record<string, unknown>): {
+  props: ComputedRef<Record<string, unknown>>
+  rowProps: ComputedRef<Record<string, unknown>>
+  colProps: ComputedRef<Record<string, unknown>>
+  formlessProps: ComputedRef<Record<string, unknown>>
+} {
+  const bags = computed(() => splitFormlessProps(attrs))
+  return {
+    props: computed(() => bags.value.props),
+    rowProps: computed(() => bags.value.rowProps),
+    colProps: computed(() => bags.value.colProps),
+    formlessProps: computed(() => bags.value.formlessProps),
+  }
 }
 
 /**

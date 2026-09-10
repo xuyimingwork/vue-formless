@@ -9,6 +9,8 @@
   - 2026-08-19 — 宿主 Item `prop` 由适配器编码，内核 snapshot 只给 `binding` + `fieldKey` + `getValues()`。见 [ADR-014](./014-multi-vmodel-host-validation.md)。
   - 2026-08-25 — 标签覆盖改为 `:fl:prop`（[ADR-015](./015-formless-config-groups.md)）。`prop` 禁止空串。`model` 锁在 component / 控件 `formless`；格上无 `fl:model`。
   - 2026-08-27 — **取消独立 `path`**。位置只写 `prop`（可含 `buyers[0].name` / `` `buyers[${$index}].name` ``）。原先 `path` + 叶子的拆分多一个名字，表格用完整 `prop` 即可。
+  - 2026-09-09 — 宿主 Item `prop` 的 **dot 编码**（`resolveFormItemProp` / `toDotPath`）移出内核到 Element 适配层；内核只保留 `parsePath` 语法解析 + `getIn` / `setIn` 读写。
+  - 2026-09-09 — **键文法扩展**：`.` 数字段与 `["…"]` 引号段 = **对象键**（数字键 map、含点键可达）；`[n]` 仍是数组段唯一写法。shape 错配读写带提示（读 warn / 写 throw）。
 - **来源**：相对 [ADR-009](./009-controls-as-protagonist.md) §6 的修订
 
 ## 背景
@@ -46,11 +48,15 @@ agency: {
 ### 2. `prop` 语法
 
 - 对象键：`buyer`、`name`
-- 数组段：**必须**写 `[index]`，如 `[0]`、`` `[${$index}]` ``
-- 组合：`buyers[0].name`、`buyers[0].addresses[1].city`
+- **数字键**：`.0` 或引号 `["0"]` / `['0']`（数字键 map，如 `map.0.name`、`` `${id}.name` ``）。数字开头的标识符也是键：`map.5f8a.nick`。
+- **含分隔符的键**：写引号段 `map["user.name"].x` / `map["a[b]"].x`，`\` 转义引号。键段禁止空串。
+- 数组段：**必须**写 `[index]`，如 `[0]`、`` `[${$index}]` ``。`.` 数字是**对象键**不是下标；`[n]` 与 `.n` 永不互指。
+- 组合：`buyers[0].name`、`buyers[0].addresses[1].city`、`map.0.name`。
 - **`prop` array** 只表示多口接线（与 `model` 前缀对齐），不是路径段数组。不要 `prop: ['buyers', 0, 'name']`。
 
-FormView writer 解析 `[index]`，对数组段 **clone 再 emit**，禁止 `arr[i] = x` 绕过 v-model。
+FormView writer 解析 `[index]`，对数组段 **clone 再 emit**，禁止 `arr[i] = x` 绕过 v-model。内核 shape 错配给提示：键段落在数组 / 下标落在对象时 **读 warn 一次**（同一 path 去重）、**写 throw**（防把 keyed map 静默改写成数组）。
+
+keyed-map **行编辑 UI**（遍历键 / 增删键）不属于内核：`getIn` / `setIn` 只保证这类 model 的**数据读写可达**，表格/列表行编辑仍是数组向的 `[${$index}]` 故事。
 
 ### 3. `prop` 与 `model` 配对
 
@@ -79,9 +85,7 @@ FormView writer 解析 `[index]`，对数组段 **clone 再 emit**，禁止 `arr
 
 ### 6. 宿主 Item `prop` 不由内核决定
 
-内核 Item `fl` 只给 `binding`、`fieldKey`、`getValues()`，**不**预计算 ElFormItem `prop`。
-
-Element 适配可用 `resolveFormItemProp`（单一位置 → `formItemProp` → `buyers.0.name`；多口一格 → 控件键）或自己编码。Form 投影键必须与 Item 写出的 `prop` 一致。见 [ADR-012](./012-input-item-and-rule-compile.md) / [ADR-014](./014-multi-vmodel-host-validation.md)。
+内核 Item `fl` 只给 `binding`、`fieldKey`、`getValues()`，**不**预计算 ElFormItem `prop`。内核只提供 `parsePath` 语法解析（把 `buyers[0].name` 拆成段）；把位置编码成宿主 `prop` 形态是适配层职责——Element 需要 dot（`buyers.0.name`，单口）或控件键（多口一格），别的宿主可以用自己的写法（如 namePath 数组）。本仓库示例见 `playground/src/ep/form-view.ts`。Form 投影键必须与 Item 写出的 `prop` 一致。见 [ADR-012](./012-input-item-and-rule-compile.md) / [ADR-014](./014-multi-vmodel-host-validation.md)。
 
 一颗 control 铺 **多格** Item 时，适配按口派生位置，见 [ADR-013](./013-one-control-multiple-items.md)。
 

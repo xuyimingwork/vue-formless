@@ -2,9 +2,11 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   splitFallthrough,
   splitFlAttrs,
+  splitFormlessProps,
   splitLayoutAttrs,
   splitSlots,
   takePrefixed,
+  toAttrBoolean,
   toOptionalNumber,
 } from './split-fallthrough'
 import type { Slot, Slots } from 'vue'
@@ -68,6 +70,38 @@ describe('toOptionalNumber', () => {
     expect(toOptionalNumber(NaN)).toBeUndefined()
     expect(toOptionalNumber(0)).toBe(0)
     expect(toOptionalNumber('12')).toBe(12)
+  })
+})
+
+describe('toAttrBoolean', () => {
+  it('maps Vue boolean-attr shapes and falls back when missing', () => {
+    expect(toAttrBoolean(undefined)).toBe(false)
+    expect(toAttrBoolean(undefined, true)).toBe(true)
+    expect(toAttrBoolean(null, true)).toBe(true)
+    expect(toAttrBoolean(true)).toBe(true)
+    expect(toAttrBoolean('')).toBe(true)
+    expect(toAttrBoolean('true')).toBe(true)
+    expect(toAttrBoolean(false)).toBe(false)
+    expect(toAttrBoolean('false')).toBe(false)
+    expect(toAttrBoolean('nope', true)).toBe(true)
+  })
+})
+
+describe('splitFormlessProps', () => {
+  it('peels fl / row / col and leaves host props', () => {
+    const bags = splitFormlessProps({
+      'fl:layout': true,
+      'fl:item': false,
+      'row:column': '3',
+      'row:gutter': 16,
+      'col:span': '2x',
+      labelWidth: 96,
+      'item:label': 'x',
+    })
+    expect(bags.formlessProps).toEqual({ layout: true, item: false })
+    expect(bags.rowProps).toEqual({ column: '3', gutter: 16 })
+    expect(bags.colProps).toEqual({ span: '2x' })
+    expect(bags.props).toEqual({ labelWidth: 96, 'item:label': 'x' })
   })
 })
 

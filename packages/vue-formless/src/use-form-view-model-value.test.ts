@@ -1,12 +1,12 @@
 import { nextTick } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
-import { createFormModelWriter } from './form-model-writer'
+import { createModelWriter } from './use-form-view-model-value'
 
-describe('createFormModelWriter', () => {
+describe('createModelWriter', () => {
   it('does not mutate the source object', async () => {
     const source: Record<string, unknown> = { name: 'Ada' }
     const emit = vi.fn()
-    const { update } = createFormModelWriter(() => source, emit)
+    const { update } = createModelWriter(() => source, emit)
 
     update('name', 'Bob')
     await nextTick()
@@ -20,7 +20,7 @@ describe('createFormModelWriter', () => {
   it('merges same-tick root updates into one emit', async () => {
     const propsModel: Record<string, unknown> = {}
     const emit = vi.fn()
-    const { update } = createFormModelWriter(() => propsModel, emit)
+    const { update } = createModelWriter(() => propsModel, emit)
 
     update('start', 1)
     update('end', 2)
@@ -33,7 +33,7 @@ describe('createFormModelWriter', () => {
   it('merges same-tick nested path updates into one emit', async () => {
     const order = { buyers: [{ name: 'Ada', gender: 'f' }] }
     const emit = vi.fn()
-    const { update } = createFormModelWriter(() => order, emit)
+    const { update } = createModelWriter(() => order, emit)
 
     update('buyers[0].name', 'Bob')
     update('buyers[0].gender', 'm')
@@ -51,7 +51,7 @@ describe('createFormModelWriter', () => {
     const emit = vi.fn((next: Record<string, unknown>) => {
       model = next
     })
-    const { update } = createFormModelWriter(() => model, emit)
+    const { update } = createModelWriter(() => model, emit)
 
     update('a', 1)
     await nextTick()
@@ -61,5 +61,31 @@ describe('createFormModelWriter', () => {
     expect(emit).toHaveBeenCalledTimes(2)
     expect(emit.mock.calls[0]![0]).toEqual({ a: 1 })
     expect(emit.mock.calls[1]![0]).toEqual({ a: 2 })
+  })
+
+  it('recovers after a flush throws instead of wedging the writer', async () => {
+    const model: Record<string, unknown> = { name: 'Ada' }
+    const emit = vi.fn()
+    const { update } = createModelWriter(() => model, emit)
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    try {
+      // Empty path makes setIn throw inside the flush callback.
+      update('', 'oops')
+      await nextTick()
+
+      expect(emit).not.toHaveBeenCalled()
+      expect(errorSpy).toHaveBeenCalledTimes(1)
+
+      // The failed flush must not wedge the writer: a later write still
+      // schedules a fresh flush and emits.
+      update('name', 'Bob')
+      await nextTick()
+
+      expect(emit).toHaveBeenCalledTimes(1)
+      expect(emit.mock.calls[0]![0]).toEqual({ name: 'Bob' })
+    } finally {
+      errorSpy.mockRestore()
+    }
   })
 })

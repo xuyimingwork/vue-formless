@@ -1,6 +1,5 @@
 export {
   createFormView,
-  FormView,
   type CreateFormViewOptions,
   type FormViewLayoutBind,
   type FormViewHostBind,
@@ -31,18 +30,18 @@ export {
   resolveControlBinding,
   applyControlBinding,
   bindingForPort,
-  resolveFormItemProp,
   toBindingList,
   type ControlBindingOverrides,
   type ResolvedControlBinding,
 } from './control-model'
 export {
-  parsePath,
   getIn,
   setIn,
-  formItemProp,
-  type PathSegment,
 } from './model-path'
+export {
+  parsePath,
+  type PathSegment,
+} from './parse-model-path'
 export {
   type ColSpanRaw,
   type ColPlace,

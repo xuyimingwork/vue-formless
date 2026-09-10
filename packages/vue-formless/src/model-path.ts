@@ -1,47 +1,13 @@
 /**
- * Parse `prop` location strings: object keys and `[index]` segments.
- * Examples: `name`, `buyers[0].name`, `[2].title`
+ * Immutable get/set over model paths (ADR-011). Path strings such as
+ * `buyers[0].name` are parsed into segments by `./parse-model-path`.
  */
-export type PathSegment =
-  | { type: 'key'; key: string }
-  | { type: 'index'; index: number }
+import { parsePath, type PathSegment } from './parse-model-path'
 
-export function parsePath(prop: string): PathSegment[] {
-  if (!prop) return []
-  const segments: PathSegment[] = []
-  let i = 0
-  while (i < prop.length) {
-    if (prop[i] === '.') {
-      i++
-      continue
-    }
-    if (prop[i] === '[') {
-      const close = prop.indexOf(']', i + 1)
-      if (close === -1) {
-        throw new Error(`Invalid path "${prop}": unclosed bracket`)
-      }
-      const raw = prop.slice(i + 1, close)
-      const index = Number(raw)
-      if (!Number.isInteger(index) || String(index) !== raw || index < 0) {
-        throw new Error(`Invalid path "${prop}": index must be a non-negative integer`)
-      }
-      segments.push({ type: 'index', index })
-      i = close + 1
-    } else {
-      const match = /^[a-zA-Z_$][a-zA-Z0-9_$]*/.exec(prop.slice(i))
-      if (!match) {
-        throw new Error(`Invalid path "${prop}" at position ${i}`)
-      }
-      segments.push({ type: 'key', key: match[0] })
-      i += match[0].length
-    }
-  }
-  return segments
-}
-
-function getNode(root: unknown, segments: PathSegment[]): unknown {
-  let node = root
-  for (const seg of segments) {
+/** Walk `subPath` down from `root` and return the node it lands on. */
+function descend(root: unknown, subPath: PathSegment[]): unknown {
+  let node: unknown = root
+  for (const seg of subPath) {
     if (seg.type === 'key') {
       node = (node as Record<string, unknown>)[seg.key]
     } else {
@@ -51,27 +17,65 @@ function getNode(root: unknown, segments: PathSegment[]): unknown {
   return node
 }
 
-function readLeaf(parent: unknown, leaf: PathSegment): unknown {
-  if (leaf.type === 'key') {
-    if (parent == null || typeof parent !== 'object' || Array.isArray(parent)) {
+/** Shape-mismatch reads already warned about, so one mistake doesn't spam. */
+const warnedReads = new Set<string>()
+
+function warnOnce(id: string, message: string): void {
+  if (warnedReads.has(id)) return
+  warnedReads.add(id)
+  console.warn(`[vue-formless] ${message}`)
+}
+
+/**
+ * Read the value stored on `container` under `segment` (record key or array
+ * index). A shape mismatch — key over an array, index over an object — reads
+ * as `undefined` and warns once per path: under the B-track grammar the two
+ * spellings are fixed (keys are `name` / `.0` / `["…"]`, arrays are `[n]`),
+ * so a mismatch is usually a spelling mix-up worth surfacing.
+ */
+function readChild(container: unknown, segment: PathSegment, path: string): unknown {
+  if (segment.type === 'key') {
+    if (container == null || typeof container !== 'object') return undefined
+    if (Array.isArray(container)) {
+      if (container.length > 0) {
+        warnOnce(
+          `key-on-array:${path}`,
+          `reading object key "${segment.key}" from an array — object keys never address array items; ` +
+            `did you mean a "[index]" segment? (path "${path}")`,
+        )
+      }
       return undefined
     }
-    return (parent as Record<string, unknown>)[leaf.key]
+    return (container as Record<string, unknown>)[segment.key]
   }
-  if (!Array.isArray(parent)) return undefined
-  return parent[leaf.index]
+  if (container == null) return undefined
+  if (!Array.isArray(container)) {
+    if (typeof container === 'object' && Object.keys(container).length > 0) {
+      warnOnce(
+        `index-on-object:${path}`,
+        `reading array index "[${segment.index}]" from an object — bracket indexes address arrays only; ` +
+          `to read an object key write ".${segment.index}" or '["${segment.index}"]'. (path "${path}")`,
+      )
+    }
+    return undefined
+  }
+  return container[segment.index]
 }
 
-export function getIn(root: unknown, prop: string): unknown {
-  const segments = parsePath(prop)
+export function getIn(root: unknown, path: string): unknown {
+  const segments = parsePath(path)
   if (segments.length === 0) return undefined
   const leaf = segments[segments.length - 1]!
-  const parent = getNode(root, segments.slice(0, -1))
-  return readLeaf(parent, leaf)
+  const parent = descend(root, segments.slice(0, -1))
+  return readChild(parent, leaf, path)
 }
 
-function setAt(
-  current: unknown,
+/**
+ * Recursive core of `setIn`: clone `node` along `segments` down to `depth`
+ * and return the new subtree, leaving the input untouched.
+ */
+function setInRec(
+  node: unknown,
   segments: PathSegment[],
   depth: number,
   value: unknown,
@@ -80,41 +84,47 @@ function setAt(
   const isLeaf = depth === segments.length - 1
 
   if (seg.type === 'key') {
-    if (Array.isArray(current)) {
+    if (Array.isArray(node)) {
       throw new Error(`Cannot set "${seg.key}" on an array node`)
     }
-    const base =
-      current != null && typeof current === 'object'
-        ? (current as Record<string, unknown>)
-        : {}
-    if (isLeaf) return { ...base, [seg.key]: value }
+    const record: Record<string, unknown> =
+      node != null && typeof node === 'object' ? (node as Record<string, unknown>) : {}
+    if (isLeaf) return { ...record, [seg.key]: value }
     return {
-      ...base,
-      [seg.key]: setAt(base[seg.key], segments, depth + 1, value),
+      ...record,
+      [seg.key]: setInRec(record[seg.key], segments, depth + 1, value),
     }
   }
 
-  const arr = Array.isArray(current) ? [...current] : []
+  // Bracket indexes address arrays only. Landing one on a non-empty object
+  // would silently replace the object with an array, dropping its keys — a
+  // likely `.0` / `["0"]` vs `[0]` mix-up, so refuse loudly. Empty objects
+  // and missing nodes still grow into arrays (ADR-011 tolerant writes).
+  if (
+    node != null &&
+    typeof node === 'object' &&
+    !Array.isArray(node) &&
+    Object.keys(node).length > 0
+  ) {
+    throw new Error(
+      `Cannot set "[${seg.index}]" on an object node — bracket indexes address arrays only; ` +
+        `to write an object key use ".${seg.index}" or '["${seg.index}"]'`,
+    )
+  }
+  const arr = Array.isArray(node) ? [...node] : []
   if (isLeaf) {
     arr[seg.index] = value
     return arr
   }
-  arr[seg.index] = setAt(arr[seg.index], segments, depth + 1, value)
+  arr[seg.index] = setInRec(arr[seg.index], segments, depth + 1, value)
   return arr
 }
 
-/** Immutable write at a full `prop` location (`buyers[0].name`). Arrays are cloned. */
-export function setIn(root: unknown, prop: string, value: unknown): unknown {
-  const segments = parsePath(prop)
+/** Immutable write at a full `path` location (`buyers[0].name`). Arrays are cloned. */
+export function setIn(root: unknown, path: string, value: unknown): unknown {
+  const segments = parsePath(path)
   if (segments.length === 0) {
-    throw new Error('Cannot set an empty prop')
+    throw new Error('Cannot set an empty path')
   }
-  return setAt(root, segments, 0, value)
-}
-
-/** Dot-notation path for ElFormItem `prop` (e.g. `buyers.0.name`). */
-export function formItemProp(prop: string): string {
-  return parsePath(prop)
-    .map((seg) => (seg.type === 'key' ? seg.key : String(seg.index)))
-    .join('.')
+  return setInRec(root, segments, 0, value)
 }

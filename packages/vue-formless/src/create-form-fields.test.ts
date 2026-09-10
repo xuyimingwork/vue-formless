@@ -6,11 +6,10 @@ import {
   applyControlBinding,
   bindingForPort,
   resolveControlBinding,
-  resolveFormItemProp,
 } from './control-model'
 import { createFormFields, type ComponentPublicProps } from './create-form-fields'
 import { readWidgetFormless } from './fl-config'
-import { createFormView, FormView } from './create-form-view'
+import { createFormView } from './create-form-view'
 import { FormCell, useFormCell } from './FormCell'
 
 describe('case', () => {
@@ -164,26 +163,6 @@ describe('applyControlBinding', () => {
     expect(bindings.modelValue).toBe('Ada')
     expect(bindings.option).toBeUndefined()
     expect(bindings['onUpdate:option']).toBeUndefined()
-  })
-})
-
-describe('resolveFormItemProp', () => {
-  it('uses the sole prop, otherwise field key (Element helper)', () => {
-    expect(
-      resolveFormItemProp({ models: ['modelValue'], props: ['title'] }, 'name'),
-    ).toBe('title')
-    expect(
-      resolveFormItemProp(
-        { models: ['modelValue'], props: ['buyers[0].name'] },
-        'name',
-      ),
-    ).toBe('buyers.0.name')
-    expect(
-      resolveFormItemProp(
-        { models: ['start', 'end'], props: ['startTime', 'endTime'] },
-        'timeRange',
-      ),
-    ).toBe('timeRange')
   })
 })
 

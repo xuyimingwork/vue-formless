@@ -1,6 +1,5 @@
 export {
   createFormView,
-  FormView,
   type CreateFormViewOptions,
   type FormViewLayoutBind,
   type FormViewHostBind,

@@ -25,12 +25,21 @@ peer：`vue` ^3.3。
 
 ```ts
 import { ElCol, ElForm, ElFormItem, ElInput, ElRow } from 'element-plus'
-import { createFormFields, createFormView, resolveFormItemProp, type ItemFl } from 'vue-formless'
+import { createFormFields, createFormView, parsePath, type ItemFl } from 'vue-formless'
 
 declare module 'vue-formless' {
   interface FieldSchema {
     label?: string
   }
+}
+
+// ElFormItem 的 `prop` 用点分路径；内核位置（`buyers[0].name`）由本层编码（ADR-011 §6）。
+function toItemProp(binding: ItemFl['binding'], fieldKey: string): string {
+  if (binding.props.length > 1) return fieldKey // 多口一格退回控件键
+  const [location] = binding.props
+  return parsePath(location)
+    .map((seg) => (seg.type === 'key' ? seg.key : String(seg.index)))
+    .join('.')
 }
 
 export const FormView = createFormView({
@@ -43,7 +52,7 @@ export const FormView = createFormView({
     component: ElFormItem,
     props: (fl: ItemFl) => ({
       label: fl.label,
-      prop: resolveFormItemProp(fl.binding, fl.fieldKey),
+      prop: toItemProp(fl.binding, fl.fieldKey),
     }),
   },
 })
