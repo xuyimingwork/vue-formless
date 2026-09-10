@@ -35,6 +35,19 @@ export function omitUndefined(
   return out
 }
 
+/** Shallow copy of `record` without `keys`. Values are copied as-is. */
+export function omit(
+  record: Record<string, unknown>,
+  keys: Iterable<string>,
+): Record<string, unknown> {
+  const skip = new Set(keys)
+  const out: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(record)) {
+    if (!skip.has(key)) out[key] = value
+  }
+  return out
+}
+
 /** Drop outer-shell flags so they never land on inner Item `fl`. */
 export function omitShellKeys(fl: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {}

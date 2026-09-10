@@ -16,6 +16,7 @@ import { createLayoutView } from '@vue-formless/layout'
 import { FORM_VIEW_KEY, type FormContext } from './injection-keys'
 import { useFormViewModelValue } from './use-form-view-model-value'
 import type { ItemFl } from './item-adapter'
+import { omit } from './fl-config'
 import { overlayProps, resolveProps, type HostProps } from './overlay-props'
 import { toAttrBoolean, useFormlessProps } from './split-fallthrough'
 
@@ -51,6 +52,9 @@ export type FormFormProp = boolean | 'auto'
 
 /** Column density when factory `layout.column` and `:row:column` are omitted. */
 const DEFAULT_COLUMN = 1
+
+/** v-model fallthrough listeners; FormView owns them, not the host Form. */
+const V_MODEL_PORT_KEYS = ['onUpdate:modelValue', 'onUpdate:model-value'] as const
 
 export interface FormViewProps {
   /**
@@ -103,23 +107,6 @@ function proxyExpose(host: { value: object | null }): object {
   )
 }
 
-function resolveFormOn(value: unknown, nested: boolean): boolean {
-  if (value === true || value === false) return value
-  if (value === 'true' || value === '') return true
-  if (value === 'false') return false
-  return !nested
-}
-
-/** FormView owns the v-model port; keep it off the host Form's bag. */
-function stripVModelPort(attrs: Record<string, unknown>): Record<string, unknown> {
-  const rest: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(attrs)) {
-    if (key === 'onUpdate:modelValue' || key === 'onUpdate:model-value') continue
-    rest[key] = value
-  }
-  return rest
-}
-
 function provideFormViewContext(options: {
   getModel: () => unknown
   update: FormContext['update']
@@ -162,7 +149,7 @@ function provideFormViewContext(options: {
 export function createFormView(options: CreateFormViewOptions = {}): FormViewComponent {
   const { Row, Col, column = DEFAULT_COLUMN } = options.layout ?? {}
   const Form = options.form?.component ? markRaw(options.form.component) : undefined
-  const formProps = options.form?.props
+  const formProps = typeof options.form?.props === 'function' ? options.form?.props : () => options.form?.props
   const Item = options.item?.component ? markRaw(options.item.component) : undefined
   const itemProps = options.item?.props
   /** Page LayoutView density only; not provided to Context / wrap-embed. */
@@ -214,11 +201,8 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
           { default: slots.default },
         )
 
-        const formOn = Form ? resolveFormOn(formlessProps.value.form, nested) : false
-        if (!Form || !formOn) return body
-
-        // Function form.props(fl) gets the DTO only (ADR-016; fields deferred).
-        const fl: FormFl = { modelValue: model.value }
+        if (!Form) return body
+        if (!toAttrBoolean(formlessProps.value.form, !nested)) return body
 
         // Factory form.props(fl) sets host defaults; tag host attrs overlay (near wins).
         // The v-model value is a declared prop and its update:modelValue listener
@@ -227,7 +211,7 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
           Form,
           {
             ref: hostForm,
-            ...overlayProps(resolveProps(formProps, fl), stripVModelPort(hostAttrs.value)),
+            ...overlayProps(formProps({ modelValue: model.value }) as any, omit(hostAttrs.value, V_MODEL_PORT_KEYS)),
           },
           { default: () => body },
         )
