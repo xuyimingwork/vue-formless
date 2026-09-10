@@ -14,12 +14,27 @@ function isObjectLike(value: unknown): value is Record<string, unknown> | unknow
 }
 
 /**
+ * Read `key` off `container` **only when it is an own property**. The write side
+ * always sets an own key (`{ ...base, [key]: value }`), so this keeps reads the
+ * inverse of writes: a segment like `constructor` / `toString` / `__proto__` is
+ * grammar-legal but not data, and reading it through the prototype chain would
+ * hand back a value `setIn` never wrote (ADR-011). `Object.prototype.hasOwnProperty`
+ * is called via `call` because `hasOwnProperty` is itself a reachable key.
+ */
+const hasOwn = Object.prototype.hasOwnProperty
+
+function readOwnProperty(container: Record<string, unknown>, key: string): unknown {
+  return hasOwn.call(container, key) ? container[key] : undefined
+}
+
+/**
  * Read the value stored on `container` under `segment` (record key or array
  * index) — the per-segment step of `readSegments`, and the descent step `setIn`
  * reuses. A shape mismatch — key over an array, index over an object — reads as
  * `undefined` and stays silent: under the B-track grammar the two spellings are
  * fixed (keys are `name` / `.0` / `["…"]`, arrays are `[n]`), so a mismatch is a
- * caller-side `path` bug, and reads never guess or warn (ADR-011).
+ * caller-side `path` bug, and reads never guess or warn (ADR-011). A key reads
+ * own properties only (`readOwnProperty`), so the prototype chain is not data.
  */
 function readSegment(container: unknown, segment: PathSegment): unknown {
   // Nothing to descend into: missing nodes and primitives read as `undefined`.
@@ -28,7 +43,7 @@ function readSegment(container: unknown, segment: PathSegment): unknown {
   // One block per segment type, each pairing its shape guard with its read, so
   // the branches stay symmetric and no type is treated as "the default".
   if (segment.type === 'key') {
-    return Array.isArray(container) ? undefined : container[segment.key]
+    return Array.isArray(container) ? undefined : readOwnProperty(container, segment.key)
   }
 
   if (segment.type === 'index') {

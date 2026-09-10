@@ -69,6 +69,42 @@ describe('getIn', () => {
       spy.mockRestore()
     }
   })
+
+  describe('reads own properties only (the prototype chain is not data)', () => {
+    it("returns undefined when reading the inherited key 'constructor'", () => {
+      expect(getIn({ name: 'Ada' }, 'constructor')).toBeUndefined()
+    })
+
+    it("returns undefined when reading the inherited key 'toString'", () => {
+      expect(getIn({ name: 'Ada' }, 'toString')).toBeUndefined()
+    })
+
+    it("returns undefined when reading the inherited key '__proto__'", () => {
+      expect(getIn({}, '__proto__')).toBeUndefined()
+      expect(getIn({}, '["__proto__"]')).toBeUndefined()
+    })
+
+    it('returns undefined for a default that lives on the prototype', () => {
+      const model = Object.create({ nickname: 'anon' }) as Record<string, unknown>
+      model.name = 'Ada'
+      expect(getIn(model, 'name')).toBe('Ada') // an own key still reads
+      expect(getIn(model, 'nickname')).toBeUndefined() // an inherited one does not
+    })
+
+    it('reads back a key that shadows an Object.prototype member once written', () => {
+      expect(getIn(setIn({}, 'toString', 'field'), 'toString')).toBe('field')
+    })
+
+    it("reads the 'hasOwnProperty' key without calling the shadowed method", () => {
+      expect(getIn(setIn({}, 'hasOwnProperty', 'field'), 'hasOwnProperty')).toBe('field')
+    })
+
+    it('writes and reads the quoted "__proto__" key as plain data, not as a prototype', () => {
+      const next = setIn({}, '["__proto__"]', 'x') as Record<string, unknown>
+      expect(getIn(next, '["__proto__"]')).toBe('x')
+      expect(Object.getPrototypeOf(next)).toBe(Object.prototype)
+    })
+  })
 })
 
 describe('setIn', () => {

@@ -13,6 +13,7 @@
   - 2026-09-09 — **键文法扩展**：`.` 数字段与 `["…"]` 引号段 = **对象键**（数字键 map、含点键可达）；`[n]` 仍是数组段唯一写法。shape 错配读写带提示（读 warn / 写 throw）。
   - 2026-09-10 — **引号段全称化**：引号键可承载任意字符串键——空白、`.` / `[]`、以及空串 `[""]`（`obj['']` 合法）。原「键段禁止空串」收紧为「**不加引号**的键段禁止空串」；`prop: ''`（整个绑定为空）仍禁止。可达性只由内核 `parsePath` / `getIn` / `setIn` 保证；宿主编码表达不了时（如 Element 的 dot）由适配层与使用侧自行收窄 `prop`，见 §6。
   - 2026-09-10 — **读写沉默化 + 写侧覆盖**：`parsePath` 对非法 / 空 `path` 返回 `undefined`，不再 throw / warn（调用方自己排查 `path`）；`getIn` 读侧错配一律读作 `undefined`、不再 warn；`setIn` 由「错配 throw」改为「形状匹配即合并 / 不匹配即覆盖」，覆盖时不提示（与读侧一致，内核读写全程不 warn、不 throw）。内核读写对称化为 `readSegments` / `readSegment` 与 `writeSegments` / `writeSegment`。
+  - 2026-09-10 — **读侧只看自有属性**：`getIn` 的键段经 `hasOwnProperty.call` 读**自有属性**，不穿透原型链——`constructor` / `toString` / `hasOwnProperty` / `__proto__` 等文法合法但并非数据的段读作 `undefined`，与 `setIn` 只写自有键互逆（`{ ...base, [key]: value }` 即自有属性）。`Object.create({ default })` 这类原型默认值不再可读：模型应是纯数据。`Object.prototype.hasOwnProperty` 用 `call` 调用，因 `hasOwnProperty` 本身也是可达键。
 - **来源**：相对 [ADR-009](./009-controls-as-protagonist.md) §6 的修订
 
 ## 背景
@@ -56,7 +57,7 @@ agency: {
 - 组合：`buyers[0].name`、`buyers[0].addresses[1].city`、`map.0.name`。
 - **`prop` array** 只表示多口接线（与 `model` 前缀对齐），不是路径段数组。不要 `prop: ['buyers', 0, 'name']`。
 
-FormView writer 解析 `[index]`，对数组段 **clone 再 emit**，禁止 `arr[i] = x` 绕过 v-model。内核 shape 错配：**读侧沉默**——错配段读作 `undefined`，不 warn；**写侧形状匹配即合并、不匹配即覆盖**（键落在数组 → 对象；下标落在对象 → 数组），覆盖同样不提示，不 throw。`parsePath` 对非法 / 空 `path` 返回 `undefined`，`getIn` 读作 `undefined`、`setIn` 原样返回 `root`，均不 throw、不 warn。
+FormView writer 解析 `[index]`，对数组段 **clone 再 emit**，禁止 `arr[i] = x` 绕过 v-model。内核 shape 错配：**读侧沉默**——错配段读作 `undefined`，不 warn；**写侧形状匹配即合并、不匹配即覆盖**（键落在数组 → 对象；下标落在对象 → 数组），覆盖同样不提示，不 throw。`parsePath` 对非法 / 空 `path` 返回 `undefined`，`getIn` 读作 `undefined`、`setIn` 原样返回 `root`，均不 throw、不 warn。读侧的键段只认**自有属性**（`hasOwnProperty.call`），原型链不算数据：`constructor` / `toString` / `__proto__` 等段读作 `undefined`，与写侧只写自有键对称。
 
 keyed-map **行编辑 UI**（遍历键 / 增删键）不属于内核：`getIn` / `setIn` 只保证这类 model 的**数据读写可达**，表格/列表行编辑仍是数组向的 `[${$index}]` 故事。
 
