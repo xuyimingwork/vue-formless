@@ -14,6 +14,7 @@
   - 2026-09-10 — **引号段全称化**：引号键可承载任意字符串键——空白、`.` / `[]`、以及空串 `[""]`（`obj['']` 合法）。原「键段禁止空串」收紧为「**不加引号**的键段禁止空串」；`prop: ''`（整个绑定为空）仍禁止。可达性只由内核 `parsePath` / `getIn` / `setIn` 保证；宿主编码表达不了时（如 Element 的 dot）由适配层与使用侧自行收窄 `prop`，见 §6。
   - 2026-09-10 — **读写沉默化 + 写侧覆盖**：`parsePath` 对非法 / 空 `path` 返回 `undefined`，不再 throw / warn（调用方自己排查 `path`）；`getIn` 读侧错配一律读作 `undefined`、不再 warn；`setIn` 由「错配 throw」改为「形状匹配即合并 / 不匹配即覆盖」，覆盖时不提示（与读侧一致，内核读写全程不 warn、不 throw）。内核读写对称化为 `readSegments` / `readSegment` 与 `writeSegments` / `writeSegment`。
   - 2026-09-10 — **读侧只看自有属性**：`getIn` 的键段经 `hasOwnProperty.call` 读**自有属性**，不穿透原型链——`constructor` / `toString` / `hasOwnProperty` / `__proto__` 等文法合法但并非数据的段读作 `undefined`，与 `setIn` 只写自有键互逆（`{ ...base, [key]: value }` 即自有属性）。`Object.create({ default })` 这类原型默认值不再可读：模型应是纯数据。`Object.prototype.hasOwnProperty` 用 `call` 调用，因 `hasOwnProperty` 本身也是可达键。
+  - 2026-09-10 — **通道前缀收敛**：`FormCell` → `FormItem`；`prop` 三义收敛为 `fl:prop`（绑定输入）与 `item:prop`（机械覆盖宿主 Item）；Field 内按口切片改 `fl:model`（**选口，非覆盖身份**）。见 [ADR-021](./021-channel-prefix-and-form-item.md)。
 - **来源**：相对 [ADR-009](./009-controls-as-protagonist.md) §6 的修订
 
 ## 背景

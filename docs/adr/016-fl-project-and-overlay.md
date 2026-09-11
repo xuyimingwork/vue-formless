@@ -1,7 +1,9 @@
 # ADR-016：fl → 宿主 props
 
-- **状态**：Accepted
+- **状态**：Accepted（修订）
 - **日期**：2026-08-26
+- **修订**：
+  - 2026-09-10 — §3 组树开关改前缀：`:fl:cell` → `:fl:tree`、`:fl:layout` → `:fl:grid`、`:col:*` → `:cell:*`、`:row:*` → `:layout:*`；`fl:` 定为「参与派生的语义源」，其余通道为机械落地。见 [ADR-021](./021-channel-prefix-and-form-item.md)。
 - **来源**：[ADR-012](./012-input-item-and-rule-compile.md) / [ADR-015](./015-formless-config-groups.md)。本文钉 **转化与覆盖**：`fl` 如何变成 Form / Item / Input 的 props，以及谁赢。
 
 ## 背景

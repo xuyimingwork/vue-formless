@@ -20,12 +20,13 @@
 | [012](./012-input-item-and-rule-compile.md) | 输入、Item 与校验合成 | Accepted（修订） |
 | [013](./013-one-control-multiple-items.md) | 一颗 Field、多格 Cell | Accepted（修订） |
 | [014](./014-multi-vmodel-host-validation.md) | 多口 control 与宿主校验 | Accepted（修订） |
-| [015](./015-formless-config-groups.md) | Formless 配置通道 | Accepted |
-| [016](./016-fl-project-and-overlay.md) | fl → 宿主 props | Accepted |
+| [015](./015-formless-config-groups.md) | Formless 配置通道 | Accepted（修订） |
+| [016](./016-fl-project-and-overlay.md) | fl → 宿主 props | Accepted（修订） |
 | [017](./017-composite-item-self.md) | 组合体 control、`item: 'self'` 与自述 | Superseded（[020](./020-form-view-cell-field.md)） |
-| [018](./018-col-take-rest.md) | `col:take="rest"`（实宽与行占用分离） | 待定 |
-| [019](./019-layout-row-window.md) | LayoutView `row` 窗口与必展示 / 自动 | 待定 |
-| [020](./020-form-view-cell-field.md) | FormView / FormCell / FormField 与 `cell` 三态 | Accepted |
+| [018](./018-col-take-rest.md) | `col:take="rest"`（实宽与行占用分离） | 待定（通道改 `cell:` 见 021） |
+| [019](./019-layout-row-window.md) | LayoutView `row` 窗口与必展示 / 自动 | 待定（通道改 `layout:` 见 021） |
+| [020](./020-form-view-cell-field.md) | FormView / FormCell / FormField 与 `cell` 三态 | Accepted（修订） |
+| [021](./021-channel-prefix-and-form-item.md) | 通道前缀 = 目标组件（FormCell → FormItem） | Accepted |
 
 ## 决策关系（简图）
 
@@ -40,7 +41,8 @@
  │              └── 012 component = 输入；Form / Item 适配 + slot；壳是 FormCell（020）
  │                   ├── 013 一颗 Field、N 格 Cell；默认外包 FormCell；组合体见 020 `cell`
  │                   ├── 020 FormView / FormCell / FormField；cell 三态 wrap / embed / wrap-embed；item 仅 ElFormItem
- │                   ├── 015 配置通道：无前缀宿主 / `fl:` 语义；写口仍是 v-model
+ │                   ├── 021 通道前缀 = 目标组件（fl: / layout: / cell: / item: / 裸名=主宿主）；FormCell → FormItem；cell 三态 → fl:tree
+ │                   ├── 015 配置通道：无前缀宿主 / `fl:` 语义；写口仍是 v-model（前缀与词表见 021）
  │                   └── 016 fl → 默认 props：对象或函数；近的赢；仅 Input v-model 锁死
  ├── 003 模板表达 = <User.Agency /> / <User.Name />
  ├── 004 运行时粘合 = Context + 域表（内核 UI 无关）

@@ -2,6 +2,8 @@
 
 - **状态**：待定
 - **日期**：2026-09-04
+- **修订**：
+  - 2026-09-10 — 通道前缀重写：窗口键（`column` / `gutter` / `row`）挂 `layout:`，格子 `show` 挂 `cell:`；`:row:row` 叠词消失（→ `layout:row`）。见 [ADR-021](./021-channel-prefix-and-form-item.md)。
 - **来源**：相对 [ADR-007](./007-layout-adapter-and-span-priority.md) / [ADR-008](./008-form-view-vmodel-and-grid-gcd.md) / [ADR-015](./015-formless-config-groups.md)。列表筛选条要收起成固定行数，查询 / 重置钉在最后一行末尾；展开后全部出现。
 
 ## 背景

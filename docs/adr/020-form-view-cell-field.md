@@ -1,7 +1,9 @@
 # ADR-020：FormView / FormCell / FormField 与 `cell` 三态
 
-- **状态**：Accepted
+- **状态**：Accepted（修订）
 - **日期**：2026-09-08
+- **修订**：
+  - 2026-09-10 — 词表重写：`FormCell` → `FormItem`（名字 = 主宿主，`cell` 让给 `LayoutCell`）；`cell` 三态改 `fl:tree`；`useFormCell(port)` 退场改 `fl:model`；通道前缀 = 目标组件。见 [ADR-021](./021-channel-prefix-and-form-item.md)。
 - **来源**：layout 抽离之后 formless 结构对照；相对 [009](./009-controls-as-protagonist.md) / [012](./012-input-item-and-rule-compile.md) / [013](./013-one-control-multiple-items.md) / [017](./017-composite-item-self.md) 的词表与壳模型重写。
 - **废止**：[017](./017-composite-item-self.md)（`item: 'self'`、`wrapCol` / `extraRow`、四档壳表）。013「一颗身份、N 格」仍成立，组装改由本文 `cell` 三态表达。
 - **库尚未发 1.0**：词汇准确优先于兼容；允许整表更名。

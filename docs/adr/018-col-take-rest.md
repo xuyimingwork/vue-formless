@@ -2,6 +2,8 @@
 
 - **状态**：待定
 - **日期**：2026-09-04
+- **修订**：
+  - 2026-09-10 — 通道前缀重写：`take` 挂在 `cell:`（LayoutCell），不再是 `col:take`；窗口键 `column` 挂 `layout:`。见 [ADR-021](./021-channel-prefix-and-form-item.md)。
 - **来源**：相对 [ADR-007](./007-layout-adapter-and-span-priority.md) / [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。到达时间等短控件要独占落地行，但不能把 Col 拉成 `max`（`width: 100%` 会跟 `column` 脱节）。
 
 ## 背景
