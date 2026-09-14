@@ -13,13 +13,13 @@ import {
 } from 'vue'
 import { mergeColumn, normalizeColPlace, normalizeColSpan, type ColPlace, type ColSpan, type ColSpanRaw } from './grid'
 import { LAYOUT_VIEW_KEY } from './injection-keys'
-import type { JsxHost } from './LayoutCell'
+import type { JsxHost } from './LayoutItem'
 import { calculateBlanks, calculateLayout, type Cell } from './calculate-layout'
 import { useDomChildren } from './use-dom-children'
 import { hostEl } from './utils'
 
 export type { ColPlace, ColSpanRaw } from './grid'
-export { LayoutCell as LayoutCell, type LayoutCellProps as LayoutCellProps } from './LayoutCell'
+export { LayoutItem, type LayoutItemProps } from './LayoutItem'
 
 export interface CreateLayoutViewOptions {
   Row?: Component
@@ -32,14 +32,14 @@ export interface LayoutViewProps {
   column?: number
 }
 
-type LayoutItemState = {
+type ItemState = {
   span: ColSpan
   place: ColPlace
   el: Element | null
   mounted: boolean
 }
 
-interface LayoutItem {
+interface ItemHub {
   setup(
     span?: MaybeRefOrGetter<ColSpanRaw | undefined>,
     place?: MaybeRefOrGetter<ColPlace | undefined>,
@@ -57,9 +57,9 @@ function useItemHub({
 }: {
   column: MaybeRefOrGetter<number>,
   rowRef: Ref<unknown>
-}): LayoutItem {
+}): ItemHub {
   let seq = 0
-  const rawItems = ref<Record<string, LayoutItemState>>({})
+  const rawItems = ref<Record<string, ItemState>>({})
   // 当前 dom 结构
   const children = useDomChildren(
     () => hostEl(rowRef.value),
@@ -121,7 +121,7 @@ function useItemHub({
 type RowCell = Cell & { id: string }
 
 function cellsInDomOrder(
-  items: Record<string, LayoutItemState>,
+  items: Record<string, ItemState>,
   children: Element[],
 ): RowCell[] {
   const cells = new Map(
@@ -134,7 +134,7 @@ function cellsInDomOrder(
     .map((el) => cells.get(el)!)
 }
 
-/** Bind host Row/Col once. Returns LayoutView; cells are `LayoutCell`. */
+/** Bind host Row/Col once. Returns LayoutView; items are `LayoutItem`. */
 export function createLayoutView(options: CreateLayoutViewOptions = {}): Component {
   const { Row, Col } = options as { Row?: JsxHost; Col?: JsxHost }
 

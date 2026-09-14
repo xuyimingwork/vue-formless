@@ -46,10 +46,10 @@ export {
   type ColSpanRaw,
   type ColPlace,
   createLayoutView,
-  LayoutCell,
+  LayoutItem,
   type CreateLayoutViewOptions,
   type LayoutViewProps,
-  type LayoutCellProps as LayoutCellProps,
+  type LayoutItemProps,
 } from '@vue-formless/layout'
 export { camelToPascal, pascalToCamel, type CamelToPascal } from './case'
 export {

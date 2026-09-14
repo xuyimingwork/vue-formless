@@ -636,7 +636,7 @@ button {
   min-height: var(--pg-tile-h);
 }
 
-.pg.is-compact [data-layout-cell] {
+.pg.is-compact [data-layout-item] {
   scroll-margin-top: 8px;
 }
 

@@ -6,7 +6,7 @@ import {
   type DefineComponent,
   type VNodeChild,
 } from 'vue'
-import { LayoutCell } from '@vue-formless/layout'
+import { LayoutItem } from '@vue-formless/layout'
 import {
   applyControlBinding,
   bindingForPort,
@@ -66,7 +66,7 @@ function resolveAdHocBinding(tagFl: Record<string, unknown>): {
 }
 
 /**
- * One cell: always LayoutCell, optional host Item (ADR-020).
+ * One cell: always LayoutItem, optional host Item (ADR-020).
  * Col follows the nearest LayoutView; `fl:item` only toggles ElFormItem.
  */
 export const FormCell = defineComponent({
@@ -149,7 +149,7 @@ export const FormCell = defineComponent({
           inner
         )
 
-      return <LayoutCell {...colProps.value}>{body}</LayoutCell>
+      return <LayoutItem {...colProps.value}>{body}</LayoutItem>
     }
   },
 }) as FormCellComponent

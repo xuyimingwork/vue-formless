@@ -14,7 +14,7 @@ import { hostEl } from './utils'
 /** `Component` is a union; JSX needs a constructable host. */
 export type JsxHost = new () => { $props: Record<string, unknown> }
 
-export interface LayoutCellProps {
+export interface LayoutItemProps {
   span?: ColSpanRaw
   place?: ColPlace
 }
@@ -46,8 +46,8 @@ const LayoutBlanks = defineComponent({
   },
 })
 
-export const LayoutCell = defineComponent({
-  name: 'LayoutCell',
+export const LayoutItem = defineComponent({
+  name: 'LayoutItem',
   inheritAttrs: false,
   props: {
     span: { type: [String, Number] as PropType<ColSpanRaw>, default: undefined },
@@ -78,7 +78,7 @@ export const LayoutCell = defineComponent({
             {...attrs}
             ref={bindCol}
             span={span.value}
-            data-layout-cell=""
+            data-layout-item=""
             data-layout-place={place.value}
           >
             { slots.default?.() ?? null }

@@ -4,16 +4,16 @@ function nestedSnippet(gutter: number) {
   const g = gutter ? ` :gutter="${gutter}"` : ''
   return [
     `<LayoutView :column="3"${g}>`,
-    '  <LayoutCell>A</LayoutCell>',
-    '  <LayoutCell>B</LayoutCell>',
-    '  <LayoutCell>C</LayoutCell>',
-    '  <LayoutCell span="max">',
+    '  <LayoutItem>A</LayoutItem>',
+    '  <LayoutItem>B</LayoutItem>',
+    '  <LayoutItem>C</LayoutItem>',
+    '  <LayoutItem span="max">',
     `    <LayoutView :column="2"${g}>`,
-    '      <LayoutCell>1</LayoutCell>',
-    '      <LayoutCell>2</LayoutCell>',
-    '      <LayoutCell span="max">max</LayoutCell>',
+    '      <LayoutItem>1</LayoutItem>',
+    '      <LayoutItem>2</LayoutItem>',
+    '      <LayoutItem span="max">max</LayoutItem>',
     '    </LayoutView>',
-    '  </LayoutCell>',
+    '  </LayoutItem>',
     '</LayoutView>',
   ].join('\n')
 }
@@ -25,7 +25,7 @@ function itemTag(t: Tile): string {
   }
   if (t.place !== 'auto') attrs.push(`place="${t.place}"`)
   const prop = attrs.length ? ` ${attrs.join(' ')}` : ''
-  return `  <LayoutCell${prop}>${t.label}</LayoutCell>`
+  return `  <LayoutItem${prop}>${t.label}</LayoutItem>`
 }
 
 export function renderSnippet(opts: {

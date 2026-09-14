@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { createApp, defineComponent, h, inject, nextTick, onBeforeUnmount, ref } from 'vue'
-import { createLayoutView, LayoutCell } from './create-layout-view'
+import { createLayoutView, LayoutItem } from './create-layout-view'
 import { LAYOUT_VIEW_KEY } from './injection-keys'
 
 const Row = defineComponent({
@@ -31,7 +31,7 @@ const Cell = defineComponent({
     place: { type: String, default: undefined },
   },
   setup(props, { slots }) {
-    return () => h(LayoutCell, { span: props.span, place: props.place }, () => slots.default?.() ?? 'x')
+    return () => h(LayoutItem, { span: props.span, place: props.place }, () => slots.default?.() ?? 'x')
   },
 })
 
@@ -210,11 +210,11 @@ describe('layout place blanks after updates', () => {
     el.remove()
   })
 
-  it('exposes the real col element on LayoutCell', async () => {
+  it('exposes the real col element on LayoutItem', async () => {
     const itemRef = ref<{ el: Element | null } | null>(null)
     const Inner = defineComponent({
       setup() {
-        return () => h(LayoutCell, { ref: itemRef, span: 8 }, () => 'x')
+        return () => h(LayoutItem, { ref: itemRef, span: 8 }, () => 'x')
       },
     })
     const Root = defineComponent({
@@ -229,7 +229,7 @@ describe('layout place blanks after updates', () => {
     await nextTick()
 
     expect(itemRef.value?.el).toBeInstanceOf(Element)
-    expect(itemRef.value?.el).toBe(el.querySelector('[data-layout-cell]'))
+    expect(itemRef.value?.el).toBe(el.querySelector('[data-layout-item]'))
 
     app.unmount()
     el.remove()

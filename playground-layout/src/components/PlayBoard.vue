@@ -36,7 +36,7 @@ function openEdit(t: Tile, el: HTMLElement) {
   studio.sourceOpen = false
   editing.value = t
   nextTick(() => {
-    const cell = el.closest('[data-layout-cell]') ?? el
+    const cell = el.closest('[data-layout-item]') ?? el
     cell.scrollIntoView({ block: 'start', behavior: 'smooth' })
   })
 }
