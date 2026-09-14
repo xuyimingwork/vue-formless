@@ -37,19 +37,19 @@ function onReset() {
     v-model="form"
     label-width="96px"
     fl:layout
-    :row:column="3"
-    :row:gutter="16"
+    :layout:column="3"
+    :layout:gutter="16"
   >
     <User.Name />
     <User.Gender />
     <User.Mobile />
-    <Range.DateRangeOne col:span="16" />
+    <Range.DateRangeOne layout-item:span="16" />
     <User.Email />
-    <Range.DateRangeTwo :fl:field="'wrap-embed'" col:span="max" />
+    <Range.DateRangeTwo :fl:field="'wrap-embed'" layout-item:span="max" />
     <User.IdCard />
     <User.Address />
-    <FormField :fl:prop="'remark'" label="备注" col:span="max" v-slot="{ field }">
-      <el-input v-bind="field" type="textarea" :rows="3" placeholder="可选" />
+    <FormField :fl:prop="'remark'" fl:label="备注" layout-item:span="max" v-slot="{ $bindings }">
+      <el-input v-bind="$bindings" type="textarea" :rows="3" placeholder="可选" />
     </FormField>
   </FormView>
 

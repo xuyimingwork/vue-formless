@@ -30,8 +30,8 @@ function onReset() {
     v-model="query"
     label-width="72px"
     fl:layout
-    :row:column="4"
-    :row:gutter="12"
+    :layout:column="4"
+    :layout:gutter="12"
     @submit.prevent
   >
     <User.Name placeholder="姓名" clearable />

@@ -1,4 +1,4 @@
-import { inject, type Ref } from 'vue'
+import { inject } from 'vue'
 import { FORM_VIEW_KEY, type FormContext } from './injection-keys'
 
 export type { FormContext } from './injection-keys'
@@ -10,5 +10,3 @@ export function useFormContext(): FormContext {
   }
   return ctx
 }
-
-export type MaybeRefModel<T> = T | Ref<T>

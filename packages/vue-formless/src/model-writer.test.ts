@@ -1,6 +1,6 @@
 import { nextTick } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
-import { createModelWriter } from './use-form-view-model-value'
+import { createModelWriter } from './model-writer'
 
 describe('createModelWriter', () => {
   it('does not mutate the source object', async () => {

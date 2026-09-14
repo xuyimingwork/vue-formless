@@ -15,14 +15,14 @@ const form = ref({
 </script>
 
 <template>
-  <FormView v-model="form" disabled label-width="96px" fl:layout :row:gutter="16">
+  <FormView v-model="form" disabled label-width="96px" fl:layout :layout:gutter="16">
     <User.Name />
     <User.Gender />
     <User.Mobile />
     <User.Email />
     <User.IdCard />
     <User.Address />
-    <User.Remark col:span="max" />
+    <User.Remark layout-item:span="max" />
   </FormView>
   <pre class="pg-preview">{{ form }}</pre>
 </template>

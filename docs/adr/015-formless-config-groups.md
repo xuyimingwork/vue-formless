@@ -14,6 +14,7 @@
   - 2026-09-04 — `:col:take` 见 [ADR-018](./018-col-take-rest.md)；`:row:row` / `:col:show` 见 [ADR-019](./019-layout-row-window.md)。
   - 2026-09-09 — 通道加 `cell`；`item` 仅 boolean；`FormCell` / `useFormCell`；`FieldSchema` / `fieldKey`。废止 `'self'`，见 [ADR-020](./020-form-view-cell-field.md)。
   - 2026-09-10 — **通道前缀重写**：`row:` → `layout:`（LayoutView）、`col:` → `cell:`（LayoutCell）、`fl:cell` → `fl:tree`、`fl:layout` → `fl:grid`；`FormCell` → `FormItem`；`useFormCell` 退场，按口切片改 `fl:model`。§1 表 / §3 / 不纳入以 [ADR-021](./021-channel-prefix-and-form-item.md) 为准。
+  - 2026-09-14 — **Item snapshot 去掉 `fieldKey`**（内核不发身份名，见 [ADR-011](./011-model-and-path.md) 修订）：snapshot 只余 extras + `binding` + `getValues()`（+ `fl:` 面上不再有 `fl:key`）。
 - **来源**：[ADR-008](./008-form-view-vmodel-and-grid-gcd.md) / [ADR-011](./011-model-and-path.md) / [ADR-012](./012-input-item-and-rule-compile.md) / [ADR-013](./013-one-control-multiple-items.md) / [ADR-020](./020-form-view-cell-field.md) / [ADR-021](./021-channel-prefix-and-form-item.md)。本文钉 **配置怎么写、进哪一层**。不改 `component` 不含 Item、不改写口、不改按口切片吃口名（前缀与词表见 021）。
 
 ## 决策
@@ -31,7 +32,7 @@
 内核 `h(Form, overlay(form.props(snapshot), attrs))`；FormCell 内 `h(Item, overlay(item.props(snapshot), itemAttrs))`。Snapshot 只进 `props` 函数，不是宿主 prop。
 
 - **Form snapshot**：`{ layout, form, item, modelValue }`。`form` 是 boolean（auto 已在内核解开）。`modelValue` 是 FormView 写口数据；映射到宿主 `model` 是 `form.props` 的默认值。
-- **Item snapshot**：extras + 内核算出的 `fieldKey` / `binding` / `getValues`。**不要**放 widget 的 `model` 列表/口名，也不放外层已消费的 `item` / `cell` 壳开关，也不放整表数据。
+- **Item snapshot**：extras + 内核算出的 `binding` / `getValues`（2026-09-14 起不含 `fieldKey`）。**不要**放 widget 的 `model` 列表/口名，也不放外层已消费的 `item` / `cell` 壳开关，也不放整表数据。
 
 ### 2. 页开 Item；Col 跟 LayoutView
 

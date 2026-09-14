@@ -34,12 +34,14 @@ declare module 'vue-formless' {
 }
 
 // ElFormItem `prop` speaks dot paths; the kernel location (`buyers[0].name`)
-// is encoded here, in the adapter (ADR-011 §6).
-function toItemProp(binding: ItemFl['binding'], fieldKey: string): string {
-  if (binding.props.length > 1) return fieldKey // multi-port in one cell
-  const [location] = binding.props
+// is encoded here, in the adapter (ADR-011 §6). One host `prop` cannot hold
+// several ports, so such a cell stays unbound (`undefined`) — use
+// `fl:field="wrap-embed"` (one port per cell) when the host must validate it.
+function toItemProp(prop: ItemFl['prop']): string | undefined {
+  if (prop.length !== 1) return undefined
+  const [location] = prop
   const dotted = location.replace(/\[(\d+)\]/g, '.$1').replace(/^\./, '')
-  if (!dotted || /[[\]]/.test(dotted)) return fieldKey // unparsable / empty prop
+  if (!dotted || /[[\]]/.test(dotted)) return undefined // unencodable: leave unbound
   return dotted
 }
 
@@ -53,7 +55,7 @@ export const FormView = createFormView({
     component: ElFormItem,
     props: (fl: ItemFl) => ({
       label: fl.label,
-      prop: toItemProp(fl.binding, fl.fieldKey),
+      prop: toItemProp(fl.prop),
     }),
   },
 })
@@ -66,7 +68,7 @@ export const User = createFormFields({
 ```vue
 <FormView ref="formRef" v-model="form" fl:layout label-width="96px">
   <User.Name />
-  <User.Name col:span="max" />
+  <User.Name layout-item:span="max" />
 </FormView>
 ```
 

@@ -14,11 +14,11 @@ import {
 } from 'vue'
 import { createLayoutView } from '@vue-formless/layout'
 import { FORM_VIEW_KEY, type FormContext } from './injection-keys'
-import { useFormViewModelValue } from './use-form-view-model-value'
-import type { ItemFl } from './item-adapter'
-import { omit } from './fl-config'
-import { overlayProps, resolveProps, type HostProps } from './overlay-props'
-import { toAttrBoolean, useFormlessProps } from './split-fallthrough'
+import { useFormViewModelValue } from './use-form-view-model'
+import type { ItemFl } from './field-schema'
+import { omit } from './record-utils'
+import { overlayProps, resolveProps, type HostProps } from './props-overlay'
+import { toAttrBoolean, useFormlessProps } from './attrs'
 
 export interface FormViewLayoutBind {
   Row: Component
@@ -40,17 +40,14 @@ export interface CreateFormViewOptions {
   item?: FormViewHostBind<ItemFl>
 }
 
-export type { HostProps } from './overlay-props'
+export type { HostProps } from './props-overlay'
 
-/** FormView `:fl:layout` is a boolean switch. Density is factory / `:row:*`. */
+/** FormView `:fl:layout` is a boolean switch. Density is factory / `:layout:*`. */
 export type FormLayoutProp = boolean
-
-/** Factory `layout.column` overlay; other Row attrs use tag `:row:*`. */
-export type FormLayoutOptions = Pick<FormViewLayoutBind, 'column'>
 
 export type FormFormProp = boolean | 'auto'
 
-/** Column density when factory `layout.column` and `:row:column` are omitted. */
+/** Column density when factory `layout.column` and `:layout:column` are omitted. */
 const DEFAULT_COLUMN = 1
 
 /** v-model fallthrough listeners; FormView owns them, not the host Form. */
@@ -66,11 +63,11 @@ export interface FormViewProps {
   modelValue?: unknown
   /**
    * Grid hosting switch. Default `false`.
-   * Column density: factory `layout.column` plus `:row:column` for **this** page LayoutView only.
-   * wrap-embed inner LayoutView does not inherit them. Other `:row:*` (e.g. gutter) fall through to the host Row.
+   * Column density: factory `layout.column` plus `:layout:column` for **this** page LayoutView only.
+   * wrap-embed inner LayoutView does not inherit them. Other `:layout:*` (e.g. gutter) fall through to the host Row.
    */
   'fl:layout'?: FormLayoutProp
-  'row:column'?: number
+  'layout:column'?: number
   /**
    * Wrap the factory `form`. Default `'auto'`: on at the root, off when nested.
    * Explicit `true` / `false` win.
@@ -169,7 +166,7 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
       expose(proxyExpose(hostForm))
 
       const nested = inject(FORM_VIEW_KEY, null) != null
-      const { props: hostAttrs, rowProps, formlessProps } = useFormlessProps(
+      const { props: hostAttrs, layoutProps, formlessProps } = useFormlessProps(
         attrs as Record<string, unknown>,
       )
 
@@ -195,7 +192,7 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
         const body = h(
           LayoutView,
           {
-            ...overlayProps({ column }, rowProps.value),
+            ...overlayProps({ column }, layoutProps.value),
             disabled: !toAttrBoolean(formlessProps.value.layout, false),
           },
           { default: slots.default },

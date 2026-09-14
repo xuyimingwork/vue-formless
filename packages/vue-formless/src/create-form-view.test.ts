@@ -138,7 +138,7 @@ describe('createFormView', () => {
     })
     await render(
       h(FormView, { modelValue: {} }, () =>
-        h(FormView, { 'fl:layout': true, 'row:column': 3, 'row:gutter': 16 }, () => h(Writer())),
+        h(FormView, { 'fl:layout': true, 'layout:column': 3, 'layout:gutter': 16 }, () => h(Writer())),
       ),
     )
     expect(forms).toHaveLength(1)
@@ -175,7 +175,7 @@ describe('createFormView', () => {
       h(
         FormView,
         { modelValue: { name: 'Ada' }, 'onUpdate:modelValue': emit },
-        () => h(FormView, { 'fl:layout': true, 'row:column': 3 }, () => h(Writer())),
+        () => h(FormView, { 'fl:layout': true, 'layout:column': 3 }, () => h(Writer())),
       ),
     )
     await nextTick()
@@ -186,7 +186,7 @@ describe('createFormView', () => {
   it('renders Row and Col span 8 when column is 3', async () => {
     const FormView = View()
     const html = await render(
-      h(FormView, { modelValue: {}, 'fl:layout': true, 'row:column': 3, 'row:gutter': 12 }, () =>
+      h(FormView, { modelValue: {}, 'fl:layout': true, 'layout:column': 3, 'layout:gutter': 12 }, () =>
         h(FormField, { 'fl:prop': 'name' }),
       ),
     )
@@ -209,7 +209,7 @@ describe('createFormView', () => {
     const FormView = View()
     const html = await render(
       h(FormView, { modelValue: {} }, () =>
-        h(FormView, { 'fl:layout': true, 'row:column': 3, 'row:gutter': 16 }, () =>
+        h(FormView, { 'fl:layout': true, 'layout:column': 3, 'layout:gutter': 16 }, () =>
           h(FormField, { 'fl:prop': 'name' }),
         ),
       ),
@@ -318,7 +318,7 @@ describe('createFormView', () => {
       item: { component: Item },
     })
     const html = await render(
-      h(FormView, { modelValue: {}, 'fl:layout': true, 'row:gutter': 16 }, () =>
+      h(FormView, { modelValue: {}, 'fl:layout': true, 'layout:gutter': 16 }, () =>
         h(FormField, { 'fl:prop': 'name' }),
       ),
     )
@@ -346,7 +346,10 @@ describe('FormField', () => {
   it('wraps the host Item when bound', async () => {
     const FormView = createFormView({
       layout: { Row, Col },
-      item: { component: LabeledItem, props: (fl) => ({ label: fl.fieldKey }) },
+      item: {
+        component: LabeledItem,
+        props: (fl) => ({ label: fl.prop.join(',') }),
+      },
     })
     const Cell = defineComponent({
       setup() {
@@ -397,6 +400,37 @@ describe('FormField', () => {
     expect(html).toContain('x')
   })
 
+  it('renders an ad-hoc widget from fl:component and binds fl:prop', async () => {
+    const emit = vi.fn()
+    const seen: Record<string, unknown>[] = []
+    const Input = defineComponent({
+      name: 'AdHocInput',
+      inheritAttrs: false,
+      setup(_, { attrs }) {
+        seen.push({ ...attrs })
+        return () => h('input', { class: 'adhoc' })
+      },
+    })
+    const FormView = createFormView({ layout: { Row, Col }, item: { component: Item } })
+    const Probe = defineComponent({
+      setup: () => () => h(FormField, { 'fl:prop': 'name', 'fl:component': Input }),
+    })
+    const html = await render(
+      h(
+        FormView,
+        { modelValue: { name: 'Ada' }, 'onUpdate:modelValue': emit },
+        () => h(Probe),
+      ),
+    )
+    expect(html).toContain('class="adhoc"')
+    expect(seen).toHaveLength(1)
+    expect(seen[0]).toMatchObject({ modelValue: 'Ada' })
+    ;(seen[0]!['onUpdate:modelValue'] as (next: unknown) => void)('Zed')
+    await nextTick()
+    expect(emit).toHaveBeenCalledTimes(1)
+    expect(emit.mock.calls[0]![0]).toEqual({ name: 'Zed' })
+  })
+
   it('lets fl:prop drive the field slot write', async () => {
     const emit = vi.fn()
     const FormView = createFormView({ layout: { Row, Col }, item: { component: Item } })
@@ -404,9 +438,9 @@ describe('FormField', () => {
       setup() {
         return () =>
           h(FormField, { 'fl:prop': 'name' }, {
-            default: (slot: { field: { modelValue: unknown; 'onUpdate:modelValue': (n: unknown) => void } }) => {
-              slot.field['onUpdate:modelValue']('Zed')
-              return h('span', String(slot.field.modelValue ?? ''))
+            default: (slot: { $bindings: { modelValue: unknown; 'onUpdate:modelValue': (n: unknown) => void } }) => {
+              slot.$bindings['onUpdate:modelValue']('Zed')
+              return h('span', String(slot.$bindings.modelValue ?? ''))
             },
           })
       },
@@ -417,5 +451,59 @@ describe('FormField', () => {
     await nextTick()
     expect(emit).toHaveBeenCalledTimes(1)
     expect(emit.mock.calls[0]![0]).toEqual({ name: 'Zed' })
+  })
+
+  it('declares its own v-model ports from fl:model at the identity root', async () => {
+    const emit = vi.fn()
+    const seen: Record<string, unknown>[] = []
+    const TwoPorts = defineComponent({
+      inheritAttrs: false,
+      setup(_, { attrs }) {
+        seen.push({ ...attrs })
+        return () => h('div')
+      },
+    })
+    const FormView = View()
+    await render(
+      h(
+        FormView,
+        { modelValue: { fromTime: 'a', toTime: 'b' }, 'onUpdate:modelValue': emit },
+        () =>
+          h(FormField, {
+            'fl:model': ['start', 'end'],
+            'fl:prop': ['fromTime', 'toTime'],
+            'fl:component': TwoPorts,
+          }),
+      ),
+    )
+    expect(seen[0]).toMatchObject({ start: 'a', end: 'b' })
+    ;(seen[0]!['onUpdate:end'] as (next: unknown) => void)('z')
+    await nextTick()
+    expect(emit).toHaveBeenCalledTimes(1)
+    expect(emit.mock.calls[0]![0]).toEqual({ fromTime: 'a', toTime: 'z' })
+  })
+
+  it('provides its identity from the root FormField (no factory shell)', async () => {
+    const emit = vi.fn()
+    const FormView = View()
+    const Inner = defineComponent({
+      setup: () => () =>
+        h(FormField, {}, {
+          default: (slot: { $bindings: { modelValue: unknown; 'onUpdate:modelValue': (n: unknown) => void } }) => {
+            slot.$bindings['onUpdate:modelValue']('Bob')
+            return h('span', String(slot.$bindings.modelValue ?? ''))
+          },
+        }),
+    })
+    await render(
+      h(
+        FormView,
+        { modelValue: { name: 'Ada' }, 'onUpdate:modelValue': emit },
+        () => h(FormField, { 'fl:prop': 'name' }, { default: () => h(Inner) }),
+      ),
+    )
+    await nextTick()
+    expect(emit).toHaveBeenCalledTimes(1)
+    expect(emit.mock.calls[0]![0]).toEqual({ name: 'Bob' })
   })
 })

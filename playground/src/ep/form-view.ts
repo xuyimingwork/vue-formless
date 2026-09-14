@@ -14,22 +14,27 @@ function toDotPath(path: string): string | undefined {
   return dotted
 }
 
-/** One location → dotted host prop; several v-model ports in one cell → field key (ADR-011 §6). */
-export function resolveFormItemProp(
-  binding: ItemFl['binding'],
-  fieldKey: string,
-): string {
-  if (binding.props.length === 1) {
-    return toDotPath(binding.props[0]!) ?? fieldKey
-  }
-  return fieldKey
+/**
+ * One location → dotted host prop (ADR-011 §6).
+ *
+ * There is no kernel-supplied name to fall back on, so a cell whose location
+ * cannot be encoded — several v-model ports in one cell (one host Item `prop`
+ * cannot hold a pair), or a path this adapter cannot dot-encode — is left
+ * **unbound**: `undefined` → ElFormItem never registers, so `Form.validate()` /
+ * `resetFields()` skip it and its rules never run (ADR-014, v1 scope). Give
+ * such a cell its own Item per port (`fl:field="wrap-embed"`) if it must be
+ * host-validated.
+ */
+export function resolveFormItemProp(prop: ItemFl['prop']): string | undefined {
+  if (prop.length !== 1) return undefined
+  return toDotPath(prop[0]!)
 }
 
 /** Map Item `fl` to ElFormItem props. Host `prop` is this adapter's encoding. */
 export function toEpItemProps(fl: ItemFl): Record<string, unknown> {
   return {
     label: fl.label,
-    prop: resolveFormItemProp(fl.binding, fl.fieldKey),
+    prop: resolveFormItemProp(fl.prop),
   }
 }
 

@@ -1,10 +1,6 @@
 import type { Component } from 'vue'
-import type {
-  ControlProp,
-  ControlVModel,
-  ResolvedControlBinding,
-} from './control-model'
-import type { HostProps } from './overlay-props'
+import type { ControlProp, ControlVModel } from './control-binding'
+import type { HostProps } from './props-overlay'
 
 /** `field` assembly modes (ADR-020). Omit = `'wrap'`. */
 export type FieldMode = 'wrap' | 'embed' | 'wrap-embed'
@@ -62,29 +58,37 @@ export type FlExtraProps<T> = {
 }
 
 /**
- * Snapshot for `item.props` / field `props` functions.
+ * Snapshot for `item.props` / field `props` functions (ADR-011 §6 revised).
  * Kernel wiring + FieldSchema extras. Not passed as a host component prop.
+ *
+ * `model` / `prop` are this cell's **normalized** binding arrays — index-aligned
+ * (`model[i] ↔ prop[i]`), never empty and `prop` no longer than `model`. The
+ * kernel sends no identity **name**: a host Item `prop` is the adapter's own
+ * encoding, so an adapter that cannot encode the cell simply leaves it unbound.
  */
 export type ItemFl = {
-  fieldKey: string
-  binding: ResolvedControlBinding
+  /** This cell's v-model ports, index-aligned with `prop`. */
+  model: string[]
+  /** This cell's locations, index-aligned with `model`. */
+  prop: string[]
+  /** Live values at those locations, in binding order. */
   getValues: () => unknown[]
   [extra: string]: unknown
 } & FieldSchemaExtras
 
-/** Kernel `fl:` / `col:` / `row:` keys on `<FormField>` / `<User.Xxx />`. Schema extras are prefixed automatically.
- * `fl:model` selects one declared v-model port inside a namespaced Field.
- * `row:column` is formless density; other `row:*` (e.g. gutter) stay attrs and fall through to LayoutView → Row.
+/** Kernel `fl:` / `item:` / `layout:` / `layout-item:` keys on `<FormField>` / `<User.Xxx />`.
+ * Schema extras are prefixed automatically.
+ * `fl:model` declares the v-model ports at the identity root and selects one declared port inside it.
+ * `layout:column` is formless density; other `layout:*` (e.g. gutter) stay attrs and fall through to LayoutView → Row.
  */
 export type FormFieldTagProps = {
   'fl:prop'?: string | string[]
   'fl:model'?: string | string[]
   'fl:item'?: boolean
   'fl:field'?: FieldMode
-  'col:span'?: string | number
-  'col:place'?: 'auto' | 'start' | 'end'
-  'row:column'?: number
+  /** Ad-hoc widget (page `<FormField>`): the input component to render + bind. */
+  'fl:component'?: Component
+  'layout-item:span'?: string | number
+  'layout-item:place'?: 'auto' | 'start' | 'end'
+  'layout:column'?: number
 } & FlExtraProps<FieldSchemaExtras>
-
-/** @deprecated Use `FormFieldTagProps`. */
-export type FormViewItemProps = FormFieldTagProps

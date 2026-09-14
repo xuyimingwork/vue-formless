@@ -37,7 +37,7 @@ export type {
   FieldSchema,
   FieldSchemaExtras,
   ItemFl,
-} from './item-adapter'
-export type { ControlProp, ControlVModel } from './control-model'
-export type { HostProps } from './overlay-props'
-export type { WidgetFormless } from './fl-config'
+} from './field-schema'
+export type { ControlProp, ControlVModel } from './control-binding'
+export type { HostProps } from './props-overlay'
+export type { WidgetFormless } from './widget-config'

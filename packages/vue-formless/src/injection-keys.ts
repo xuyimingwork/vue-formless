@@ -1,7 +1,7 @@
 import type { Component, InjectionKey } from 'vue'
-import type { ResolvedControlBinding } from './control-model'
-import type { ItemFl } from './item-adapter'
-import type { HostProps } from './overlay-props'
+import type { FieldLayer } from './control-binding'
+import type { ItemFl } from './field-schema'
+import type { HostProps } from './props-overlay'
 
 export interface FormContext {
   /** Current FormView `modelValue` (parent snapshot; do not mutate). */
@@ -18,19 +18,17 @@ export interface FormContext {
   LayoutView: Component
 }
 
-/** Binding + extras the namespaced Field provides; FormField reads it. */
-export interface FieldRuntime {
-  fieldKey: string
-  binding: ResolvedControlBinding
-  extras: Record<string, unknown>
-  /** Schema / widget `item`; tag `:fl:item` still wins via fl merge. */
-  item?: boolean
-}
-
 export const FORM_VIEW_KEY: InjectionKey<FormContext | null> = Symbol(
   'vue-formless:form-view',
 )
 
-export const FIELD_RUNTIME_KEY: InjectionKey<FieldRuntime | null> = Symbol(
-  'vue-formless:field-runtime',
+/**
+ * Identity layer (ADR-013 / ADR-021 §7): the effective v-model port ↔ location
+ * map a cell resolves for itself, **plus** its port-keyed read/write accessor.
+ * The **root** `FormField` provides it (closing over the page scope); every
+ * nested slice consumes it to select a port — `fl:model` on a slice is a
+ * selection, never a declaration. Consumers ask by port, never by location.
+ */
+export const FORM_FIELD_KEY: InjectionKey<FieldLayer | null> = Symbol(
+  'vue-formless:form-field',
 )

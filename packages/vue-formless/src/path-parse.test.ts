@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parsePath } from './parse-model-path'
+import { parsePath } from './path-parse'
 
 describe('parsePath', () => {
   describe('parses a valid prop into segments', () => {

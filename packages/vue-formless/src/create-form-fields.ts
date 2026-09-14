@@ -1,22 +1,22 @@
 import { markRaw } from 'vue'
-import { camelToPascal, type CamelToPascal } from './case'
+import { camelToPascal, type CamelToPascal } from './string-case'
 import {
   createFormFieldComponent,
   type CreateFormFieldOptions,
   type FieldSchemaInput,
-  type FormFieldComponent,
-} from './FormField'
-import type { FieldSchema } from './item-adapter'
+} from './create-field-component'
+import type { FormFieldComponent } from './FormField'
+import type { FieldSchema } from './field-schema'
 import type { WidgetTagProps } from './widget-props'
 
 export type {
   CreateFormFieldOptions,
   FieldSchemaInput,
-  FormFieldComponent,
-} from './FormField'
-export type { FieldMode, FieldSchema, FormFieldTagProps, ItemFl } from './item-adapter'
-export type { ControlProp, ControlVModel } from './control-model'
-export type { HostProps } from './overlay-props'
+} from './create-field-component'
+export type { FormFieldComponent } from './FormField'
+export type { FieldMode, FieldSchema, FormFieldTagProps, ItemFl } from './field-schema'
+export type { ControlProp, ControlVModel } from './control-binding'
+export type { HostProps } from './props-overlay'
 export type {
   ComponentPublicProps,
   LockedVModelKeys,
@@ -48,13 +48,13 @@ export function createFormFields<const S extends { [K in keyof S]: FieldSchemaIn
   const normalized = normalizeSchema(schema)
   const result = {} as NamespacedFields<S>
 
-  for (const fieldKey of Object.keys(normalized) as (keyof S & string)[]) {
-    const item = normalized[fieldKey]
+  for (const schemaKey of Object.keys(normalized) as (keyof S & string)[]) {
+    const item = normalized[schemaKey]
     if (!item) continue
-    const pascalKey = camelToPascal(fieldKey) as CamelToPascal<typeof fieldKey> &
+    const pascalKey = camelToPascal(schemaKey) as CamelToPascal<typeof schemaKey> &
       keyof NamespacedFields<S>
     result[pascalKey] = createFormFieldComponent(
-      fieldKey,
+      schemaKey,
       item,
       options,
     ) as NamespacedFields<S>[typeof pascalKey]

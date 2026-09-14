@@ -1,212 +1,9 @@
 import { describe, expect, expectTypeOf, it, vi } from 'vitest'
-import { createSSRApp, defineComponent, h, type VNode } from 'vue'
+import { createSSRApp, defineComponent, h, nextTick, type VNode } from 'vue'
 import { renderToString } from 'vue/server-renderer'
-import { camelToPascal, pascalToCamel } from './case'
-import {
-  applyControlBinding,
-  bindingForPort,
-  resolveControlBinding,
-} from './control-model'
 import { createFormFields, type ComponentPublicProps } from './create-form-fields'
-import { readWidgetFormless } from './fl-config'
 import { createFormView } from './create-form-view'
 import { FormField } from './FormField'
-
-describe('case', () => {
-  it('converts camelCase ↔ PascalCase', () => {
-    expect(camelToPascal('name')).toBe('Name')
-    expect(camelToPascal('idCard')).toBe('IdCard')
-    expect(pascalToCamel('Name')).toBe('name')
-    expect(pascalToCamel('IdCard')).toBe('idCard')
-  })
-})
-
-describe('resolveControlBinding', () => {
-  it('omits to modelValue + fieldKey prop', () => {
-    expect(resolveControlBinding('name')).toEqual({
-      models: ['modelValue'],
-      props: ['name'],
-    })
-  })
-
-  it('prop-only keeps default modelValue', () => {
-    expect(resolveControlBinding('title', { prop: 'name' })).toEqual({
-      models: ['modelValue'],
-      props: ['name'],
-    })
-  })
-
-  it('pairs parallel prop arrays with model ports', () => {
-    expect(
-      resolveControlBinding('timeRange', {
-        model: ['start', 'end'],
-        prop: ['startTime', 'endTime'],
-      }),
-    ).toEqual({
-      models: ['start', 'end'],
-      props: ['startTime', 'endTime'],
-    })
-  })
-
-  it('prop override does not change model ports', () => {
-    expect(
-      resolveControlBinding(
-        'timeRange',
-        { model: ['start', 'end'], prop: ['startTime', 'endTime'] },
-        { prop: ['from', 'to'] },
-      ),
-    ).toEqual({
-      models: ['start', 'end'],
-      props: ['from', 'to'],
-    })
-  })
-
-  it('prop override can be a nested location', () => {
-    expect(
-      resolveControlBinding(
-        'name',
-        { prop: 'name' },
-        { prop: 'buyers[0].name' },
-      ),
-    ).toEqual({
-      models: ['modelValue'],
-      props: ['buyers[0].name'],
-    })
-  })
-
-  it('prop override may bind fewer ports', () => {
-    expect(
-      resolveControlBinding(
-        'agency',
-        { model: ['modelValue', 'option'], prop: ['agencyId', 'agency'] },
-        { prop: 'vendorId' },
-      ),
-    ).toEqual({
-      models: ['modelValue', 'option'],
-      props: ['vendorId'],
-    })
-  })
-
-  it('binds a prefix when prop is shorter than model', () => {
-    expect(
-      resolveControlBinding('name', {
-        model: ['modelValue', 'option'],
-        prop: 'name',
-      }),
-    ).toEqual({
-      models: ['modelValue', 'option'],
-      props: ['name'],
-    })
-  })
-
-  it('throws when prop is longer than model', () => {
-    expect(() =>
-      resolveControlBinding('name', {
-        model: 'modelValue',
-        prop: ['name', 'option'],
-      }),
-    ).toThrow(/prop cannot be longer than model/)
-  })
-
-  it('throws on empty-string prop', () => {
-    expect(() => resolveControlBinding('name', { prop: '' })).toThrow(
-      /prop cannot be an empty string/,
-    )
-    expect(() => resolveControlBinding('name', {}, { prop: '' })).toThrow(
-      /fl:prop cannot be an empty string/,
-    )
-  })
-})
-
-describe('applyControlBinding', () => {
-  it('reads mapped props and reports writes', () => {
-    const form = { startTime: 'a', endTime: 'b' }
-    const update = vi.fn()
-    const bindings = applyControlBinding(
-      form,
-      {
-        models: ['start', 'end'],
-        props: ['startTime', 'endTime'],
-      },
-      update,
-    )
-    expect(bindings.start).toBe('a')
-    expect(bindings.end).toBe('b')
-    ;(bindings['onUpdate:start'] as (v: string) => void)('x')
-    expect(form.startTime).toBe('a')
-    expect(update).toHaveBeenCalledWith('startTime', 'x')
-  })
-
-  it('reads a nested prop location', () => {
-    const form = { buyers: [{ name: 'Ada' }] }
-    const bindings = applyControlBinding(
-      form,
-      {
-        models: ['modelValue'],
-        props: ['buyers[0].name'],
-      },
-      vi.fn(),
-    )
-    expect(bindings.modelValue).toBe('Ada')
-  })
-
-  it('does not bind extra model ports', () => {
-    const form = { name: 'Ada' }
-    const bindings = applyControlBinding(
-      form,
-      {
-        models: ['modelValue', 'option'],
-        props: ['name'],
-      },
-      vi.fn(),
-    )
-    expect(bindings.modelValue).toBe('Ada')
-    expect(bindings.option).toBeUndefined()
-    expect(bindings['onUpdate:option']).toBeUndefined()
-  })
-})
-
-describe('bindingForPort', () => {
-  const pair = {
-    models: ['start', 'end'],
-    props: ['buyers[0].fromTime', 'buyers[0].toTime'],
-  }
-
-  it('slices one v-model port to its leaf', () => {
-    expect(bindingForPort(pair, 'end')).toEqual({
-      models: ['end'],
-      props: ['buyers[0].toTime'],
-    })
-  })
-
-  it('throws when the port is missing or unbound', () => {
-    expect(() => bindingForPort(pair, 'modelValue')).toThrow(/not a v-model port/)
-    expect(() =>
-      bindingForPort({ models: ['start', 'end'], props: ['fromTime'] }, 'end'),
-    ).toThrow(/not bound/)
-  })
-})
-
-describe('readWidgetFormless', () => {
-  it('reads model / item / field from the component static bag', () => {
-    expect(
-      readWidgetFormless({
-        formless: { item: false, model: ['start', 'end'] },
-      }),
-    ).toEqual({ item: false, model: ['start', 'end'] })
-    expect(
-      readWidgetFormless({
-        formless: { field: 'embed', model: ['start', 'end'] },
-      }),
-    ).toEqual({ field: 'embed', model: ['start', 'end'] })
-    expect(
-      readWidgetFormless({
-        formless: { field: 'embed', layout: false, model: ['start', 'end'] },
-      }),
-    ).toEqual({ field: 'embed', model: ['start', 'end'] })
-    expect(readWidgetFormless({})).toEqual({})
-  })
-})
 
 describe('createFormFields', () => {
   it('exposes PascalCase components for camelCase field keys', () => {
@@ -248,7 +45,7 @@ describe('createFormFields', () => {
     type RemarkProps = ComponentPublicProps<typeof User.Remark>
     expectTypeOf<RemarkProps>().toHaveProperty('placeholder')
     expectTypeOf<RemarkProps>().toHaveProperty('rows')
-    expectTypeOf<RemarkProps>().toHaveProperty('col:span')
+    expectTypeOf<RemarkProps>().toHaveProperty('layout-item:span')
     expectTypeOf<RemarkProps>().not.toHaveProperty('modelValue')
     expectTypeOf<RemarkProps>().not.toHaveProperty('onUpdate:modelValue')
   })
@@ -311,8 +108,8 @@ describe('createFormFields props overlay', () => {
     },
     setup() {
       return () => [
-        h(FormField, { 'fl:model': 'start', label: '开始' }, () => h('input', { class: 's' })),
-        h(FormField, { 'fl:model': 'end', label: '结束' }, () => h('input', { class: 'e' })),
+        h(FormField, { 'fl:model': 'start', 'fl:label': '开始' }, () => h('input', { class: 's' })),
+        h(FormField, { 'fl:model': 'end', 'fl:label': '结束' }, () => h('input', { class: 'e' })),
       ]
     },
   })
@@ -397,7 +194,7 @@ describe('createFormFields props overlay', () => {
       h(
         shellView(),
         { modelValue: { fromTime: '', toTime: '' }, 'fl:layout': true },
-        () => h(Fields.Range, { 'fl:field': 'wrap-embed', 'col:span': 24 }),
+        () => h(Fields.Range, { 'fl:field': 'wrap-embed', 'layout-item:span': 24 }),
       ),
     )
     expect(html.match(/class="item"/g)?.length).toBe(3)
@@ -464,15 +261,228 @@ describe('createFormFields props overlay', () => {
     expect(html.match(/class="col"/g)?.length).toBe(2)
   })
 
-  it('uses field :row:column for the inner LayoutView', async () => {
+  it('declares the schema v-model ports on the identity root', async () => {
+    const emit = vi.fn()
+    const seen: Record<string, unknown>[] = []
+    const TwoPorts = defineComponent({
+      formless: { model: ['start', 'end'] as const },
+      inheritAttrs: false,
+      setup(_, { attrs }) {
+        seen.push({ ...attrs })
+        return () => h('div', { class: 'two' })
+      },
+    })
+    const Fields = createFormFields({
+      range: { component: TwoPorts, prop: ['fromTime', 'toTime'] },
+    })
+    await render(
+      h(
+        shellView(),
+        { modelValue: { fromTime: 'a', toTime: 'b' }, 'onUpdate:modelValue': emit },
+        () => h(Fields.Range),
+      ),
+    )
+    expect(seen).toHaveLength(1)
+    expect(seen[0]).toMatchObject({ start: 'a', end: 'b' })
+    ;(seen[0]!['onUpdate:end'] as (next: unknown) => void)('z')
+    await nextTick()
+    expect(emit).toHaveBeenCalledTimes(1)
+    expect(emit.mock.calls[0]![0]).toEqual({ fromTime: 'a', toTime: 'z' })
+  })
+
+  it('renders exactly like a FormField preset with the same attrs', async () => {
+    const Input = defineComponent({
+      inheritAttrs: false,
+      props: { placeholder: { type: String, default: '' } },
+      setup: (p) => () => h('input', { class: 'w', 'data-ph': p.placeholder }),
+    })
+    const Fields = createFormFields({
+      name: {
+        label: '姓名',
+        component: Input,
+        props: { placeholder: '请填写姓名' },
+      },
+    })
+    const schemaAttrs = {
+      'fl:component': Input,
+      'fl:prop': 'name',
+      'fl:label': '姓名',
+      placeholder: '请填写姓名',
+    }
+    const fromFactory = await render(
+      h(shellView(), { modelValue: { name: '' }, 'fl:layout': true }, () =>
+        h(Fields.Name),
+      ),
+    )
+    const handWritten = await render(
+      h(shellView(), { modelValue: { name: '' }, 'fl:layout': true }, () =>
+        h(FormField, schemaAttrs),
+      ),
+    )
+    expect(fromFactory).toBe(handWritten)
+  })
+
+  it('resolves snapshot-dependent props into bare attrs', async () => {
+    const seen: Record<string, unknown>[] = []
+    const Input = defineComponent({
+      inheritAttrs: false,
+      setup(_, { attrs }) {
+        seen.push({ ...attrs })
+        return () => h('input')
+      },
+    })
+    const Fields = createFormFields(
+      {
+        name: {
+          label: '姓名',
+          component: Input,
+          props: (fl) => ({
+            placeholder: `请填写${String(fl.label)}`,
+            // The tag's :fl:prop relocation must reach the props snapshot.
+            located: fl.prop[0],
+          }),
+        },
+      },
+      { props: { clearable: true } },
+    )
+    await render(
+      h(shellView(), { modelValue: { buyers: [{ name: '' }] } }, () => [
+        h(Fields.Name),
+        h(Fields.Name, { 'fl:prop': 'buyers[0].name' }),
+      ]),
+    )
+    expect(seen[0]).toMatchObject({
+      placeholder: '请填写姓名',
+      clearable: true,
+      located: 'name',
+    })
+    expect(seen[1]).toMatchObject({ located: 'buyers[0].name' })
+  })
+
+  it('leaves a multi-port cell unbound on the host Item', async () => {
+    const props: Record<string, unknown>[] = []
+    const Input = defineComponent({
+      inheritAttrs: false,
+      setup: () => () => h('input', { class: 'w' }),
+    })
+    const Fields = createFormFields({
+      timeRange: {
+        component: Input,
+        model: ['start', 'end'],
+        prop: ['fromTime', 'toTime'],
+      },
+    })
+    // The adapter has no name to fall back on, so it must not bind the host
+    // Item: several locations cannot become one host `prop` (ADR-011 §6 rev).
+    const view = createFormView({
+      layout: { Row: DummyRow, Col: DummyCol },
+      item: {
+        component: DummyItem,
+        props: (fl) => {
+          props.push({ ...fl })
+          return {
+            label: '区间',
+            prop: fl.prop.length === 1 ? fl.prop[0] : undefined,
+          }
+        },
+      },
+    })
+    const html = await render(
+      h(view, { modelValue: { fromTime: '', toTime: '' }, 'fl:layout': true }, () =>
+        h(Fields.TimeRange),
+      ),
+    )
+    expect(props[0]!.model).toEqual(['start', 'end'])
+    expect(props[0]!.prop).toEqual(['fromTime', 'toTime'])
+    expect(props[0]).not.toHaveProperty('binding')
+    expect(props[0]).not.toHaveProperty('fieldKey')
+    // Item still renders (label/decoration), it is just not form-bound.
+    expect(html).toContain('data-label="区间"')
+  })
+
+  it('lets the tag fl:field win over the schema and ignores an invalid one', async () => {
+    const Input = defineComponent({
+      inheritAttrs: false,
+      setup: () => () => h('input', { class: 'w' }),
+    })
+    const Fields = createFormFields({
+      range: { label: '区间', component: Input, field: 'embed' },
+    })
+    const view = () => shellView()
+    const embedded = await render(
+      h(view(), { modelValue: { range: '' }, 'fl:layout': true }, () => h(Fields.Range)),
+    )
+    expect(embedded).not.toContain('class="item"')
+
+    const overridden = await render(
+      h(view(), { modelValue: { range: '' }, 'fl:layout': true }, () =>
+        h(Fields.Range, { 'fl:field': 'wrap' }),
+      ),
+    )
+    expect(overridden).toContain('class="item"')
+
+    const invalid = await render(
+      h(view(), { modelValue: { range: '' }, 'fl:layout': true }, () =>
+        h(Fields.Range, { 'fl:field': 'nope' as never }),
+      ),
+    )
+    expect(invalid).not.toContain('class="item"')
+  })
+
+  it('scopes a nested slice to its own port through the ancestor layer', async () => {
+    const emit = vi.fn()
+    const bags: Record<string, unknown>[] = []
+    const Pair = defineComponent({
+      formless: { field: 'embed' as const, model: ['start', 'end'] },
+      inheritAttrs: false,
+      setup() {
+        return () => [
+          h(FormField, { 'fl:model': 'start' }, (sp: { $bindings: Record<string, unknown> }) => {
+            bags.push(sp.$bindings)
+            return h('input', { class: 's' })
+          }),
+          h(FormField, { 'fl:model': 'end' }, (sp: { $bindings: Record<string, unknown> }) => {
+            bags.push(sp.$bindings)
+            return h('input', { class: 'e' })
+          }),
+        ]
+      },
+    })
+    const Fields = createFormFields({
+      dateRange: { label: '签证日期', component: Pair, model: ['start', 'end'], prop: ['fromTime', 'toTime'] },
+    })
+    await render(
+      h(
+        shellView(),
+        {
+          modelValue: { fromTime: 'a', toTime: 'b' },
+          'onUpdate:modelValue': emit,
+        },
+        () => h(Fields.DateRange),
+      ),
+    )
+    // Each slice sees only its own port; two ports in one cell stay separate.
+    expect(bags[0]).toMatchObject({ start: 'a' })
+    expect(bags[0]).not.toHaveProperty('end')
+    expect(bags[1]).toMatchObject({ end: 'b' })
+    expect(bags[1]).not.toHaveProperty('start')
+
+    // The slice writes its own location without ever naming it.
+    ;(bags[1]!['onUpdate:end'] as (next: unknown) => void)('z')
+    await nextTick()
+    expect(emit).toHaveBeenCalledTimes(1)
+    expect(emit.mock.calls[0]![0]).toEqual({ fromTime: 'a', toTime: 'z' })
+  })
+
+  it('uses field :layout:column for the inner LayoutView', async () => {
     const Fields = createFormFields({
       range: { label: '签证', component: Two, prop: ['fromTime', 'toTime'] },
     })
     const html = await render(
       h(
         shellView(),
-        { modelValue: { fromTime: '', toTime: '' }, 'fl:layout': true, 'row:column': 3 },
-        () => h(Fields.Range, { 'fl:field': 'wrap-embed', 'row:column': 2 }),
+        { modelValue: { fromTime: '', toTime: '' }, 'fl:layout': true, 'layout:column': 3 },
+        () => h(Fields.Range, { 'fl:field': 'wrap-embed', 'layout:column': 2 }),
       ),
     )
     expect(html).toContain('class="row"')
@@ -481,14 +491,14 @@ describe('createFormFields props overlay', () => {
     expect(spans.filter((s) => s === '12')).toHaveLength(2)
   })
 
-  it('inner LayoutView uses its own default density, not the page :row:column', async () => {
+  it('inner LayoutView uses its own default density, not the page :layout:column', async () => {
     const Fields = createFormFields({
       range: { label: '签证', component: Two, prop: ['fromTime', 'toTime'] },
     })
     const html = await render(
       h(
         shellView(),
-        { modelValue: { fromTime: '', toTime: '' }, 'fl:layout': true, 'row:column': 3 },
+        { modelValue: { fromTime: '', toTime: '' }, 'fl:layout': true, 'layout:column': 3 },
         () => h(Fields.Range, { 'fl:field': 'wrap-embed' }),
       ),
     )

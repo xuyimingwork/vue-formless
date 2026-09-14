@@ -1,10 +1,11 @@
 import { describe, expectTypeOf, it } from 'vitest'
+import type { Component } from 'vue'
 import type {
   FieldSchemaExtras,
   FlExtraProps,
   FormFieldTagProps,
   ItemFl,
-} from './item-adapter'
+} from './field-schema'
 
 describe('FieldSchema extras', () => {
   it('kernel FormFieldTagProps are only the fl / layout keys', () => {
@@ -14,9 +15,10 @@ describe('FieldSchema extras', () => {
       'fl:model'?: string | string[]
       'fl:item'?: boolean
       'fl:field'?: 'wrap' | 'embed' | 'wrap-embed'
-      'col:span'?: string | number
-      'col:place'?: 'auto' | 'start' | 'end'
-      'row:column'?: number
+      'fl:component'?: Component
+      'layout-item:span'?: string | number
+      'layout-item:place'?: 'auto' | 'start' | 'end'
+      'layout:column'?: number
     }>()
   })
 
@@ -27,9 +29,11 @@ describe('FieldSchema extras', () => {
     }>()
   })
 
-  it('ItemFl keeps kernel wiring', () => {
-    expectTypeOf<ItemFl>().toHaveProperty('fieldKey')
-    expectTypeOf<ItemFl>().toHaveProperty('binding')
+  it('ItemFl flattens the binding into index-aligned model / prop arrays', () => {
+    expectTypeOf<ItemFl['model']>().toEqualTypeOf<string[]>()
+    expectTypeOf<ItemFl['prop']>().toEqualTypeOf<string[]>()
     expectTypeOf<ItemFl>().toHaveProperty('getValues')
+    // The host `prop` encoding is the adapter's own work (ADR-011 §6 revised).
+    expectTypeOf<ItemFl>().not.toHaveProperty('fieldKey')
   })
 })

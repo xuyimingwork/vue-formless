@@ -1,8 +1,8 @@
 /**
  * Immutable get/set over model paths (ADR-011). Path strings such as
- * `buyers[0].name` are parsed into segments by `./parse-model-path`.
+ * `buyers[0].name` are parsed into segments by `./path-parse`.
  */
-import { parsePath, type PathSegment } from './parse-model-path'
+import { parsePath, type PathSegment } from './path-parse'
 
 /**
  * Values that can hold a child at a path segment: plain objects and arrays.

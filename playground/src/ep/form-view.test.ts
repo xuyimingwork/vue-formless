@@ -6,9 +6,9 @@ import type { FormFieldProps, ItemFl } from 'vue-formless'
 
 describe('toEpItemProps', () => {
   const mobileFl: ItemFl = {
-    fieldKey: 'mobile',
     label: '手机',
-    binding: { models: ['modelValue'], props: ['mobile'] },
+    model: ['modelValue'],
+    prop: ['mobile'],
     getValues: () => [''],
   }
 
@@ -18,43 +18,43 @@ describe('toEpItemProps', () => {
     expect(props.prop).toBe('mobile')
   })
 
-  it('encodes host prop: one leaf path vs multi-port field key', () => {
+  it('binds one leaf path, and leaves a multi-port cell unbound', () => {
     expect(
       toEpItemProps({
         ...mobileFl,
-        binding: { models: ['modelValue'], props: ['buyers[0].name'] },
+        model: ['modelValue'],
+        prop: ['buyers[0].name'],
       }).prop,
     ).toBe('buyers.0.name')
+    // One host Item `prop` cannot hold a pair: no name to fall back on either,
+    // so the cell stays out of the host's validation (ADR-014, v1 scope).
     expect(
       toEpItemProps({
         ...mobileFl,
-        fieldKey: 'timeRange',
-        binding: { models: ['start', 'end'], props: ['startTime', 'endTime'] },
+        model: ['start', 'end'],
+        prop: ['startTime', 'endTime'],
       }).prop,
-    ).toBe('timeRange')
+    ).toBeUndefined()
   })
 })
 
 describe('resolveFormItemProp', () => {
-  describe('single-port binding: kernel location → dotted ElFormItem prop', () => {
+  describe('single-port cell: kernel location → dotted ElFormItem prop', () => {
     it.each([
       ['name', 'name'],
       ['buyers[0].name', 'buyers.0.name'],
       ['[2].title', '2.title'],
     ])("converts '%s' into '%s'", (location, expected) => {
-      expect(
-        resolveFormItemProp({ models: ['modelValue'], props: [location] }, 'name'),
-      ).toBe(expected)
+      expect(resolveFormItemProp([location])).toBe(expected)
     })
   })
 
-  it('multi-port binding in one cell falls back to the field key', () => {
-    expect(
-      resolveFormItemProp(
-        { models: ['start', 'end'], props: ['startTime', 'endTime'] },
-        'timeRange',
-      ),
-    ).toBe('timeRange')
+  it('leaves several ports in one cell unbound', () => {
+    expect(resolveFormItemProp(['startTime', 'endTime'])).toBeUndefined()
+  })
+
+  it('leaves a path it cannot dot-encode unbound', () => {
+    expect(resolveFormItemProp(['buyers["a.b"].name'])).toBeUndefined()
   })
 })
 
@@ -73,7 +73,7 @@ describe('namespaced field widget props', () => {
     expectTypeOf<RemarkProps>().toHaveProperty('placeholder')
     expectTypeOf<RemarkProps>().toHaveProperty('rows')
     expectTypeOf<RemarkProps>().toHaveProperty('type')
-    expectTypeOf<RemarkProps>().toHaveProperty('col:span')
+    expectTypeOf<RemarkProps>().toHaveProperty('layout-item:span')
     expectTypeOf<RemarkProps>().toHaveProperty('fl:label')
     expectTypeOf<RemarkProps>().not.toHaveProperty('modelValue')
   })

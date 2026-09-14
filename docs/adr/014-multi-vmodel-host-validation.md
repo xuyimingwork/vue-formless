@@ -6,6 +6,7 @@
   - 2026-08-19 — 主路径改为适配 `Form` 吃投影 model；用户不手写 `el-form`。`validate()` 在 FormView ref。无 Form 时仍可不信 ElForm `value`。公开 `FormLayout` / 页面 slot 绑投影已否。
   - 2026-08-19 — 宿主 `prop` 由适配 Item / Form 编码，内核不预计算、不强制控件键。snapshot 给 `binding` + `getValues()`。
   - 2026-08-26 — 编码落在 `item.props`（及将来的 Form 投影），不再经 `props.fl`。见 [ADR-016](./016-fl-project-and-overlay.md)。
+  - 2026-09-14 — **v1 范围收窄**：「一格控件键 + Form 投影」整条路暂不实现（`fieldKey` 已废，见 ADR-011 修订）。多口一格的 `item.props` 写出 `prop: undefined` —— 宿主不注册该格、不校验、不重置（宿主 `prop` 是纯适配编码）。需要宿主校验的多口控件请用 `fl:field="wrap-embed"` 一壳一格（ADR-013），每一格各有一个口，位置即宿主 `prop`。§「决策」里关于控件键 / 投影 / `resetFields(控件键)` 的论证保留为将来恢复该路径时的依据。
 - **来源**：相对 [ADR-011](./011-model-and-path.md) / [ADR-012](./012-input-item-and-rule-compile.md)。011 允许 `model` / `prop` 数组只解决了接线；一格 Item 时宿主 Form 的 `value`、红字、`resetFields` 没着落。[ADR-013](./013-one-control-multiple-items.md) 管壳的次数，不管「几个 v-model 口时 rules 吃什么」。
 
 ## 背景
@@ -56,7 +57,7 @@ timeRange: {
 
 DateRangeOneInput（默认 wrap 一次）一格挂不住两个叶子。Element 适配通常把宿主 Item `prop` 编成 **控件键**，不是两个叶子，也不是 `'$startTime,endTime'`。这是 **适配内部约定**，不是内核 snapshot 字段；Naive 等可以换成别的挂载点。
 
-内核只给 `binding` + `fieldKey` + `getValues()`。`item.props` 写出 `prop`；Form 投影键须用 **同一套编码**（真实叶子 + 该键 → 现取口值，如 `timeRange → [start, end]`）。ElFormItem 的 `fieldValue` 才能对上、watch 才能随改随消红字。投影的 setter（`resetFields`）必须拆回叶子再走 `update` / `emit`，禁止就地改 DTO。
+内核只给 `binding` + `getValues()`（`fieldKey` 已于 2026-09-14 作废，见 [ADR-011](./011-model-and-path.md) 修订）。`item.props` 写出 `prop`；Form 投影键须用 **同一套编码**（真实叶子 + 该键 → 现取口值，如 `timeRange → [start, end]`）。ElFormItem 的 `fieldValue` 才能对上、watch 才能随改随消红字。投影的 setter（`resetFields`）必须拆回叶子再走 `update` / `emit`，禁止就地改 DTO。
 
 DTO（`FormView` 的 `v-model`）**没有** `timeRange`。有适配 `Form` 时，投影发生在 Form 适配里，不是内核替 ElForm 选键。
 

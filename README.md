@@ -34,11 +34,13 @@ declare module 'vue-formless' {
 }
 
 // ElFormItem 的 `prop` 用点分路径；内核位置（`buyers[0].name`）由本层编码（ADR-011 §6）。
-function toItemProp(binding: ItemFl['binding'], fieldKey: string): string {
-  if (binding.props.length > 1) return fieldKey // 多口一格退回控件键
-  const [location] = binding.props
+// 一个宿主 `prop` 装不下多个口 → 多口一格不绑宿主（`undefined`），
+// 需要宿主校验就用 `fl:field="wrap-embed"` 拆成一格一口。
+function toItemProp(prop: ItemFl['prop']): string | undefined {
+  if (prop.length !== 1) return undefined
+  const [location] = prop
   const dotted = location.replace(/\[(\d+)\]/g, '.$1').replace(/^\./, '')
-  if (!dotted || /[[\]]/.test(dotted)) return fieldKey // 非法 / 空 prop：退回控件键
+  if (!dotted || /[[\]]/.test(dotted)) return undefined // 编不出来：不绑宿主
   return dotted
 }
 
@@ -52,7 +54,7 @@ export const FormView = createFormView({
     component: ElFormItem,
     props: (fl: ItemFl) => ({
       label: fl.label,
-      prop: toItemProp(fl.binding, fl.fieldKey),
+      prop: toItemProp(fl.prop),
     }),
   },
 })
@@ -65,7 +67,7 @@ export const User = createFormFields({
 ```vue
 <FormView ref="formRef" v-model="form" fl:layout label-width="96px">
   <User.Name />
-  <User.Name col:span="max" />
+  <User.Name layout-item:span="max" />
 </FormView>
 ```
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { overlayProps, resolveProps } from './overlay-props'
+import { overlayProps, resolveProps } from './props-overlay'
 
 describe('resolveProps', () => {
   it('returns {} when spec is omitted', () => {

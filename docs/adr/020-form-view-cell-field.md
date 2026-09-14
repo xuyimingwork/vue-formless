@@ -4,6 +4,7 @@
 - **日期**：2026-09-08
 - **修订**：
   - 2026-09-10 — 词表重写：`FormCell` → `FormItem`（名字 = 主宿主，`cell` 让给 `LayoutCell`）；`cell` 三态改 `fl:tree`；`useFormCell(port)` 退场改 `fl:model`；通道前缀 = 目标组件。见 [ADR-021](./021-channel-prefix-and-form-item.md)。
+  - 2026-09-14 — §1 词表里的 `controlKey → fieldKey` **再作废**：内核不发身份名（改 `fieldIdentityKey` / `fl:key` / `ItemFl.fieldKey` 均已删，见 [ADR-011](./011-model-and-path.md) 修订）；宿主 `Item.prop` 由适配层自行编码，多口一格不绑宿主。
 - **来源**：layout 抽离之后 formless 结构对照；相对 [009](./009-controls-as-protagonist.md) / [012](./012-input-item-and-rule-compile.md) / [013](./013-one-control-multiple-items.md) / [017](./017-composite-item-self.md) 的词表与壳模型重写。
 - **废止**：[017](./017-composite-item-self.md)（`item: 'self'`、`wrapCol` / `extraRow`、四档壳表）。013「一颗身份、N 格」仍成立，组装改由本文 `cell` 三态表达。
 - **库尚未发 1.0**：词汇准确优先于兼容；允许整表更名。
@@ -68,7 +69,7 @@ useFormItem             → useFormCell
 createFormControls      → createFormFields
 item: 'self'            → cell: 'embed'
 ControlSchema           → FieldSchema
-controlKey              → fieldKey（实现层一并改）
+controlKey              → fieldKey（2026-09-14 再作废，见修订）
 ```
 
 ### 2. FormCell = 始终 LayoutCell，可选 ElFormItem

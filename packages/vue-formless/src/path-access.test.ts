@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { getIn, setIn } from './model-path'
+import { getIn, setIn } from './path-access'
 
 describe('getIn', () => {
   describe('returns the value when the prop resolves', () => {
