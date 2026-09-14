@@ -2,7 +2,7 @@ import { describe, expect, expectTypeOf, it } from 'vitest'
 import './vue-formless-aug'
 import { resolveFormItemProp, toEpItemProps } from './form-view'
 import { User } from '../demos/formless/user'
-import type { ComponentPublicProps, FormFieldProps, FormCellTagProps, ItemFl } from 'vue-formless'
+import type { FormFieldProps, ItemFl } from 'vue-formless'
 
 describe('toEpItemProps', () => {
   const mobileFl: ItemFl = {
@@ -64,14 +64,12 @@ describe('FieldSchema extras inference', () => {
     expectTypeOf<ItemFl['label']>().toEqualTypeOf<string | undefined>()
     expectTypeOf<FormFieldProps>().toHaveProperty('fl:label')
     expectTypeOf<FormFieldProps['fl:label']>().toEqualTypeOf<string | undefined>()
-    expectTypeOf<FormCellTagProps>().toHaveProperty('fl:label')
-    expectTypeOf<FormCellTagProps['fl:label']>().toEqualTypeOf<string | undefined>()
   })
 })
 
 describe('namespaced field widget props', () => {
   it('exposes ElInput props on User.Remark', () => {
-    type RemarkProps = ComponentPublicProps<typeof User.Remark>
+    type RemarkProps = InstanceType<typeof User.Remark>['$props']
     expectTypeOf<RemarkProps>().toHaveProperty('placeholder')
     expectTypeOf<RemarkProps>().toHaveProperty('rows')
     expectTypeOf<RemarkProps>().toHaveProperty('type')

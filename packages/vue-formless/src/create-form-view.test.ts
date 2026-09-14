@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createSSRApp, defineComponent, h, nextTick, type PropType, type VNode } from 'vue'
 import { renderToString } from 'vue/server-renderer'
 import { createFormView } from './create-form-view'
-import { FormCell } from './FormCell'
+import { FormField } from './FormField'
 import { useFormContext } from './context'
 
 const Row = defineComponent({
@@ -187,7 +187,7 @@ describe('createFormView', () => {
     const FormView = View()
     const html = await render(
       h(FormView, { modelValue: {}, 'fl:layout': true, 'row:column': 3, 'row:gutter': 12 }, () =>
-        h(FormCell, { 'fl:prop': 'name' }),
+        h(FormField, { 'fl:prop': 'name' }),
       ),
     )
     expect(html).toContain('gutter="12"')
@@ -199,7 +199,7 @@ describe('createFormView', () => {
   it('does not render Row or Col when layout is off', async () => {
     const FormView = View()
     const html = await render(
-      h(FormView, { modelValue: {} }, () => h(FormCell, { 'fl:prop': 'name' })),
+      h(FormView, { modelValue: {} }, () => h(FormField, { 'fl:prop': 'name' })),
     )
     expect(html).not.toContain('<row')
     expect(html).not.toContain('<grid-col')
@@ -210,7 +210,7 @@ describe('createFormView', () => {
     const html = await render(
       h(FormView, { modelValue: {} }, () =>
         h(FormView, { 'fl:layout': true, 'row:column': 3, 'row:gutter': 16 }, () =>
-          h(FormCell, { 'fl:prop': 'name' }),
+          h(FormField, { 'fl:prop': 'name' }),
         ),
       ),
     )
@@ -306,7 +306,7 @@ describe('createFormView', () => {
     const FormView = View()
     const html = await render(
       h(FormView, { modelValue: {}, 'fl:layout': true }, () =>
-        h(FormCell, { 'fl:prop': 'name' }),
+        h(FormField, { 'fl:prop': 'name' }),
       ),
     )
     expect(html).toContain('span="24"')
@@ -319,7 +319,7 @@ describe('createFormView', () => {
     })
     const html = await render(
       h(FormView, { modelValue: {}, 'fl:layout': true, 'row:gutter': 16 }, () =>
-        h(FormCell, { 'fl:prop': 'name' }),
+        h(FormField, { 'fl:prop': 'name' }),
       ),
     )
     expect(html).toContain('gutter="16"')
@@ -336,10 +336,10 @@ const LabeledItem = defineComponent({
   },
 })
 
-describe('FormCell', () => {
+describe('FormField', () => {
   it('is a standalone export (not attached on FormView)', () => {
     const View = createFormView({ layout: { Row, Col } })
-    expect(FormCell).toBeTruthy()
+    expect(FormField).toBeTruthy()
     expect((View as { Cell?: unknown }).Cell).toBeUndefined()
   })
 
@@ -350,7 +350,7 @@ describe('FormCell', () => {
     })
     const Cell = defineComponent({
       setup() {
-        return () => h(FormCell, { 'fl:prop': 'name' }, { default: () => 'x' })
+        return () => h(FormField, { 'fl:prop': 'name' }, { default: () => 'x' })
       },
     })
     const html = await render(
@@ -370,7 +370,7 @@ describe('FormCell', () => {
     const Cell = defineComponent({
       setup() {
         return () =>
-          h(FormCell, { 'fl:prop': 'name', 'fl:item': false }, { default: () => 'x' })
+          h(FormField, { 'fl:prop': 'name', 'fl:item': false }, { default: () => 'x' })
       },
     })
     const html = await render(
@@ -386,7 +386,7 @@ describe('FormCell', () => {
     const Cell = defineComponent({
       setup() {
         return () =>
-          h(FormCell, { 'fl:prop': 'name', label: '姓名' }, { default: () => 'x' })
+          h(FormField, { 'fl:prop': 'name', label: '姓名' }, { default: () => 'x' })
       },
     })
     const html = await render(
@@ -403,7 +403,7 @@ describe('FormCell', () => {
     const Probe = defineComponent({
       setup() {
         return () =>
-          h(FormCell, { 'fl:prop': 'name' }, {
+          h(FormField, { 'fl:prop': 'name' }, {
             default: (slot: { field: { modelValue: unknown; 'onUpdate:modelValue': (n: unknown) => void } }) => {
               slot.field['onUpdate:modelValue']('Zed')
               return h('span', String(slot.field.modelValue ?? ''))

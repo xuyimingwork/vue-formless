@@ -10,7 +10,7 @@ import {
 import { createFormFields, type ComponentPublicProps } from './create-form-fields'
 import { readWidgetFormless } from './fl-config'
 import { createFormView } from './create-form-view'
-import { FormCell, useFormCell } from './FormCell'
+import { FormField } from './FormField'
 
 describe('case', () => {
   it('converts camelCase ↔ PascalCase', () => {
@@ -272,10 +272,10 @@ describe('createFormFields', () => {
   })
 })
 
-describe('FormCell', () => {
-  it('is exported as a standalone cell (not FormView.Cell)', () => {
-    expect(FormCell).toBeTruthy()
-    expect(FormCell.name).toBe('FormCell')
+describe('FormField', () => {
+  it('is exported as a standalone field (not FormView.Field)', () => {
+    expect(FormField).toBeTruthy()
+    expect(FormField.name).toBe('FormField')
   })
 })
 
@@ -310,11 +310,9 @@ describe('createFormFields props overlay', () => {
       end: { default: undefined },
     },
     setup() {
-      const Start = useFormCell('start')
-      const End = useFormCell('end')
       return () => [
-        h(Start, { label: '开始' }, () => h('input', { class: 's' })),
-        h(End, { label: '结束' }, () => h('input', { class: 'e' })),
+        h(FormField, { 'fl:model': 'start', label: '开始' }, () => h('input', { class: 's' })),
+        h(FormField, { 'fl:model': 'end', label: '结束' }, () => h('input', { class: 'e' })),
       ]
     },
   })
@@ -462,7 +460,7 @@ describe('createFormFields props overlay', () => {
     expect(html.match(/class="item"/g)?.length).toBe(3)
     expect(html).toContain('data-label="签证"')
     expect(html).toContain('class="row"')
-    // Outer FormCell has no Col (page LayoutView disabled); inner cells still Col.
+    // Outer FormField has no Col (page LayoutView disabled); inner cells still Col.
     expect(html.match(/class="col"/g)?.length).toBe(2)
   })
 

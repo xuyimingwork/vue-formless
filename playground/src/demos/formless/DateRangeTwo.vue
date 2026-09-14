@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useFormCell } from 'vue-formless'
+import { FormField } from 'vue-formless'
 
 defineOptions({
   formless: {
@@ -10,13 +10,10 @@ defineOptions({
 
 const start = defineModel<string>('start')
 const end = defineModel<string>('end')
-
-const StartItem = useFormCell('start')
-const EndItem = useFormCell('end')
 </script>
 
 <template>
-  <StartItem label="开始日期">
+  <FormField fl:model="start" label="开始日期">
     <el-date-picker
       v-model="start"
       type="date"
@@ -24,8 +21,8 @@ const EndItem = useFormCell('end')
       placeholder="开始日期"
       style="width: 100%"
     />
-  </StartItem>
-  <EndItem label="结束日期">
+  </FormField>
+  <FormField fl:model="end" label="结束日期">
     <el-date-picker
       v-model="end"
       type="date"
@@ -33,5 +30,5 @@ const EndItem = useFormCell('end')
       placeholder="结束日期"
       style="width: 100%"
     />
-  </EndItem>
+  </FormField>
 </template>

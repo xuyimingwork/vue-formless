@@ -1,4 +1,4 @@
 import './vue-formless-aug'
 
 export { FormView } from './form-view'
-export { FormCell } from 'vue-formless'
+export { FormField } from 'vue-formless'

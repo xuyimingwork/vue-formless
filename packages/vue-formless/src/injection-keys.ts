@@ -8,7 +8,7 @@ export interface FormContext {
   model: unknown
   /** Report a field write; FormView patches and emits `update:modelValue`. */
   update: (prop: string, value: unknown) => void
-  /** Host Item (e.g. ElFormItem). Omit = FormCell never wraps Item. */
+  /** Host Item (e.g. ElFormItem). Omit = FormField never wraps Item. */
   Item?: Component
   /** Defaults for the host Item (static or from the cell snapshot). */
   itemProps?: HostProps<ItemFl>
@@ -18,7 +18,7 @@ export interface FormContext {
   LayoutView: Component
 }
 
-/** Binding + extras the namespaced Field provides; FormCell reads it. */
+/** Binding + extras the namespaced Field provides; FormField reads it. */
 export interface FieldRuntime {
   fieldKey: string
   binding: ResolvedControlBinding
@@ -33,8 +33,4 @@ export const FORM_VIEW_KEY: InjectionKey<FormContext | null> = Symbol(
 
 export const FIELD_RUNTIME_KEY: InjectionKey<FieldRuntime | null> = Symbol(
   'vue-formless:field-runtime',
-)
-
-export const FORM_CELL_PORT_KEY: InjectionKey<string | null> = Symbol(
-  'vue-formless:form-cell-port',
 )

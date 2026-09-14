@@ -2,27 +2,21 @@ import { describe, expectTypeOf, it } from 'vitest'
 import type {
   FieldSchemaExtras,
   FlExtraProps,
-  FormFieldProps,
-  FormCellTagProps,
+  FormFieldTagProps,
   ItemFl,
 } from './item-adapter'
 
 describe('FieldSchema extras', () => {
-  it('kernel FormFieldProps are only the fl shell keys', () => {
+  it('kernel FormFieldTagProps are only the fl / layout keys', () => {
     expectTypeOf<FieldSchemaExtras>().toEqualTypeOf<{}>()
-    expectTypeOf<FormFieldProps>().toEqualTypeOf<{
+    expectTypeOf<FormFieldTagProps>().toEqualTypeOf<{
       'fl:prop'?: string | string[]
+      'fl:model'?: string | string[]
       'fl:item'?: boolean
       'fl:cell'?: 'wrap' | 'embed' | 'wrap-embed'
       'col:span'?: string | number
       'col:place'?: 'auto' | 'start' | 'end'
       'row:column'?: number
-    }>()
-    expectTypeOf<FormCellTagProps>().toEqualTypeOf<{
-      'fl:prop'?: string | string[]
-      'fl:item'?: boolean
-      'col:span'?: string | number
-      'col:place'?: 'auto' | 'start' | 'end'
     }>()
   })
 

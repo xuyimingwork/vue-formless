@@ -135,7 +135,7 @@ function provideFormViewContext(options: {
 /**
  * Bind host layout / form / item once; returns a FormView (ADR-008 / ADR-016 / ADR-020).
  *
- * Host shells stay in this closure. Ad-hoc cells use `FormCell`.
+ * Host shells stay in this closure. Ad-hoc cells use `FormField`.
  *
  * @example
  * ```ts

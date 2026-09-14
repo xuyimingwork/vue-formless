@@ -25,7 +25,7 @@ peer：`vue` ^3.3。
 
 ```ts
 import { ElCol, ElForm, ElFormItem, ElInput, ElRow } from 'element-plus'
-import { createFormFields, createFormView, parsePath, type ItemFl } from 'vue-formless'
+import { createFormFields, createFormView, type ItemFl } from 'vue-formless'
 
 declare module 'vue-formless' {
   interface FieldSchema {
@@ -37,9 +37,9 @@ declare module 'vue-formless' {
 function toItemProp(binding: ItemFl['binding'], fieldKey: string): string {
   if (binding.props.length > 1) return fieldKey // 多口一格退回控件键
   const [location] = binding.props
-  const segments = parsePath(location)
-  if (!segments) return fieldKey // 非法 / 空 prop：退回控件键
-  return segments.map((seg) => (seg.type === 'key' ? seg.key : String(seg.index))).join('.')
+  const dotted = location.replace(/\[(\d+)\]/g, '.$1').replace(/^\./, '')
+  if (!dotted || /[[\]]/.test(dotted)) return fieldKey // 非法 / 空 prop：退回控件键
+  return dotted
 }
 
 export const FormView = createFormView({

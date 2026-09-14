@@ -43,7 +43,7 @@ export interface FieldSchema {
   prop?: ControlProp
   /**
    * Outer ElFormItem for this cell: FormView default, then this, then tag `:fl:item`.
-   * Boolean only (ADR-020). Not “skip FormCell”.
+   * Boolean only (ADR-020). Not “skip FormField”.
    */
   item?: boolean
   /**
@@ -72,11 +72,13 @@ export type ItemFl = {
   [extra: string]: unknown
 } & FieldSchemaExtras
 
-/** Kernel `fl:` / `col:` / `row:` keys on `<User.Xxx />`. Schema extras are prefixed automatically.
+/** Kernel `fl:` / `col:` / `row:` keys on `<FormField>` / `<User.Xxx />`. Schema extras are prefixed automatically.
+ * `fl:model` selects one declared v-model port inside a namespaced Field.
  * `row:column` is formless density; other `row:*` (e.g. gutter) stay attrs and fall through to LayoutView → Row.
  */
-export type FormFieldProps = {
+export type FormFieldTagProps = {
   'fl:prop'?: string | string[]
+  'fl:model'?: string | string[]
   'fl:item'?: boolean
   'fl:cell'?: FieldCell
   'col:span'?: string | number
@@ -84,13 +86,5 @@ export type FormFieldProps = {
   'row:column'?: number
 } & FlExtraProps<FieldSchemaExtras>
 
-/** Kernel keys on `FormCell` / `useFormCell()`. Schema extras are prefixed automatically. */
-export type FormCellTagProps = {
-  'fl:prop'?: string | string[]
-  'fl:item'?: boolean
-  'col:span'?: string | number
-  'col:place'?: 'auto' | 'start' | 'end'
-} & FlExtraProps<FieldSchemaExtras>
-
-/** @deprecated Use `FormCellTagProps`. */
-export type FormViewItemProps = FormCellTagProps
+/** @deprecated Use `FormFieldTagProps`. */
+export type FormViewItemProps = FormFieldTagProps

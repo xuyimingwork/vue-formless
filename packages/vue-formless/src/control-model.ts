@@ -51,7 +51,7 @@ export function resolveControlBinding(
   return { models, props }
 }
 
-/** Slice a multi-port binding to one v-model port (ADR-013 / ADR-020 `useFormCell('start')`). */
+/** Slice a multi-port binding to one v-model port (ADR-013 / ADR-021 `fl:model="start"`). */
 export function bindingForPort(
   binding: ResolvedControlBinding,
   port: string,
@@ -59,13 +59,13 @@ export function bindingForPort(
   const index = binding.models.indexOf(port)
   if (index === -1) {
     throw new Error(
-      `[vue-formless] useFormCell("${port}"): not a v-model port of this field`,
+      `[vue-formless] fl:model="${port}": not a v-model port of this field`,
     )
   }
   const prop = binding.props[index]
   if (prop === undefined) {
     throw new Error(
-      `[vue-formless] useFormCell("${port}"): port is not bound to a prop`,
+      `[vue-formless] fl:model="${port}": port is not bound to a prop`,
     )
   }
   return { models: [port], props: [prop] }

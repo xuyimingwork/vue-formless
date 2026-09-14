@@ -1,28 +1,22 @@
 import { ElCol, ElForm, ElFormItem, ElRow } from 'element-plus'
-import {
-  createFormView,
-  parsePath,
-  type ItemFl,
-  type ResolvedControlBinding,
-} from 'vue-formless'
+import { createFormView, type ItemFl } from 'vue-formless'
 
 /**
- * Element-style encoding of a kernel model location into a host Item `prop`.
- * The kernel only deals in `[index]` bracket syntax (`buyers[0].name`); the
- * dotted form (`buyers.0.name`) is ElFormItem's own dialect (ADR-011 §6), so
- * it lives with the adapter, not in vue-formless core.
+ * Kernel `prop` location → ElFormItem `prop` dot notation.
+ * The kernel path parser is private, so the adapter encodes its own dotted
+ * dialect here (ADR-011 §6): `buyers[0].name` → `buyers.0.name`.
+ * Locations it cannot encode (quoted keys, malformed paths) return undefined.
  */
-
-/** Convert one kernel location to ElFormItem `prop` dot notation; undefined when unparsable. */
 function toDotPath(path: string): string | undefined {
-  const segments = parsePath(path)
-  if (!segments) return undefined
-  return segments.map((seg) => (seg.type === 'key' ? seg.key : String(seg.index))).join('.')
+  if (!path || path.startsWith('.') || path.endsWith('.')) return undefined
+  const dotted = path.replace(/\[(\d+)\]/g, '.$1').replace(/^\./, '')
+  if (/[[\]]/.test(dotted) || dotted.includes('..')) return undefined
+  return dotted
 }
 
 /** One location → dotted host prop; several v-model ports in one cell → field key (ADR-011 §6). */
 export function resolveFormItemProp(
-  binding: ResolvedControlBinding,
+  binding: ItemFl['binding'],
   fieldKey: string,
 ): string {
   if (binding.props.length === 1) {
