@@ -1,4 +1,4 @@
-import { defineComponent, h, inject, type VNodeChild } from 'vue'
+import { defineComponent, inject, type VNodeChild } from 'vue'
 import { FormField, type FormFieldComponent } from './FormField'
 import { createFieldLayer } from './control-binding'
 import { useFormContext } from './context'
@@ -115,7 +115,7 @@ export function createFormFieldComponent(
         )
 
         // preset (fl:* layer) < schema/cluster widget props < tag attrs.
-        return h(FormField, overlayProps(preset, inputProps, tagAttrs), slots)
+        return <FormField {...overlayProps(preset, inputProps, tagAttrs)} v-slots={slots} />
       }
     },
   }) as FormFieldComponent

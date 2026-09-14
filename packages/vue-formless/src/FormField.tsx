@@ -1,7 +1,6 @@
 import {
   computed,
   defineComponent,
-  h,
   inject,
   provide,
   reactive,
@@ -146,15 +145,19 @@ export const FormField = defineComponent({
       }
 
       const widget = formlessProps.value.component as Component | undefined
-      const inner: VNodeChild = widget
-        ? h(widget, { ...inputProps.value, ...bindings.value }, inputSlots)
+      const Widget = widget as JsxHost | undefined
+      const widgetProps = { ...inputProps.value, ...bindings.value }
+      const inner: VNodeChild = Widget
+        ? <Widget {...widgetProps} v-slots={inputSlots} />
         : slots.default?.({ $bindings: bindings.value }) ?? null
 
       if (fieldMode === 'embed') return inner
 
+      const HostLayoutView = ctx.LayoutView as JsxHost
+      const windowProps = { ...layoutProps.value }
       const cellBody =
         fieldMode === 'wrap-embed'
-          ? h(ctx.LayoutView, { ...layoutProps.value }, () => inner)
+          ? <HostLayoutView {...windowProps} v-slots={{ default: () => inner }} />
           : inner
 
       const HostItem = ctx.Item as JsxHost | undefined

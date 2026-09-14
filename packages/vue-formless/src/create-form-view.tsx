@@ -1,7 +1,6 @@
 import {
   computed,
   defineComponent,
-  h,
   inject,
   markRaw,
   provide,
@@ -19,6 +18,9 @@ import type { ItemFl } from './field-schema'
 import { omit } from './record-utils'
 import { overlayProps, resolveProps, type HostProps } from './props-overlay'
 import { toAttrBoolean, useFormlessProps } from './attrs'
+
+/** `Component` is a union; JSX needs a constructable host. */
+type JsxHost = new () => { $props: Record<string, unknown> }
 
 export interface FormViewLayoutBind {
   Row: Component
@@ -189,28 +191,31 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
       })
 
       return (): VNodeChild => {
-        const body = h(
-          LayoutView,
-          {
-            ...overlayProps({ column }, layoutProps.value),
-            disabled: !toAttrBoolean(formlessProps.value.layout, false),
-          },
-          { default: slots.default },
+        const HostLayoutView = LayoutView as JsxHost
+        const body = (
+          <HostLayoutView
+            {...overlayProps({ column }, layoutProps.value)}
+            disabled={!toAttrBoolean(formlessProps.value.layout, false)}
+            v-slots={{ default: slots.default }}
+          />
         )
 
         if (!Form) return body
         if (!toAttrBoolean(formlessProps.value.form, !nested)) return body
 
+        const HostForm = Form as JsxHost
         // Factory form.props(fl) sets host defaults; tag host attrs overlay (near wins).
         // The v-model value is a declared prop and its update:modelValue listener
         // is owned by useFormViewModelValue — neither lands on the host Form.
-        return h(
-          Form,
-          {
-            ref: hostForm,
-            ...overlayProps(formProps({ modelValue: model.value }) as any, omit(hostAttrs.value, V_MODEL_PORT_KEYS)),
-          },
-          { default: () => body },
+        return (
+          <HostForm
+            ref={hostForm}
+            {...overlayProps(
+              formProps({ modelValue: model.value }) as any,
+              omit(hostAttrs.value, V_MODEL_PORT_KEYS),
+            )}
+            v-slots={{ default: () => body }}
+          />
         )
       }
     },
