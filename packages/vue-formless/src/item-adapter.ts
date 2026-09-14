@@ -6,8 +6,8 @@ import type {
 } from './control-model'
 import type { HostProps } from './overlay-props'
 
-/** `cell` tree modes (ADR-020). Omit = `'wrap'`. */
-export type FieldCell = 'wrap' | 'embed' | 'wrap-embed'
+/** `field` assembly modes (ADR-020). Omit = `'wrap'`. */
+export type FieldMode = 'wrap' | 'embed' | 'wrap-embed'
 
 /** Kernel-owned FieldSchema keys. Not extras; tags already have matching `fl:*` where allowed. */
 export type FieldSchemaKernelKey =
@@ -16,7 +16,7 @@ export type FieldSchemaKernelKey =
   | 'model'
   | 'prop'
   | 'item'
-  | 'cell'
+  | 'field'
 
 /**
  * Field identity. Adapter extras (e.g. `label`) via `declare module 'vue-formless'`.
@@ -25,10 +25,10 @@ export type FieldSchemaKernelKey =
 export interface FieldSchema {
   /**
    * Input widget only (no FormItem). Receives v-model bindings from formless.
-   * Widget may also declare static `formless: { model, item, cell }`.
+   * Widget may also declare static `formless: { model, item, field }`.
    */
   component?: Component
-  /** Input defaults: static object, or derived from the cell snapshot. */
+  /** Input defaults: static object, or derived from the field snapshot. */
   props?: HostProps<ItemFl>
   /**
    * v-model names on the widget (ADR-011). Default `'modelValue'`.
@@ -42,7 +42,7 @@ export interface FieldSchema {
    */
   prop?: ControlProp
   /**
-   * Outer ElFormItem for this cell: FormView default, then this, then tag `:fl:item`.
+   * Outer ElFormItem for this field: FormView default, then this, then tag `:fl:item`.
    * Boolean only (ADR-020). Not “skip FormField”.
    */
   item?: boolean
@@ -50,7 +50,7 @@ export interface FieldSchema {
    * Assembly tree (ADR-020). Omit = `'wrap'`.
    * Whole value replaced by nearer source (tag > widget > schema); no wrap∪embed merge.
    */
-  cell?: FieldCell
+  field?: FieldMode
 }
 
 /** Adapter fields on FieldSchema (everything except kernel keys). */
@@ -80,7 +80,7 @@ export type FormFieldTagProps = {
   'fl:prop'?: string | string[]
   'fl:model'?: string | string[]
   'fl:item'?: boolean
-  'fl:cell'?: FieldCell
+  'fl:field'?: FieldMode
   'col:span'?: string | number
   'col:place'?: 'auto' | 'start' | 'end'
   'row:column'?: number

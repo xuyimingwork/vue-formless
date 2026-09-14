@@ -33,7 +33,7 @@ export type {
 
 // --- schema / binding types ------------------------------------------------
 export type {
-  FieldCell,
+  FieldMode,
   FieldSchema,
   FieldSchemaExtras,
   ItemFl,

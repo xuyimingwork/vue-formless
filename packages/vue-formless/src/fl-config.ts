@@ -1,13 +1,13 @@
-import type { FieldCell } from './item-adapter'
+import type { FieldMode } from './item-adapter'
 
-const SHELL_KEYS = new Set(['item', 'layout', 'model', 'span', 'cell'])
+const SHELL_KEYS = new Set(['item', 'layout', 'model', 'span', 'field'])
 const SCHEMA_CORE_KEYS = new Set([
   'component',
   'props',
   'model',
   'prop',
   'item',
-  'cell',
+  'field',
   // leftover schema `layout` must not leak into Item snapshot extras
   'layout',
 ])
@@ -15,7 +15,7 @@ const SCHEMA_CORE_KEYS = new Set([
 export interface WidgetFormless {
   model?: string | string[]
   item?: boolean
-  cell?: FieldCell
+  field?: FieldMode
   prop?: string | string[]
 }
 
@@ -73,8 +73,8 @@ export function readWidgetFormless(component: unknown): WidgetFormless {
   if (component == null || typeof component !== 'object') return {}
   const bag = (component as { formless?: unknown }).formless
   if (bag == null || typeof bag !== 'object') return {}
-  const { model, item, cell, prop } = bag as WidgetFormless
-  return omitUndefined({ model, item, cell, prop }) as WidgetFormless
+  const { model, item, field, prop } = bag as WidgetFormless
+  return omitUndefined({ model, item, field, prop }) as WidgetFormless
 }
 
 /** Page attrs must not override factory v-model ports on the widget. */

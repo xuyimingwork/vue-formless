@@ -3,7 +3,7 @@ import { FormField } from 'vue-formless'
 
 defineOptions({
   formless: {
-    cell: 'embed',
+    field: 'embed',
     model: ['start', 'end'],
   },
 })

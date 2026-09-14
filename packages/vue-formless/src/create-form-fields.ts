@@ -14,7 +14,7 @@ export type {
   FieldSchemaInput,
   FormFieldComponent,
 } from './FormField'
-export type { FieldCell, FieldSchema, FormFieldTagProps, ItemFl } from './item-adapter'
+export type { FieldMode, FieldSchema, FormFieldTagProps, ItemFl } from './item-adapter'
 export type { ControlProp, ControlVModel } from './control-model'
 export type { HostProps } from './overlay-props'
 export type {

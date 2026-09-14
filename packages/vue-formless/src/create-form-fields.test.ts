@@ -188,7 +188,7 @@ describe('bindingForPort', () => {
 })
 
 describe('readWidgetFormless', () => {
-  it('reads model / item / cell from the component static bag', () => {
+  it('reads model / item / field from the component static bag', () => {
     expect(
       readWidgetFormless({
         formless: { item: false, model: ['start', 'end'] },
@@ -196,14 +196,14 @@ describe('readWidgetFormless', () => {
     ).toEqual({ item: false, model: ['start', 'end'] })
     expect(
       readWidgetFormless({
-        formless: { cell: 'embed', model: ['start', 'end'] },
+        formless: { field: 'embed', model: ['start', 'end'] },
       }),
-    ).toEqual({ cell: 'embed', model: ['start', 'end'] })
+    ).toEqual({ field: 'embed', model: ['start', 'end'] })
     expect(
       readWidgetFormless({
-        formless: { cell: 'embed', layout: false, model: ['start', 'end'] },
+        formless: { field: 'embed', layout: false, model: ['start', 'end'] },
       }),
-    ).toEqual({ cell: 'embed', model: ['start', 'end'] })
+    ).toEqual({ field: 'embed', model: ['start', 'end'] })
     expect(readWidgetFormless({})).toEqual({})
   })
 })
@@ -304,7 +304,7 @@ describe('createFormFields props overlay', () => {
       h('div', { class: 'item', 'data-label': p.label }, slots.default?.()),
   })
   const Two = defineComponent({
-    formless: { cell: 'embed' as const, model: ['start', 'end'] },
+    formless: { field: 'embed' as const, model: ['start', 'end'] },
     props: {
       start: { default: undefined },
       end: { default: undefined },
@@ -397,7 +397,7 @@ describe('createFormFields props overlay', () => {
       h(
         shellView(),
         { modelValue: { fromTime: '', toTime: '' }, 'fl:layout': true },
-        () => h(Fields.Range, { 'fl:cell': 'wrap-embed', 'col:span': 24 }),
+        () => h(Fields.Range, { 'fl:field': 'wrap-embed', 'col:span': 24 }),
       ),
     )
     expect(html.match(/class="item"/g)?.length).toBe(3)
@@ -454,7 +454,7 @@ describe('createFormFields props overlay', () => {
       h(
         shellView(),
         { modelValue: { fromTime: '', toTime: '' } },
-        () => h(Fields.Range, { 'fl:cell': 'wrap-embed' }),
+        () => h(Fields.Range, { 'fl:field': 'wrap-embed' }),
       ),
     )
     expect(html.match(/class="item"/g)?.length).toBe(3)
@@ -472,7 +472,7 @@ describe('createFormFields props overlay', () => {
       h(
         shellView(),
         { modelValue: { fromTime: '', toTime: '' }, 'fl:layout': true, 'row:column': 3 },
-        () => h(Fields.Range, { 'fl:cell': 'wrap-embed', 'row:column': 2 }),
+        () => h(Fields.Range, { 'fl:field': 'wrap-embed', 'row:column': 2 }),
       ),
     )
     expect(html).toContain('class="row"')
@@ -489,7 +489,7 @@ describe('createFormFields props overlay', () => {
       h(
         shellView(),
         { modelValue: { fromTime: '', toTime: '' }, 'fl:layout': true, 'row:column': 3 },
-        () => h(Fields.Range, { 'fl:cell': 'wrap-embed' }),
+        () => h(Fields.Range, { 'fl:field': 'wrap-embed' }),
       ),
     )
     const spans = [...html.matchAll(/data-span="(\d+)"/g)].map((m) => m[1])

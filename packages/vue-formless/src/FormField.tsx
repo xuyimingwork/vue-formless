@@ -26,7 +26,7 @@ import {
 } from './fl-config'
 import { FIELD_RUNTIME_KEY, type FieldRuntime } from './injection-keys'
 import type {
-  FieldCell,
+  FieldMode,
   FieldSchema,
   FormFieldTagProps,
   ItemFl,
@@ -77,7 +77,7 @@ function resolveAdHocBinding(tagFl: Record<string, unknown>): {
 }
 
 /**
- * One field cell: always LayoutItem, optional host Item (ADR-020).
+ * One field: always LayoutItem, optional host Item (ADR-020).
  *
  * Bare `<FormField>` is a page-level / slot field. Inside a namespaced Field it
  * inherits the ancestor identity and `fl:model` selects one declared v-model
@@ -180,15 +180,15 @@ export type FieldSchemaInput = Omit<FieldSchema, 'component'> & {
   component?: unknown
 }
 
-function resolveCellMode(
-  tagCell: unknown,
-  widgetCell: FieldCell | undefined,
-  schemaCell: FieldCell | undefined,
-): FieldCell {
-  if (tagCell === 'wrap' || tagCell === 'embed' || tagCell === 'wrap-embed') {
-    return tagCell
+function resolveFieldMode(
+  tagField: unknown,
+  widgetField: FieldMode | undefined,
+  schemaField: FieldMode | undefined,
+): FieldMode {
+  if (tagField === 'wrap' || tagField === 'embed' || tagField === 'wrap-embed') {
+    return tagField
   }
-  return widgetCell ?? schemaCell ?? 'wrap'
+  return widgetField ?? schemaField ?? 'wrap'
 }
 
 function fieldSnapshot(
@@ -208,7 +208,7 @@ function fieldSnapshot(
 }
 
 /**
- * One namespaced Field: peel attrs once, provide FieldRuntime, `switch (cell)` (ADR-020).
+ * One namespaced Field: peel attrs once, provide FieldRuntime, `switch (field)` (ADR-020).
  */
 export function createFormFieldComponent(
   fieldKey: string,
@@ -220,7 +220,7 @@ export function createFormFieldComponent(
   const lockedProp = widgetFormless.prop ?? schema.prop
   const internalItem =
     widgetFormless.item !== undefined ? widgetFormless.item : schema.item
-  const internalCell = widgetFormless.cell ?? schema.cell
+  const internalField = widgetFormless.field ?? schema.field
 
   return defineComponent({
     name: `Field_${camelToPascal(fieldKey)}`,
@@ -250,7 +250,7 @@ export function createFormFieldComponent(
         )
         const widget = schema.component as Component | undefined
         const extras = schemaExtras(schema as Record<string, unknown>)
-        const cell = resolveCellMode(tagFl.cell, internalCell, schema.cell)
+        const fieldMode = resolveFieldMode(tagFl.field, internalField, schema.field)
 
         runtime.binding = binding
         runtime.extras = extras
@@ -270,7 +270,7 @@ export function createFormFieldComponent(
         const colPlace = colProps.value.place as ColPlace | undefined
         const { column: rowColumn, ...rowHostAttrs } = rowProps.value
 
-        if (cell !== 'wrap-embed' && (rowColumn != null || Object.keys(rowHostAttrs).length > 0)) {
+        if (fieldMode !== 'wrap-embed' && (rowColumn != null || Object.keys(rowHostAttrs).length > 0)) {
           console.warn('[vue-formless] :row:* is ignored on a leaf field')
         }
 
@@ -285,7 +285,7 @@ export function createFormFieldComponent(
             )
           : null
 
-        if (cell === 'embed') {
+        if (fieldMode === 'embed') {
           return input
         }
 
@@ -301,7 +301,7 @@ export function createFormFieldComponent(
         }
 
         const cellBody =
-          cell === 'wrap-embed'
+          fieldMode === 'wrap-embed'
             ? h(
                 ctx.LayoutView,
                 {
