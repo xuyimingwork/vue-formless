@@ -633,7 +633,7 @@ quoted   := '"' keychar* '"' | "'" keychar* "'"   转义 '\'
 
 | 文件 | 职责 |
 |------|------|
-| `FormView.tsx` / `create-form-view.ts` | 根：v-model、可选 Form、页级 LayoutView、provide context |
+| `create-form-view.ts` | 根：v-model、可选 Form、页级 LayoutView、provide context |
 | `FormField.tsx`（原 `FormCell.tsx`） | 一格 + 组装：LayoutItem + 可选 ElFormItem + Input + `$bindings`；剥 attrs 一次、switch(field)、v-model 归集 |
 | `create-form-fields.ts` | 域表工厂，产出 PascalCase Field 标签 |
 | `injection-keys.ts` | `FORM_VIEW_KEY`、`FORM_FIELD_KEY`（删 `FORM_CELL_PORT_KEY`） |

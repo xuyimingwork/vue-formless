@@ -1,8 +1,7 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
+      "@/*": ["./src/*"],
       "@vue-formless/layout": ["../layout/src/index.ts"]
     },
     "target": "ES2020",

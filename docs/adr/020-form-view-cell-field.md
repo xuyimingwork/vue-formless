@@ -160,7 +160,7 @@ provide：`model` / `update`、宿主 `Item` + `itemProps`、本层 `item`、工
 
 组件树 = 概念树 = 文件树：
 
-- [`FormView`](../../packages/vue-formless/src/FormView.tsx) / `createFormView`：根
+- [`createFormView`](../../packages/vue-formless/src/create-form-view.ts)：根
 - [`FormCell`](../../packages/vue-formless/src/FormCell.tsx)：一格
 - [`FormField`](../../packages/vue-formless/src/FormField.tsx) + [`create-form-fields.ts`](../../packages/vue-formless/src/create-form-fields.ts)：薄工厂，每项挂一颗 Field
 - 纯函数保留：`control-model`（可改名 field-model）、`overlay-props`、`model-path`（`form-model-writer` 已并入 `use-form-view-model-value`）
