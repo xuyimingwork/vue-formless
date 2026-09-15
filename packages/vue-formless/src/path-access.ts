@@ -1,5 +1,5 @@
 /**
- * Immutable get/set over model paths (ADR-011). Path strings such as
+ * Immutable get/set over model paths (design.md §15). Path strings such as
  * `buyers[0].name` are parsed into segments by `./path-parse`.
  */
 import { parsePath, type PathSegment } from './path-parse'
@@ -18,7 +18,7 @@ function isObjectLike(value: unknown): value is Record<string, unknown> | unknow
  * always sets an own key (`{ ...base, [key]: value }`), so this keeps reads the
  * inverse of writes: a segment like `constructor` / `toString` / `__proto__` is
  * grammar-legal but not data, and reading it through the prototype chain would
- * hand back a value `setIn` never wrote (ADR-011). `Object.prototype.hasOwnProperty`
+ * hand back a value `setIn` never wrote (design.md §15). `Object.prototype.hasOwnProperty`
  * is called via `call` because `hasOwnProperty` is itself a reachable key.
  */
 const hasOwn = Object.prototype.hasOwnProperty
@@ -33,7 +33,7 @@ function readOwnProperty(container: Record<string, unknown>, key: string): unkno
  * reuses. A shape mismatch — key over an array, index over an object — reads as
  * `undefined` and stays silent: under the B-track grammar the two spellings are
  * fixed (keys are `name` / `.0` / `["…"]`, arrays are `[n]`), so a mismatch is a
- * caller-side `path` bug, and reads never guess or warn (ADR-011). A key reads
+ * caller-side `path` bug, and reads never guess or warn (design.md §15). A key reads
  * own properties only (`readOwnProperty`), so the prototype chain is not data.
  */
 function readSegment(container: unknown, segment: PathSegment): unknown {
@@ -69,7 +69,7 @@ function readSegments(root: unknown, segments: PathSegment[]): unknown {
 /**
  * Immutable read at a full `path` location (`buyers[0].name`). An invalid or
  * empty `path` reads as `undefined`: `parsePath` reports failure with
- * `undefined` instead of throwing, and the caller owns fixing `path` (ADR-011).
+ * `undefined` instead of throwing, and the caller owns fixing `path` (design.md §15).
  */
 export function getIn(root: unknown, path: string): unknown {
   const segments = parsePath(path)
@@ -78,7 +78,7 @@ export function getIn(root: unknown, path: string): unknown {
 
 /**
  * Immutable write at a full `path` location (`buyers[0].name`). Contract
- * (ADR-011): the write side stays as silent as the read side.
+ * (design.md §15): the write side stays as silent as the read side.
  *
  * - walk `segments` with `readSegment` above; an invalid or empty `path` returns
  *   `root` unchanged (no throw, no warn);

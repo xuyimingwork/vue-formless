@@ -38,7 +38,7 @@ export type NamespacedFields<S> = {
 }
 
 /**
- * Build a static namespaced field table (ADR-009 / ADR-020).
+ * Build a static namespaced field table (design.md §11).
  * Schema keys are camelCase field names → `<User.TimeRange />`.
  */
 export function createFormFields<const S extends { [K in keyof S]: FieldSchemaInput }>(
@@ -49,13 +49,13 @@ export function createFormFields<const S extends { [K in keyof S]: FieldSchemaIn
   const result = {} as NamespacedFields<S>
 
   for (const schemaKey of Object.keys(normalized) as (keyof S & string)[]) {
-    const item = normalized[schemaKey]
-    if (!item) continue
+    const field = normalized[schemaKey]
+    if (!field) continue
     const pascalKey = camelToPascal(schemaKey) as CamelToPascal<typeof schemaKey> &
       keyof NamespacedFields<S>
     result[pascalKey] = createFormFieldComponent(
       schemaKey,
-      item,
+      field,
       options,
     ) as NamespacedFields<S>[typeof pascalKey]
   }
@@ -68,13 +68,13 @@ function normalizeSchema<S extends { [K in keyof S]: FieldSchemaInput }>(schema:
     ...(schema as Record<string, FieldSchemaInput>),
   }
   for (const key of Object.keys(out)) {
-    const item = out[key]
-    if (!item) continue
+    const field = out[key]
+    if (!field) continue
     out[key] = {
-      ...item,
-      component: item.component && typeof item.component === 'object'
-        ? markRaw(item.component)
-        : item.component,
+      ...field,
+      component: field.component && typeof field.component === 'object'
+        ? markRaw(field.component)
+        : field.component,
     }
   }
   return out as S

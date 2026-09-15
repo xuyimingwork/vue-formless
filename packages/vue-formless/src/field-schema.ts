@@ -2,7 +2,7 @@ import type { Component } from 'vue'
 import type { ControlProp, ControlVModel } from './control-binding'
 import type { HostProps } from './props-overlay'
 
-/** `field` assembly modes (ADR-020). Omit = `'wrap'`. */
+/** `field` assembly modes (design.md §8). Omit = `'wrap'`. */
 export type FieldMode = 'wrap' | 'embed' | 'wrap-embed'
 
 /** Kernel-owned FieldSchema keys. Not extras; tags already have matching `fl:*` where allowed. */
@@ -16,34 +16,34 @@ export type FieldSchemaKernelKey =
 
 /**
  * Field identity. Adapter extras (e.g. `label`) via `declare module 'vue-formless'`.
- * Extra keys become `ItemFl` fields and optional `fl:*` tag props.
+ * Extra keys become `ItemFl` keys and optional `fl:*` tag props.
  */
 export interface FieldSchema {
   /**
-   * The control only (no FormItem). Receives v-model bindings from formless.
+   * The control only (no host Item). Receives v-model bindings from formless.
    * A control may also declare static `formless: { model, item, field }`.
    */
   component?: Component
   /** Control defaults: static object, or derived from the field snapshot. */
   props?: HostProps<ItemFl>
   /**
-   * v-model names on the control (ADR-011). Default `'modelValue'`.
+   * v-model names on the control (design.md §7.1). Default `'modelValue'`.
    * Locked with the component; tag cannot override. Prefer control `formless.model`.
    */
   model?: ControlVModel
   /**
-   * Location(s) from FormView root (ADR-011). Default: field key.
+   * Location(s) from FormView root (design.md §7.1). Default: field key.
    * Overridable via `:fl:prop`. Empty string is illegal.
    * Nested: `buyers[0].name`, `` `buyers[${$index}].name` ``.
    */
   prop?: ControlProp
   /**
-   * Outer ElFormItem for this field: FormView default, then this, then tag `:fl:item`.
-   * Boolean only (ADR-020). Not “skip FormField”.
+   * Host Item shell for this field: FormView default, then this, then tag `:fl:item`.
+   * Boolean only (design.md §9). Not “skip FormField”.
    */
   item?: boolean
   /**
-   * Assembly tree (ADR-020). Omit = `'wrap'`.
+   * Assembly tree (design.md §8). Omit = `'wrap'`.
    * Whole value replaced by nearer source (tag > control > schema); no wrap∪embed merge.
    */
   field?: FieldMode
@@ -58,18 +58,18 @@ export type FlExtraProps<T> = {
 }
 
 /**
- * Snapshot for `item.props` / field `props` functions (ADR-011 §6 revised).
+ * Snapshot for `item.props` / field `props` functions (design.md §10.1 / §20.9).
  * Kernel wiring + FieldSchema extras. Not passed as a host component prop.
  *
- * `model` / `prop` are this cell's **normalized** binding arrays — index-aligned
+ * `model` / `prop` are this field's **normalized** binding arrays — index-aligned
  * (`model[i] ↔ prop[i]`), never empty and `prop` no longer than `model`. The
  * kernel sends no identity **name**: a host Item `prop` is the adapter's own
- * encoding, so an adapter that cannot encode the cell simply leaves it unbound.
+ * encoding, so an adapter that cannot encode the field simply leaves it unbound.
  */
 export type ItemFl = {
-  /** This cell's v-model ports, index-aligned with `prop`. */
+  /** This field's v-model ports, index-aligned with `prop`. */
   model: string[]
-  /** This cell's locations, index-aligned with `model`. */
+  /** This field's locations, index-aligned with `model`. */
   prop: string[]
   /** Live values at those locations, in binding order. */
   getValues: () => unknown[]

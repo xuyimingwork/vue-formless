@@ -137,7 +137,7 @@ describe('parsePath', () => {
 
     // A quoted segment is the total escape hatch: any string key a JS object
     // can hold is reachable, including '' (`obj['']` is legal) and blanks —
-    // nothing is trimmed or rejected (ADR-011). Only the *unquoted* form is
+    // nothing is trimmed or rejected (design.md §15). Only the *unquoted* form is
     // restricted, and only because it is sugar.
     it("parses an empty quoted key in 'map[\"\"]' as the empty-string key", () => {
       expect(parsePath('map[""]')).toEqual([

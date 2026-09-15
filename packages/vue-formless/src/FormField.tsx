@@ -17,7 +17,7 @@ import {
 import { useFormContext } from './context'
 import {
   buildItemFl,
-  cellBinding,
+  fieldBinding,
   mergedFieldFl,
   resolveDeclaredBinding,
 } from './field-identity'
@@ -47,17 +47,17 @@ export type FormFieldProps = FormFieldTagProps
 export type FormFieldComponent<P = {}> = DefineComponent<FormFieldProps & P>
 
 /**
- * One field: LayoutItem + optional host Item + control (ADR-020).
+ * One field: LayoutItem + optional host Item + control (design.md §8).
  *
  * FormField has **one** configuration surface — its own tag attrs. A namespaced
  * `<User.Xxx />` is just a `FormField` with the schema preset as a lower attr
  * layer (`fl:component` / `fl:prop` / `fl:model` / `fl:item` / `fl:field` /
- * `fl:label`…), so there is no private side channel (ADR-020 §16.3).
+ * `fl:label`…), so there is no private side channel (design.md §16.3).
  *
  * It is the **identity root** when it hits no ancestor `FORM_FIELD_KEY`: it
  * resolves its own port ↔ location map and provides it, so nested
  * `<FormField fl:model="…" />` slices work with or without the
- * `createFormFields` shell (ADR-013 / ADR-021 §7). A hit only consumes.
+ * `createFormFields` shell (design.md §7.2 / §16.2). A hit only consumes.
  *
  * Prefix routing (§5.2): bare names → the control, `item:*` → the host Item.
  */
@@ -94,11 +94,11 @@ export const FormField = defineComponent({
 
     /** Inherited identity (slice) or our own declaration (root). */
     const binding = computed(() =>
-      cellBinding(formlessProps.value, declared.value, ancestor),
+      fieldBinding(formlessProps.value, declared.value, ancestor),
     )
 
     /**
-     * This cell's own accessor: port-keyed read/write over its resolved
+     * This field's own accessor: port-keyed read/write over its resolved
      * locations. The `glue` to the page scope lives here, not in the consumer.
      */
     const layer = computed(() =>
@@ -109,7 +109,7 @@ export const FormField = defineComponent({
       ),
     )
 
-    /** page < schema (preset attrs) < cell (tag). Near wins; undefined does not write. */
+    /** page < schema (preset attrs) < field (tag). Near wins; undefined does not write. */
     const fl = computed(() => mergedFieldFl(ctx, formlessProps.value))
 
     const itemFl = computed((): ItemFl =>
@@ -155,7 +155,7 @@ export const FormField = defineComponent({
 
       const HostLayoutView = ctx.LayoutView as JsxHost
       const windowProps = { ...layoutProps.value }
-      const cellBody =
+      const fieldBody =
         fieldMode === 'wrap-embed'
           ? <HostLayoutView {...windowProps} v-slots={{ default: () => inner }} />
           : inner
@@ -167,11 +167,11 @@ export const FormField = defineComponent({
             {...itemProps.value}
             v-slots={{
               ...itemSlots,
-              default: () => cellBody,
+              default: () => fieldBody,
             }}
           />
         ) : (
-          cellBody
+          fieldBody
         )
 
       return <LayoutItem {...layoutItemProps.value}>{body}</LayoutItem>

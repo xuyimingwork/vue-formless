@@ -658,7 +658,7 @@ quoted   := '"' keychar* '"' | "'" keychar* "'"   转义 '\'
 | `control-config.ts` | control 静态 `formless` 读取（`ControlFormless` + `ComponentCustomOptions` 增强） |
 | `fl-keys.ts` | schema extras、shell keys（`omitShellKeys` / `schemaExtras`） |
 | `field-mode.ts` | `isFieldMode` / `resolveFieldMode` |
-| `field-identity.ts` | 身份与快照 helper：`mergedFieldFl` / `resolveDeclaredBinding` / `cellBinding` / `buildItemFl`（FormField 与工厂壳共用） |
+| `field-identity.ts` | 身份与快照 helper：`mergedFieldFl` / `resolveDeclaredBinding` / `fieldBinding` / `buildItemFl`（FormField 与工厂壳共用） |
 | `field-schema.ts` | `FieldSchema` / `ItemFl` / tag props 类型 |
 | `use-form-view-model.ts` | 写口归集：`useFormViewModelValue` |
 | `model-writer.ts` | `createModelWriter`：同 tick 合并的不可变路径写入器 |
@@ -745,7 +745,7 @@ interface FieldLayer extends ResolvedControlBinding {
                  非法 fl:field 落回 preset 值（§8 只认合法值整颗替换）
 ```
 
-`props` 是唯一必须在工厂壳里落地的东西：attrs 只能装平值，而 `props` 可能是快照函数。求值用的身份 / snapshot **不是另算一套**，而是与 FormField 共用 `field-identity.ts`（`mergedFieldFl` / `resolveDeclaredBinding` / `cellBinding` / `buildItemFl`），所以 `cluster.props`、`schema.props`、`item.props` 三个函数看到的是同一份 `ItemFl`（含标签 `:fl:prop` 搬家后的真实位置）。工厂壳因此**仍不 provide**：身份层只有 FormField 提供。
+`props` 是唯一必须在工厂壳里落地的东西：attrs 只能装平值，而 `props` 可能是快照函数。求值用的身份 / snapshot **不是另算一套**，而是与 FormField 共用 `field-identity.ts`（`mergedFieldFl` / `resolveDeclaredBinding` / `fieldBinding` / `buildItemFl`），所以 `cluster.props`、`schema.props`、`item.props` 三个函数看到的是同一份 `ItemFl`（含标签 `:fl:prop` 搬家后的真实位置）。工厂壳因此**仍不 provide**：身份层只有 FormField 提供。
 
 FormField 自己 inject-or-self：命中祖先就当切片，未命中就是身份根并 provide。
 
@@ -754,7 +754,7 @@ setup:
   ancestor = inject(FORM_FIELD_KEY, null)          // 命中 = 组合体内层切片
   declared = resolveDeclaredBinding(fl)            // 临场格 / 身份根：标签即声明
   if (!ancestor) provide(FORM_FIELD_KEY, reactive(createFieldLayer(() => declared, () => ctx.model, ctx.update)))
-  binding = cellBinding(fl, declared, ancestor)    // 切片：fl:model 单串选口，否则整份继承
+  binding = fieldBinding(fl, declared, ancestor)    // 切片：fl:model 单串选口，否则整份继承
   layer   = createFieldLayer(() => binding, () => ctx.model, ctx.update)   // 本格的口 → 位置门面
 render:
   fieldMode = resolveFieldMode(fl.field)                                   // 合法值整颗替换，否则 'wrap'
@@ -765,7 +765,7 @@ render:
   bindings = modelBindings(layer)                                 // 口名 + 现值 + 按口写；位置不出层
   control = h(fl:component, { ...controlAttrs, ...bindings }, controlSlots)  // control 或 slot 手写
   switch (fieldMode): embed → control；否则 LayoutItem → (itemOn ? ElFormItem → control : control)
-    wrap-embed 时 cellBody = LayoutView({ ...layoutAttrs }) → control
+    wrap-embed 时 fieldBody = LayoutView({ ...layoutAttrs }) → control
 ```
 
 作用域值用 `reactive(createFieldLayer(...))` 提供（对齐 `provideFormViewContext` 的写法）；层的每个成员都是**懒读**：`fl:prop` 可能被标签重述、嵌套 FormView 可能换 model 源，所以位置与 model 都不能在提供时拍死。

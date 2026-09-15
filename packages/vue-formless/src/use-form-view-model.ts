@@ -12,7 +12,7 @@ import { createModelWriter } from './model-writer'
 export type MaybeRefOrComputed<T> = MaybeRefOrGetter<T>
 
 /**
- * Resolve one FormView layer's write model (ADR-008):
+ * Resolve one FormView layer's write model (design.md §14.2):
  * - the layer **binds** its own v-model when a model source or an
  *   `onUpdate:modelValue` listener is present — `model` reads the bound
  *   value and `update` merges same-tick path writes immutably (arrays
@@ -20,7 +20,7 @@ export type MaybeRefOrComputed<T> = MaybeRefOrGetter<T>
  * - a nested FormView **without** a binding inherits the ancestor's
  *   `model` / `update` — this layer still builds a local writer but never
  *   calls it, so reads and writes both land on the ancestor;
- * - otherwise (root without `v-model`) it warns; cells still render but
+ * - otherwise (root without `v-model`) it warns; fields still render but
  *   updates are dropped.
  *
  * Inputs are `MaybeRefOrComputed` so callers pass props / fallthrough
@@ -58,7 +58,7 @@ export function useFormViewModelValue(
   const parent = inject(FORM_VIEW_KEY, null)
 
   if (!ownsVModel.value && parent == null) {
-    // Root FormView without v-model: cells still render, but `update` has no
+    // Root FormView without v-model: fields still render, but `update` has no
     // writer to own the write and no ancestor to forward to, so it is dropped.
     console.warn(
       '[vue-formless] Root FormView has no v-model and no ancestor FormView; ' +

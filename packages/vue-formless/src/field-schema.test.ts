@@ -33,7 +33,7 @@ describe('FieldSchema extras', () => {
     expectTypeOf<ItemFl['model']>().toEqualTypeOf<string[]>()
     expectTypeOf<ItemFl['prop']>().toEqualTypeOf<string[]>()
     expectTypeOf<ItemFl>().toHaveProperty('getValues')
-    // The host `prop` encoding is the adapter's own work (ADR-011 §6 revised).
+    // The host `prop` encoding is the adapter's own work (design.md §20.9).
     expectTypeOf<ItemFl>().not.toHaveProperty('fieldKey')
   })
 })

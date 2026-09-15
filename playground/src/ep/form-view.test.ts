@@ -18,7 +18,7 @@ describe('toEpItemProps', () => {
     expect(props.prop).toBe('mobile')
   })
 
-  it('binds one leaf path, and leaves a multi-port cell unbound', () => {
+  it('binds one leaf path, and leaves a multi-port field unbound', () => {
     expect(
       toEpItemProps({
         ...mobileFl,
@@ -27,7 +27,7 @@ describe('toEpItemProps', () => {
       }).prop,
     ).toBe('buyers.0.name')
     // One host Item `prop` cannot hold a pair: no name to fall back on either,
-    // so the cell stays out of the host's validation (ADR-014, v1 scope).
+    // so the field stays out of the host's validation (design.md §20.9).
     expect(
       toEpItemProps({
         ...mobileFl,
@@ -39,7 +39,7 @@ describe('toEpItemProps', () => {
 })
 
 describe('resolveFormItemProp', () => {
-  describe('single-port cell: kernel location → dotted ElFormItem prop', () => {
+  describe('single-port field: kernel location → dotted ElFormItem prop', () => {
     it.each([
       ['name', 'name'],
       ['buyers[0].name', 'buyers.0.name'],
@@ -49,7 +49,7 @@ describe('resolveFormItemProp', () => {
     })
   })
 
-  it('leaves several ports in one cell unbound', () => {
+  it('leaves several ports in one field unbound', () => {
     expect(resolveFormItemProp(['startTime', 'endTime'])).toBeUndefined()
   })
 

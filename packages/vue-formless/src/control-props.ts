@@ -17,7 +17,7 @@ export type ComponentPublicProps<C> = [C] extends [never]
           : {}
 
 /**
- * v-model ports locked on the tag (ADR-011). Schema `model` wins;
+ * v-model ports locked on the tag (design.md §7.2 / §17). Schema `model` wins;
  * omitted `model` locks the default `'modelValue'`.
  * Widened `string[]` is not treated as port names (would Omit every string key).
  */

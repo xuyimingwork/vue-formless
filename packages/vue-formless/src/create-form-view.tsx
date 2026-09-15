@@ -38,7 +38,7 @@ export interface CreateFormViewOptions {
   layout?: FormViewLayoutBind
   /** Host form shell. Omit or `:fl:form="false"` skips wrapping. */
   form?: FormViewHostBind<FormFl>
-  /** Host item shell. `props` are defaults (static or from the cell snapshot). */
+  /** Host item shell. `props` are defaults (static or from the field snapshot). */
   item?: FormViewHostBind<ItemFl>
 }
 
@@ -75,7 +75,7 @@ export interface FormViewProps {
    * Explicit `true` / `false` win.
    */
   'fl:form'?: FormFormProp
-  /** Wrap the factory `item` per cell (default `true` when `item.component` is bound). */
+  /** Wrap the factory `item` per field (default `true` when `item.component` is bound). */
   'fl:item'?: boolean
 }
 
@@ -83,8 +83,8 @@ export interface FormFl {
   /**
    * FormView write model (the DTO). `form.props` maps it to the host's model
    * source (e.g. `{ model: fl.modelValue }`). Function `props` receive only
-   * this today; a per-field shape for host projection (ADR-014 `fields`) is
-   * deferred — add members here when it lands.
+   * this today; a per-field shape for host projection is deferred — add
+   * members here when it lands.
    */
   modelValue: unknown
 }
@@ -132,9 +132,9 @@ function provideFormViewContext(options: {
 }
 
 /**
- * Bind host layout / form / item once; returns a FormView (ADR-008 / ADR-016 / ADR-020).
+ * Bind host layout / form / item once; returns a FormView (design.md §10).
  *
- * Host shells stay in this closure. Ad-hoc cells use `FormField`.
+ * Host shells stay in this closure. Ad-hoc fields use `FormField`.
  *
  * @example
  * ```ts

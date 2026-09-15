@@ -4,7 +4,7 @@ import { createFieldLayer } from './control-binding'
 import { useFormContext } from './context'
 import {
   buildItemFl,
-  cellBinding,
+  fieldBinding,
   mergedFieldFl,
   resolveDeclaredBinding,
 } from './field-identity'
@@ -18,7 +18,7 @@ import { splitFlAttrs } from './attrs'
 import { camelToPascal } from './string-case'
 
 export interface CreateFormFieldOptions {
-  /** Defaults for every field in this cluster (static or from the cell snapshot). */
+  /** Defaults for every field in this cluster (static or from the field snapshot). */
   props?: HostProps<ItemFl>
 }
 
@@ -30,7 +30,7 @@ export type FieldSchemaInput = Omit<FieldSchema, 'component'> & {
   component?: unknown
 }
 
-/** Keys the factory owns; the tag must not restate them (identity is locked, ADR-021 §7). */
+/** Keys the factory owns; the tag must not restate them (identity is locked, design.md §7.2). */
 const LOCKED_TAG_KEYS = new Set(['fl:model', 'fl:component'])
 
 /**
@@ -63,7 +63,7 @@ function schemaToFieldAttrs(
 
 /**
  * One namespaced Field: `FormField` with the schema preset as the **lower attr
- * layer** (ADR-020 §16.3). The tag's attrs overlay it (near wins) except the
+ * layer** (design.md §16.3). The tag's attrs overlay it (near wins) except the
  * locked identity keys; the resulting attrs are handed to `FormField` verbatim,
  * which owns the identity, the `provide` and the assembly tree.
  *
@@ -98,7 +98,7 @@ export function createFormFieldComponent(
 
         const { fl } = splitFlAttrs(overlayProps(preset, tagAttrs))
         const declared = resolveDeclaredBinding(fl)
-        const binding = cellBinding(fl, declared, ancestor)
+        const binding = fieldBinding(fl, declared, ancestor)
         const layer = createFieldLayer(
           () => binding,
           () => ctx.model,

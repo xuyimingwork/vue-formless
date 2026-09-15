@@ -340,7 +340,8 @@ describe('FormField', () => {
   it('is a standalone export (not attached on FormView)', () => {
     const View = createFormView({ layout: { Row, Col } })
     expect(FormField).toBeTruthy()
-    expect((View as { Cell?: unknown }).Cell).toBeUndefined()
+    expect((View as { Field?: unknown }).Field).toBeUndefined()
+    expect((View as { Item?: unknown }).Item).toBeUndefined()
   })
 
   it('wraps the host Item when bound', async () => {
@@ -351,13 +352,13 @@ describe('FormField', () => {
         props: (fl) => ({ label: fl.prop.join(',') }),
       },
     })
-    const Cell = defineComponent({
+    const Field = defineComponent({
       setup() {
         return () => h(FormField, { 'fl:prop': 'name' }, { default: () => 'x' })
       },
     })
     const html = await render(
-      h(FormView, { modelValue: {}, 'fl:layout': true }, () => h(Cell)),
+      h(FormView, { modelValue: {}, 'fl:layout': true }, () => h(Field)),
     )
     expect(html).toContain('<grid-col')
     expect(html).toContain('<item')
@@ -370,14 +371,14 @@ describe('FormField', () => {
       layout: { Row, Col },
       item: { component: LabeledItem },
     })
-    const Cell = defineComponent({
+    const Field = defineComponent({
       setup() {
         return () =>
           h(FormField, { 'fl:prop': 'name', 'fl:item': false }, { default: () => 'x' })
       },
     })
     const html = await render(
-      h(FormView, { modelValue: {}, 'fl:layout': true }, () => h(Cell)),
+      h(FormView, { modelValue: {}, 'fl:layout': true }, () => h(Field)),
     )
     expect(html).toContain('<grid-col')
     expect(html).not.toContain('<item')
@@ -386,14 +387,14 @@ describe('FormField', () => {
 
   it('never wraps Item when the factory omitted item.component', async () => {
     const FormView = createFormView({ layout: { Row, Col } })
-    const Cell = defineComponent({
+    const Field = defineComponent({
       setup() {
         return () =>
           h(FormField, { 'fl:prop': 'name', label: '姓名' }, { default: () => 'x' })
       },
     })
     const html = await render(
-      h(FormView, { modelValue: {}, 'fl:layout': true }, () => h(Cell)),
+      h(FormView, { modelValue: {}, 'fl:layout': true }, () => h(Field)),
     )
     expect(html).toContain('<grid-col')
     expect(html).not.toContain('<item')

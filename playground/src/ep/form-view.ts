@@ -4,7 +4,7 @@ import { createFormView, type ItemFl } from 'vue-formless'
 /**
  * Kernel `prop` location → ElFormItem `prop` dot notation.
  * The kernel path parser is private, so the adapter encodes its own dotted
- * dialect here (ADR-011 §6): `buyers[0].name` → `buyers.0.name`.
+ * dialect here (design.md §20.9): `buyers[0].name` → `buyers.0.name`.
  * Locations it cannot encode (quoted keys, malformed paths) return undefined.
  */
 function toDotPath(path: string): string | undefined {
@@ -15,15 +15,14 @@ function toDotPath(path: string): string | undefined {
 }
 
 /**
- * One location → dotted host prop (ADR-011 §6).
+ * One location → dotted host prop (design.md §20.9).
  *
- * There is no kernel-supplied name to fall back on, so a cell whose location
- * cannot be encoded — several v-model ports in one cell (one host Item `prop`
+ * There is no kernel-supplied name to fall back on, so a field whose location
+ * cannot be encoded — several v-model ports in one field (one host Item `prop`
  * cannot hold a pair), or a path this adapter cannot dot-encode — is left
  * **unbound**: `undefined` → ElFormItem never registers, so `Form.validate()` /
- * `resetFields()` skip it and its rules never run (ADR-014, v1 scope). Give
- * such a cell its own Item per port (`fl:field="wrap-embed"`) if it must be
- * host-validated.
+ * `resetFields()` skip it and its rules never run (v1 scope). Give such a field
+ * its own Item per port (`fl:field="wrap-embed"`) if it must be host-validated.
  */
 export function resolveFormItemProp(prop: ItemFl['prop']): string | undefined {
   if (prop.length !== 1) return undefined

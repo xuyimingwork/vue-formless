@@ -59,7 +59,7 @@ export interface FormlessPropBags {
   props: Record<string, unknown>
   /** `layout:*` → LayoutView (page window / wrap-embed inner). */
   layoutProps: Record<string, unknown>
-  /** `layout-item:*` → LayoutItem (this cell). */
+  /** `layout-item:*` → LayoutItem (this field). */
   layoutItemProps: Record<string, unknown>
   formlessProps: Record<string, unknown>
 }
@@ -76,7 +76,7 @@ export function splitFormlessProps(attrs: Record<string, unknown>): FormlessProp
   return { props, layoutProps, layoutItemProps, formlessProps }
 }
 
-/** Reactive bags over Vue `attrs` (or any attr record). Shared by FormView / Field / Cell. */
+/** Reactive bags over Vue `attrs` (or any attr record). Shared by FormView / Field. */
 export function useFormlessProps(attrs: Record<string, unknown>): {
   props: ComputedRef<Record<string, unknown>>
   layoutProps: ComputedRef<Record<string, unknown>>

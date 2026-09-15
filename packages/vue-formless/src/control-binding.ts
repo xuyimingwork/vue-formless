@@ -1,5 +1,5 @@
 /**
- * Field binding (ADR-011):
+ * Field binding (design.md §7.1):
  * - `model` — v-model names on the control (identity). Default `'modelValue'`.
  * - `prop`  — location(s) from FormView root (`name`, `buyers[0].name`). Default: the schema key.
  * `prop` array pairs with `model` (prefix-aligned). Extra model ports are unbound.
@@ -51,7 +51,7 @@ export function resolveControlBinding(
   return { models, props }
 }
 
-/** Slice a multi-port binding to one v-model port (ADR-013 / ADR-021 `fl:model="start"`). */
+/** Slice a multi-port binding to one v-model port (design.md §7.2 / §14.3, `fl:model="start"`). */
 export function bindingForPort(
   binding: ResolvedControlBinding,
   port: string,
@@ -72,13 +72,13 @@ export function bindingForPort(
 }
 
 /**
- * Identity layer value (ADR-013 / ADR-020 §16.2 / ADR-021 §7): the effective
+ * Identity layer value (design.md §16.2): the effective
  * binding **plus** the port-keyed accessor built on it. The root `FormField`
  * provides it and closes over the page scope; consumers ask by **port**, so
  * locations are resolved inside and page paths never travel down.
  */
 export interface FieldLayer extends ResolvedControlBinding {
-  /** Live values at this layer's locations, in binding order (ADR-014). */
+  /** Live values at this layer's locations, in binding order (design.md §14.1). */
   getValues(): unknown[]
   /** Write one declared v-model port by name. */
   setValue(port: string, value: unknown): void

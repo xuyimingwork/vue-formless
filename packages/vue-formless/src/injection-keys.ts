@@ -10,7 +10,7 @@ export interface FormContext {
   update: (prop: string, value: unknown) => void
   /** Host Item (e.g. ElFormItem). Omit = FormField never wraps Item. */
   Item?: Component
-  /** Defaults for the host Item (static or from the cell snapshot). */
+  /** Defaults for the host Item (static or from the field snapshot). */
   itemProps?: HostProps<ItemFl>
   /** This FormView layer's `:fl:item`. */
   item: boolean
@@ -23,8 +23,8 @@ export const FORM_VIEW_KEY: InjectionKey<FormContext | null> = Symbol(
 )
 
 /**
- * Identity layer (ADR-013 / ADR-021 §7): the effective v-model port ↔ location
- * map a cell resolves for itself, **plus** its port-keyed read/write accessor.
+ * Identity layer (design.md §7.2 / §16.2): the effective v-model port ↔ location
+ * map a field resolves for itself, **plus** its port-keyed read/write accessor.
  * The **root** `FormField` provides it (closing over the page scope); every
  * nested slice consumes it to select a port — `fl:model` on a slice is a
  * selection, never a declaration. Consumers ask by port, never by location.

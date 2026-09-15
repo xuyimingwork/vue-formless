@@ -3,7 +3,7 @@
  * The kernel peels these once; the remainder is host fallthrough.
  *
  * `layout:`      → LayoutView (page window on FormView; wrap-embed inner on a field)
- * `layout-item:` → LayoutItem (this cell)
+ * `layout-item:` → LayoutItem (this field)
  * `item:`        → host Item shell (e.g. ElFormItem)
  */
 export const FL_PREFIX = 'fl:'

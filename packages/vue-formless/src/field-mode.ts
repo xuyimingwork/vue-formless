@@ -6,7 +6,7 @@ export function isFieldMode(value: unknown): value is FieldMode {
 }
 
 /**
- * Whole-value replacement (ADR-020 §8): a valid `fl:field` replaces the
+ * Whole-value replacement (design.md §8): a valid `fl:field` replaces the
  * schema/control mode (already merged into the attr layer by the factory);
  * anything else is `'wrap'`, the omitted default.
  */

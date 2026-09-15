@@ -34,9 +34,9 @@ declare module 'vue-formless' {
 }
 
 // ElFormItem `prop` speaks dot paths; the kernel location (`buyers[0].name`)
-// is encoded here, in the adapter (ADR-011 §6). One host `prop` cannot hold
-// several ports, so such a cell stays unbound (`undefined`) — use
-// `fl:field="wrap-embed"` (one port per cell) when the host must validate it.
+// is encoded here, in the adapter (design.md §20.9). One host `prop` cannot hold
+// several ports, so such a field stays unbound (`undefined`) — use
+// `fl:field="wrap-embed"` (one port per field) when the host must validate it.
 function toItemProp(prop: ItemFl['prop']): string | undefined {
   if (prop.length !== 1) return undefined
   const [location] = prop

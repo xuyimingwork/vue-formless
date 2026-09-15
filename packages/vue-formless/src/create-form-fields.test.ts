@@ -257,7 +257,7 @@ describe('createFormFields props overlay', () => {
     expect(html.match(/class="item"/g)?.length).toBe(3)
     expect(html).toContain('data-label="签证"')
     expect(html).toContain('class="row"')
-    // Outer FormField has no Col (page LayoutView disabled); inner cells still Col.
+    // Outer FormField has no Col (page LayoutView disabled); inner fields still Col.
     expect(html.match(/class="col"/g)?.length).toBe(2)
   })
 
@@ -359,7 +359,7 @@ describe('createFormFields props overlay', () => {
     expect(seen[1]).toMatchObject({ located: 'buyers[0].name' })
   })
 
-  it('leaves a multi-port cell unbound on the host Item', async () => {
+  it('leaves a multi-port field unbound on the host Item', async () => {
     const props: Record<string, unknown>[] = []
     const Control = defineComponent({
       inheritAttrs: false,
@@ -373,7 +373,7 @@ describe('createFormFields props overlay', () => {
       },
     })
     // The adapter has no name to fall back on, so it must not bind the host
-    // Item: several locations cannot become one host `prop` (ADR-011 §6 rev).
+    // Item: several locations cannot become one host `prop` (design.md §20.9).
     const view = createFormView({
       layout: { Row: DummyRow, Col: DummyCol },
       item: {
@@ -461,7 +461,7 @@ describe('createFormFields props overlay', () => {
         () => h(Fields.DateRange),
       ),
     )
-    // Each slice sees only its own port; two ports in one cell stay separate.
+    // Each slice sees only its own port; two ports in one field stay separate.
     expect(bags[0]).toMatchObject({ start: 'a' })
     expect(bags[0]).not.toHaveProperty('end')
     expect(bags[1]).toMatchObject({ end: 'b' })
