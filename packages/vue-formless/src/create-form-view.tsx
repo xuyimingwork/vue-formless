@@ -15,9 +15,9 @@ import { createLayoutView } from '@vue-formless/layout'
 import { FORM_VIEW_KEY, type FormContext } from './injection-keys'
 import { useFormViewModelValue } from './use-form-view-model'
 import type { ItemFl } from './field-schema'
-import { omit } from './record-utils'
+import { omit } from './utils'
 import { overlayProps, resolveProps, type HostProps } from './props-overlay'
-import { toAttrBoolean, useFormlessProps } from './attrs'
+import { omitAttrs, pickAttrs, toAttrBoolean } from './attrs'
 
 /** `Component` is a union; JSX needs a constructable host. */
 type JsxHost = new () => { $props: Record<string, unknown> }
@@ -177,8 +177,17 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
       expose(proxyExpose(hostForm))
 
       const nested = inject(FORM_VIEW_KEY, null) != null
-      const { props: hostAttrs, layoutProps, formlessProps } = useFormlessProps(
-        attrs as Record<string, unknown>,
+      const fl = computed(() => pickAttrs(attrs as Record<string, unknown>, 'fl'))
+      const layoutProps = computed(() =>
+        pickAttrs(attrs as Record<string, unknown>, 'layout'),
+      )
+      /**
+       * Bare names → the host Form. A page window has no LayoutItem, so
+       * `layout-item:*` is dropped with the rest of the kernel channels;
+       * `item:*` is not a FormView channel and keeps falling through.
+       */
+      const hostAttrs = computed(() =>
+        omitAttrs(attrs as Record<string, unknown>, ['fl', 'layout', 'layout-item']),
       )
 
       /** v-model write port: fallthrough listener (camel or DOM-case tag). */
@@ -195,13 +204,13 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
         update,
         Item,
         itemProps,
-        getItem: () => toAttrBoolean(formlessProps.value.item, true),
+        getItem: () => toAttrBoolean(fl.value.item, true),
         LayoutView,
       })
 
       return (): VNodeChild => {
         const HostLayoutView = LayoutView as JsxHost
-        const layout = toAttrBoolean(formlessProps.value.layout, false)
+        const layout = toAttrBoolean(fl.value.layout, false)
         // Factory layout.props(fl) sets LayoutView defaults; tag :layout:* overlays (near wins).
         // `disabled` is kernel-owned: fl:layout flips polarity (design.md §10.1).
         const body = (
@@ -213,7 +222,7 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
         )
 
         if (!Form) return body
-        if (!toAttrBoolean(formlessProps.value.form, !nested)) return body
+        if (!toAttrBoolean(fl.value.form, !nested)) return body
 
         const HostForm = Form as JsxHost
         // Factory form.props(fl) sets host defaults; tag host attrs overlay (near wins).

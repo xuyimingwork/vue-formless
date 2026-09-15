@@ -14,8 +14,8 @@ import { readControlFormless } from './control-config'
 import { schemaExtras } from './fl-keys'
 import type { FieldSchema, ItemFl } from './field-schema'
 import { overlayProps, resolveProps, type HostProps } from './props-overlay'
-import { splitFlAttrs } from './attrs'
-import { camelToPascal } from './string-case'
+import { pickAttrs } from './attrs'
+import { upperFirst } from './utils'
 
 export interface CreateFormFieldOptions {
   /** Defaults for every field in this cluster (static or from the field snapshot). */
@@ -80,11 +80,11 @@ export function createFormFieldComponent(
   const preset = schemaToFieldAttrs(schemaKey, schema)
 
   return defineComponent({
-    name: `Field_${camelToPascal(schemaKey)}`,
+    name: `Field_${upperFirst(schemaKey)}`,
     inheritAttrs: false,
     setup(_, { attrs, slots }) {
-      const ctx = useFormContext()
-      const ancestor = inject(FORM_FIELD_KEY, null)
+      const formViewContext = useFormContext()
+      const formFieldContext = inject(FORM_FIELD_KEY, null)
 
       return (): VNodeChild => {
         const tagAttrs: Record<string, unknown> = {}
@@ -96,16 +96,16 @@ export function createFormFieldComponent(
           tagAttrs[key] = value
         }
 
-        const { fl } = splitFlAttrs(overlayProps(preset, tagAttrs))
+        const fl = pickAttrs(overlayProps(preset, tagAttrs), 'fl')
         const declared = resolveDeclaredBinding(fl)
-        const binding = fieldBinding(fl, declared, ancestor)
+        const binding = fieldBinding(fl, declared, formFieldContext)
         const layer = createFieldLayer(
           () => binding,
-          () => ctx.model,
-          ctx.update,
+          () => formViewContext.model,
+          formViewContext.update,
         )
         const snapshot = buildItemFl(
-          mergedFieldFl(ctx, fl),
+          mergedFieldFl(formViewContext, fl),
           binding,
           layer.getValues,
         )

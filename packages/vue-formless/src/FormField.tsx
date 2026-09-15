@@ -25,8 +25,7 @@ import { resolveFieldMode } from './field-mode'
 import { FORM_FIELD_KEY } from './injection-keys'
 import type { FormFieldTagProps, ItemFl } from './field-schema'
 import { overlayProps, resolveProps } from './props-overlay'
-import { useFormlessProps } from './attrs'
-import { splitFallthrough } from './item-fallthrough'
+import { omitAttrs, pickAttrs } from './attrs'
 import { splitSlots } from './slots'
 
 /** `Component` is a union; JSX needs a constructable host. */
@@ -65,28 +64,37 @@ export const FormField = defineComponent({
   name: 'FormField',
   inheritAttrs: false,
   setup(_, { slots, attrs }) {
-    const ctx = useFormContext()
+    const formViewContext = useFormContext()
     /** Ancestor identity: present = nested slice (consume only), absent = root. */
-    const ancestor = inject(FORM_FIELD_KEY, null)
+    const formFieldContext = inject(FORM_FIELD_KEY, null)
 
-    const {
-      props: hostProps,
-      layoutProps,
-      layoutItemProps,
-      formlessProps,
-    } = useFormlessProps(attrs as Record<string, unknown>)
+    /** Kernel semantic source: `fl:*` attrs, prefix stripped. */
+    const fl = computed(() => pickAttrs(attrs as Record<string, unknown>, 'fl'))
+    const layoutProps = computed(() =>
+      pickAttrs(attrs as Record<string, unknown>, 'layout'),
+    )
+    const layoutItemProps = computed(() =>
+      pickAttrs(attrs as Record<string, unknown>, 'layout-item'),
+    )
+    /**
+     * Everything no other channel claimed: the bare names. `item:` / `onItem:` are
+     * still in here — FormField peels that channel below, one level down.
+     */
+    const controlProps = computed(() =>
+      omitAttrs(attrs as Record<string, unknown>, ['fl', 'layout', 'layout-item']),
+    )
 
-    const declared = computed(() => resolveDeclaredBinding(formlessProps.value))
+    const declared = computed(() => resolveDeclaredBinding(fl.value))
 
-    if (ancestor == null) {
+    if (formFieldContext == null) {
       // Only the identity root provides; nested slices never re-provide.
       provide(
         FORM_FIELD_KEY,
         reactive(
           createFieldLayer(
             () => declared.value,
-            () => ctx.model,
-            ctx.update,
+            () => formViewContext.model,
+            formViewContext.update,
           ),
         ),
       )
@@ -94,7 +102,7 @@ export const FormField = defineComponent({
 
     /** Inherited identity (slice) or our own declaration (root). */
     const binding = computed(() =>
-      fieldBinding(formlessProps.value, declared.value, ancestor),
+      fieldBinding(fl.value, declared.value, formFieldContext),
     )
 
     /**
@@ -104,63 +112,64 @@ export const FormField = defineComponent({
     const layer = computed(() =>
       createFieldLayer(
         () => binding.value,
-        () => ctx.model,
-        ctx.update,
+        () => formViewContext.model,
+        formViewContext.update,
       ),
     )
 
     /** page < schema (preset attrs) < field (tag). Near wins; undefined does not write. */
-    const fl = computed(() => mergedFieldFl(ctx, formlessProps.value))
+    const fieldFl = computed(() => mergedFieldFl(formViewContext, fl.value))
 
     const itemFl = computed((): ItemFl =>
-      buildItemFl(fl.value, binding.value, layer.value.getValues),
+      buildItemFl(fieldFl.value, binding.value, layer.value.getValues),
     )
 
     const bindings = computed(() => modelBindings(layer.value))
 
-    const itemOn = computed(() => ctx.Item != null && fl.value.item === true)
+    const itemOn = computed(
+      () => formViewContext.Item != null && fieldFl.value.item === true,
+    )
 
-    const fallthrough = computed(() => splitFallthrough(hostProps.value))
+    /** Host Item channel: `item:*` props and `@item:*` listeners in one bag. */
+    const itemAttrs = computed(() => pickAttrs(controlProps.value, 'item'))
 
     /** Bare names go to the control, never to the host Item (§5.2). */
     const controlAttrs = computed(() =>
-      stripPortBindings(fallthrough.value.controlAttrs, binding.value.models),
+      stripPortBindings(omitAttrs(controlProps.value, ['item']), binding.value.models),
     )
 
-    const itemProps = computed(() => {
-      const { itemAttrs, itemOn: itemListeners } = fallthrough.value
-      return overlayProps(
-        resolveProps(ctx.itemProps, itemFl.value),
-        itemAttrs,
-        itemListeners,
-      )
-    })
+    const itemProps = computed(() =>
+      overlayProps(
+        resolveProps(formViewContext.itemProps, itemFl.value),
+        itemAttrs.value,
+      ),
+    )
 
     return (): VNodeChild => {
       const { itemSlots, controlSlots } = splitSlots(slots)
-      const fieldMode = resolveFieldMode(formlessProps.value.field)
+      const fieldMode = resolveFieldMode(fl.value.field)
 
       if (fieldMode !== 'wrap-embed' && Object.keys(layoutProps.value).length > 0) {
         console.warn('[vue-formless] :layout:* is ignored on a leaf field')
       }
 
-      const control = formlessProps.value.component as Component | undefined
+      const control = fl.value.component as Component | undefined
       const Control = control as JsxHost | undefined
-      const controlProps = { ...controlAttrs.value, ...bindings.value }
+      const inputProps = { ...controlAttrs.value, ...bindings.value }
       const inner: VNodeChild = Control
-        ? <Control {...controlProps} v-slots={controlSlots} />
+        ? <Control {...inputProps} v-slots={controlSlots} />
         : slots.default?.({ $bindings: bindings.value }) ?? null
 
       if (fieldMode === 'embed') return inner
 
-      const HostLayoutView = ctx.LayoutView as JsxHost
+      const HostLayoutView = formViewContext.LayoutView as JsxHost
       const windowProps = { ...layoutProps.value }
       const fieldBody =
         fieldMode === 'wrap-embed'
           ? <HostLayoutView {...windowProps} v-slots={{ default: () => inner }} />
           : inner
 
-      const HostItem = ctx.Item as JsxHost | undefined
+      const HostItem = formViewContext.Item as JsxHost | undefined
       const body =
         itemOn.value && HostItem ? (
           <HostItem

@@ -8,9 +8,12 @@
 
 ### Changed
 
+- 通道路由统一（内核私有）：`channels.ts` 改通道表，监听前缀由通道名**派生**（`onItem:` 不再手写字面量，`on` + PascalCase + `:`），四个通道一视同仁（含 `fl:`）；`attrs.ts` 只留两个原语 `pickAttrs`（单通道：剥前缀的 props + 还原成 `onXxx` 的监听，同一袋）/ `omitAttrs`（多通道：裸名残差）。`splitFlAttrs` / `takePrefixed` / `splitFormlessProps` / `useFormlessProps` / `splitFallthrough` / `item-fallthrough.ts` 退场，响应式包装（`computed`）回到各调用点
+- 行为：`@layout:*` / `@layout-item:*` 此前当作裸名落到 control，现按「前缀 = 目标组件」去 LayoutView / LayoutItem（`@item:*` 早已如此）。`FormView` 上 `layout-item:*` 仍被丢弃、`item:*` 仍透传给宿主 Form，均未变
 - ADR-020：`createFormFields` / `FormField` / `FormCell`（并列导出，不挂 `FormView.Cell`）；`cell: 'wrap' | 'embed' | 'wrap-embed'`；`item` 仅 boolean；`fieldKey` / `FieldSchema`
 - 删除 `createFormControls`、`useFormItem`、`FormView.Item`、`resolveControlShell`、`ControlFrame`
 - ADR-011：引号键段全称化——可承载任意字符串键（空白 / `.` / `[]` / 空串 `[""]`）；「键段禁止空串」收紧为「不加引号的键段禁止空串」，`prop: ''` 仍禁止
+- 内核私有工具归集（`utils.ts`）：`string-case.ts` / `record-utils.ts` 合并，函数按 lodash 命名——`camelToPascal` / `CamelToPascal` → `upperFirst` / `UpperFirst`（`attrs.ts` 里的私有 `capitalize` 是同一实现，一并并入），`omit` / `omitUndefined` 原样迁入
 
 ## [0.1.1] - 2026-09-02
 

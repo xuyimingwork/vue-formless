@@ -1,4 +1,4 @@
-import { omitUndefined } from './record-utils'
+import { omitUndefined } from './utils'
 
 /** Static host props, or derived from that layer's snapshot. */
 export type HostProps<TFl> =

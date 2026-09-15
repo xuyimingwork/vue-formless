@@ -1,5 +1,5 @@
 import type { FieldMode } from './field-schema'
-import { omitUndefined } from './record-utils'
+import { omitUndefined } from './utils'
 
 /** Static `formless` bag a control may declare on `ComponentCustomOptions`. */
 export interface ControlFormless {

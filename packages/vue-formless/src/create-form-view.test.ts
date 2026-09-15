@@ -361,6 +361,59 @@ describe('createFormView', () => {
     expect(html).toContain('gutter="16"')
     expect(html).toContain('span="12"')
   })
+
+  it('routes @layout:* to the page LayoutView, not the bare-name target', async () => {
+    const seen: Record<string, unknown>[] = []
+    const onGutter = () => {}
+    const ProbeRow = defineComponent({
+      name: 'ProbeRow',
+      inheritAttrs: false,
+      props: { gutter: { type: Number, default: 0 } },
+      setup(props, { attrs, slots }) {
+        seen.push({ ...attrs })
+        return () => h('row', { gutter: String(props.gutter) }, slots.default?.())
+      },
+    })
+    const FormView = createFormView({ layout: { Row: ProbeRow, Col } })
+    await render(
+      h(
+        FormView,
+        { modelValue: {}, 'fl:layout': true, 'layout:gutter': 16, 'onLayout:gutter': onGutter },
+        () => h(FormField, { 'fl:prop': 'name' }),
+      ),
+    )
+    expect(seen).toHaveLength(1)
+    expect(seen[0]).toMatchObject({ onGutter })
+  })
+
+  it('keeps item:* falling through to the host Form and drops layout-item:*', async () => {
+    const seen: Record<string, unknown>[] = []
+    const ProbeForm = defineComponent({
+      name: 'ProbeForm',
+      inheritAttrs: false,
+      props: {
+        model: { type: [Object, Array] as PropType<unknown>, default: undefined },
+      },
+      setup(_, { attrs, slots }) {
+        seen.push({ ...attrs })
+        return () => h('form', slots.default?.())
+      },
+    })
+    const FormView = createFormView({
+      layout: { Row, Col },
+      form: { component: ProbeForm, props: (fl) => ({ model: fl.modelValue }) },
+    })
+    await render(
+      h(
+        FormView,
+        { modelValue: {}, 'item:label': 'x', 'layout-item:span': 24 },
+        () => h(Writer()),
+      ),
+    )
+    expect(seen).toHaveLength(1)
+    expect(seen[0]).toMatchObject({ 'item:label': 'x' })
+    expect(seen[0]).not.toHaveProperty('layout-item:span')
+  })
 })
 
 const LabeledItem = defineComponent({
@@ -542,5 +595,39 @@ describe('FormField', () => {
     await nextTick()
     expect(emit).toHaveBeenCalledTimes(1)
     expect(emit.mock.calls[0]![0]).toEqual({ name: 'Bob' })
+  })
+
+  it('routes item:* props and @item:* listeners to the host Item', async () => {
+    const seen: Record<string, unknown>[] = []
+    const validate = () => {}
+    const ProbeItem = defineComponent({
+      name: 'ProbeItem',
+      inheritAttrs: false,
+      setup(_, { attrs, slots }) {
+        seen.push({ ...attrs })
+        return () => h('item', slots.default?.())
+      },
+    })
+    const FormView = createFormView({
+      layout: { Row, Col },
+      item: { component: ProbeItem },
+    })
+    await render(
+      h(
+        FormView,
+        { modelValue: {} },
+        () =>
+          h(FormField, {
+            'fl:prop': 'name',
+            'item:label': '姓名',
+            'onItem:validate': validate,
+            placeholder: 'bare',
+          }),
+      ),
+    )
+    expect(seen).toHaveLength(1)
+    expect(seen[0]).toMatchObject({ label: '姓名', onValidate: validate })
+    // Bare names stay on the control; there is no control here, so it is simply gone.
+    expect(seen[0]).not.toHaveProperty('placeholder')
   })
 })

@@ -1,5 +1,5 @@
 import { markRaw } from 'vue'
-import { camelToPascal, type CamelToPascal } from './string-case'
+import { upperFirst, type UpperFirst } from './utils'
 import {
   createFormFieldComponent,
   type CreateFormFieldOptions,
@@ -34,7 +34,7 @@ export type FormFieldsSchema = Record<string, FieldSchema>
  * Tag props are `fl:*` plus the control's public props (v-model ports locked).
  */
 export type NamespacedFields<S> = {
-  [K in keyof S & string as CamelToPascal<K>]: FormFieldComponent<ControlTagProps<S[K]>>
+  [K in keyof S & string as UpperFirst<K>]: FormFieldComponent<ControlTagProps<S[K]>>
 }
 
 /**
@@ -51,7 +51,7 @@ export function createFormFields<const S extends { [K in keyof S]: FieldSchemaIn
   for (const schemaKey of Object.keys(normalized) as (keyof S & string)[]) {
     const field = normalized[schemaKey]
     if (!field) continue
-    const pascalKey = camelToPascal(schemaKey) as CamelToPascal<typeof schemaKey> &
+    const pascalKey = upperFirst(schemaKey) as UpperFirst<typeof schemaKey> &
       keyof NamespacedFields<S>
     result[pascalKey] = createFormFieldComponent(
       schemaKey,

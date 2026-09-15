@@ -123,6 +123,8 @@ useFormCell        → 删除（§7）
 
 读法：**前缀是「配置谁」，裸名是「配置主子」。** 不再按宿主元素（Row / Col）命名——`layout:` / `cell:` 指的是 formless 侧组件；`LayoutView` 怎么转给 `Row`、`LayoutCell` 怎么转给 `Col`，是 layout 包内部的事。
 
+每个通道除了 props 形态还有**监听形态**：模板 `@item:validate` 被 Vue 编译成 attr `onItem:validate`，剥掉 `onItem:` 后按 Vue 的命名还原成宿主的 `onValidate`（`@item:update:modelValue` → `onUpdate:modelValue`）。监听前缀由通道名**派生**（`on` + PascalCase + `:`），不单独维护常量表：**一个通道的 props 与监听同去一个目标组件**。这条是 §1 规则的必然结果，不是 `item:` 的特例——`item:` 之所以先有，只是它当初把监听前缀写成了字面量。
+
 各组件吃哪些前缀：
 
 | 组件 | 裸名 | `layout:` | `cell:` | `item:` | `fl:` |
@@ -162,6 +164,8 @@ useFormCell        → 删除（§7）
 |------|------|-----|
 | `fl:*` | **语义源**：改它会引起派生重算 | `fl:label` → 适配同时算 Item `label` 与空校验文案 |
 | `item:*` / `cell:*` / `layout:*` / 裸名 | **机械值**：直接落到目标，不触发重算 | `item:label` 直接盖宿主 Item 的 `label` |
+
+监听是同一根轴上的机械值：`@item:validate` 与 `item:validate` 同属 `item:` 通道，直接落到宿主 Item，不触发任何派生。`fl:` 同样按这条规则剥 `onFl:*`——「内核当前不 emit 事件」只是今天的实现状态，不是通道级的属性，所以不为它单开分支。
 
 于是 `fl:label` 与 `item:label` 同时在，是设计而非冲突：前者是 source，后者是 override。[ADR-016](./016-fl-project-and-overlay.md) §2 的覆盖链（近的赢、`undefined` 不算写过）不变。
 
@@ -239,6 +243,7 @@ useFormCell        → 删除（§7）
 11. `playground/src/ep/form-view.ts`、`demos/formless/*.vue`：`fl:layout` → `fl:grid`、`:row:column` → `:layout:column`、`col:span` → `cell:span`、`fl:cell` → `fl:tree`、`useFormCell` → `<FormItem fl:model>`。
 12. `README.md` / `README.en.md` 通道表同步。
 13. 015（§1 表、§3 整节、不纳入、来源句）、016（§3 组树开关清单）、020（词表）、011（§5 `fl:model` 说明）、018 / 019（`col:` → `cell:`、`row:` → `layout:`）、本索引。
+14. **通道路由统一**（后续落地，见 design.md §5.2）：`channels.ts` 改通道表 + 派生监听前缀（删 `onItem:` 字面量）；`attrs.ts` 只留 `pickAttrs`（单通道，props 与监听同袋）/ `omitAttrs`（多通道）；`splitFlAttrs` / `takePrefixed` / `splitFormlessProps` / `useFormlessProps` / `split-fallthrough.ts` 退场，响应式包装回调用点。连带效果：`@layout:*` / `@layout-item:*` 开始真正去 LayoutView / LayoutItem（此前只有 `item:` 实现了监听半边）。
 
 落地顺序建议：本文 → 内核改名与通道常量 → 测试 → playground → 旧 ADR 交叉标注。
 
