@@ -11,6 +11,18 @@ export function upperFirst(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
+/**
+ * Vue attr / boolean-attr → boolean.
+ * `true` / `''` (bare attr) → true; `false` / `'false'` → false; missing → `defaultValue`.
+ */
+export function toAttrBoolean(value: unknown, defaultValue = false): boolean {
+  if (value === undefined || value === null) return defaultValue
+  if (value === true || value === '') return true
+  if (value === false || value === 'false') return false
+  if (value === 'true') return true
+  return defaultValue
+}
+
 /** Type-level `upperFirst`: `'name'` → `'Name'` (design.md §11). */
 export type UpperFirst<S extends string> = S extends `${infer F}${infer R}`
   ? `${Uppercase<F>}${R}`

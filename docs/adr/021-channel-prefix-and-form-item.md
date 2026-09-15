@@ -244,6 +244,7 @@ useFormCell        → 删除（§7）
 12. `README.md` / `README.en.md` 通道表同步。
 13. 015（§1 表、§3 整节、不纳入、来源句）、016（§3 组树开关清单）、020（词表）、011（§5 `fl:model` 说明）、018 / 019（`col:` → `cell:`、`row:` → `layout:`）、本索引。
 14. **通道路由统一**（后续落地，见 design.md §5.2）：`channels.ts` 改通道表 + 派生监听前缀（删 `onItem:` 字面量）；`attrs.ts` 只留 `pickAttrs`（单通道，props 与监听同袋）/ `omitAttrs`（多通道）；`splitFlAttrs` / `takePrefixed` / `splitFormlessProps` / `useFormlessProps` / `split-fallthrough.ts` 退场，响应式包装回调用点。连带效果：`@layout:*` / `@layout-item:*` 开始真正去 LayoutView / LayoutItem（此前只有 `item:` 实现了监听半边）。
+15. **通道分发合一**（后续落地，取代第 14 条的「两个原语」）：`channels.ts` / `attrs.ts` / `slots.ts` 合并为 `dispatch.ts` —— 通道表 + 前缀派生 + 一个分桶原语 `dispatch(bag, channels)`（每通道一桶 + `default` 裸名残差，props 与监听一视同仁，不筛值）；其上是 `use-form-attrs.ts` 的 `useFormViewAttrs` / `useFormFieldAttrs` / `useFormFieldSlots`，由这层持有「页 / 格各认领哪些通道」。`pickAttrs` / `omitAttrs` / `splitSlots` 退场（第 14 条的措辞被本条取代），`toAttrBoolean` 归 `utils.ts`。§5.2 的「pick 只能一个通道」不再是调用点纪律：各通道各进各桶，串味在结构上不可能。
 
 落地顺序建议：本文 → 内核改名与通道常量 → 测试 → playground → 旧 ADR 交叉标注。
 

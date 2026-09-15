@@ -1,5 +1,4 @@
 import {
-  computed,
   defineComponent,
   inject,
   markRaw,
@@ -15,9 +14,9 @@ import { createLayoutView } from '@vue-formless/layout'
 import { FORM_VIEW_KEY, type FormContext } from './injection-keys'
 import { useFormViewModelValue } from './use-form-view-model'
 import type { ItemFl } from './field-schema'
-import { omit } from './utils'
 import { overlayProps, resolveProps, type HostProps } from './props-overlay'
-import { omitAttrs, pickAttrs, toAttrBoolean } from './attrs'
+import { omit, toAttrBoolean } from './utils'
+import { useFormViewAttrs } from './use-form-attrs'
 
 /** `Component` is a union; JSX needs a constructable host. */
 type JsxHost = new () => { $props: Record<string, unknown> }
@@ -68,7 +67,7 @@ export interface FormViewProps {
    * FormView write model (the DTO). Declared as a real prop so the value
    * never falls through into the host Form's fallthrough bag. The
    * `onUpdate:modelValue` listener is read from `attrs` by
-   * `useFormViewModelValue` and is peeled off the host Form props.
+   * `useFormViewModelValue` and is stripped off the host Form props.
    */
   modelValue?: unknown
   /**
@@ -177,18 +176,16 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
       expose(proxyExpose(hostForm))
 
       const nested = inject(FORM_VIEW_KEY, null) != null
-      const fl = computed(() => pickAttrs(attrs as Record<string, unknown>, 'fl'))
-      const layoutProps = computed(() =>
-        pickAttrs(attrs as Record<string, unknown>, 'layout'),
-      )
       /**
-       * Bare names → the host Form. A page window has no LayoutItem, so
-       * `layout-item:*` is dropped with the rest of the kernel channels;
-       * `item:*` is not a FormView channel and keeps falling through.
+       * Page channels (design.md §5.3): `fl` is the kernel semantic source and
+       * `layout` the page window's props. `layout-item` is claimed but unused — a
+       * page window has no LayoutItem, so it must not reach the host Form.
+       * `item:*` is not a FormView channel: it stays in default and falls through.
        */
-      const hostAttrs = computed(() =>
-        omitAttrs(attrs as Record<string, unknown>, ['fl', 'layout', 'layout-item']),
-      )
+      const bags = useFormViewAttrs(attrs as Record<string, unknown>)
+      const fl = bags.fl
+      const layoutProps = bags.layout
+      const hostAttrs = bags.default
 
       /** v-model write port: fallthrough listener (camel or DOM-case tag). */
       const { model, update } = useFormViewModelValue(

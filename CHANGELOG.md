@@ -8,6 +8,7 @@
 
 ### Changed
 
+- 通道分发合一（内核私有）：`channels.ts` / `attrs.ts` / `slots.ts` 合并为 `dispatch.ts`（通道表 + 前缀派生 + `dispatch(bag, channels)` 一次分桶：每通道一桶 + `default` 裸名残差，props 与监听一视同仁，不筛值）+ `use-form-attrs.ts`（`useFormViewAttrs` / `useFormFieldAttrs` / `useFormFieldSlots`，通道集由这层持有）。`pickAttrs` / `omitAttrs` / `splitSlots` 退场；`toAttrBoolean` 归 `utils.ts`。行为不变：attrs 侧不再重复扫描（FormField 6 次 → 1 次），slot 与 attr 走同一条剥皮路径（`onItem:x` slot 名剥成 `onXx`）
 - 通道路由统一（内核私有）：`channels.ts` 改通道表，监听前缀由通道名**派生**（`onItem:` 不再手写字面量，`on` + PascalCase + `:`），四个通道一视同仁（含 `fl:`）；`attrs.ts` 只留两个原语 `pickAttrs`（单通道：剥前缀的 props + 还原成 `onXxx` 的监听，同一袋）/ `omitAttrs`（多通道：裸名残差）。`splitFlAttrs` / `takePrefixed` / `splitFormlessProps` / `useFormlessProps` / `splitFallthrough` / `item-fallthrough.ts` 退场，响应式包装（`computed`）回到各调用点
 - 行为：`@layout:*` / `@layout-item:*` 此前当作裸名落到 control，现按「前缀 = 目标组件」去 LayoutView / LayoutItem（`@item:*` 早已如此）。`FormView` 上 `layout-item:*` 仍被丢弃、`item:*` 仍透传给宿主 Form，均未变
 - ADR-020：`createFormFields` / `FormField` / `FormCell`（并列导出，不挂 `FormView.Cell`）；`cell: 'wrap' | 'embed' | 'wrap-embed'`；`item` 仅 boolean；`fieldKey` / `FieldSchema`

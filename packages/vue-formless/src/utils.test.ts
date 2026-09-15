@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { omit, omitUndefined, upperFirst } from './utils'
+import { omit, omitUndefined, toAttrBoolean, upperFirst } from './utils'
 
 describe('upperFirst', () => {
   it('converts camelCase field keys to PascalCase tags', () => {
@@ -24,5 +24,19 @@ describe('omit', () => {
 describe('omitUndefined', () => {
   it('drops undefined-valued entries only', () => {
     expect(omitUndefined({ a: undefined, b: null, c: 0 })).toEqual({ b: null, c: 0 })
+  })
+})
+
+describe('toAttrBoolean', () => {
+  it('maps Vue boolean-attr shapes and falls back when missing', () => {
+    expect(toAttrBoolean(undefined)).toBe(false)
+    expect(toAttrBoolean(undefined, true)).toBe(true)
+    expect(toAttrBoolean(null, true)).toBe(true)
+    expect(toAttrBoolean(true)).toBe(true)
+    expect(toAttrBoolean('')).toBe(true)
+    expect(toAttrBoolean('true')).toBe(true)
+    expect(toAttrBoolean(false)).toBe(false)
+    expect(toAttrBoolean('false')).toBe(false)
+    expect(toAttrBoolean('nope', true)).toBe(true)
   })
 })

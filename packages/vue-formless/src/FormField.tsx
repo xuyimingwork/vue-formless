@@ -25,8 +25,7 @@ import { resolveFieldMode } from './field-mode'
 import { FORM_FIELD_KEY } from './injection-keys'
 import type { FormFieldTagProps, ItemFl } from './field-schema'
 import { overlayProps, resolveProps } from './props-overlay'
-import { omitAttrs, pickAttrs } from './attrs'
-import { splitSlots } from './slots'
+import { useFormFieldAttrs, useFormFieldSlots } from './use-form-attrs'
 
 /** `Component` is a union; JSX needs a constructable host. */
 type JsxHost = new () => { $props: Record<string, unknown> }
@@ -58,7 +57,7 @@ export type FormFieldComponent<P = {}> = DefineComponent<FormFieldProps & P>
  * `<FormField fl:model="…" />` slices work with or without the
  * `createFormFields` shell (design.md §7.2 / §16.2). A hit only consumes.
  *
- * Prefix routing (§5.2): bare names → the control, `item:*` → the host Item.
+ * Channel dispatch (§5.2): bare names → the control, `item:*` → the host Item.
  */
 export const FormField = defineComponent({
   name: 'FormField',
@@ -68,21 +67,15 @@ export const FormField = defineComponent({
     /** Ancestor identity: present = nested slice (consume only), absent = root. */
     const formFieldContext = inject(FORM_FIELD_KEY, null)
 
-    /** Kernel semantic source: `fl:*` attrs, prefix stripped. */
-    const fl = computed(() => pickAttrs(attrs as Record<string, unknown>, 'fl'))
-    const layoutProps = computed(() =>
-      pickAttrs(attrs as Record<string, unknown>, 'layout'),
-    )
-    const layoutItemProps = computed(() =>
-      pickAttrs(attrs as Record<string, unknown>, 'layout-item'),
-    )
     /**
-     * Everything no other channel claimed: the bare names. `item:` / `onItem:` are
-     * still in here — FormField peels that channel below, one level down.
+     * One dispatch pass over the tag attrs, one bucket per channel: `fl:*` is the
+     * kernel semantic source, `layout:*` / `layout-item:*` the window / this cell,
+     * `item:*` the host Item shell, and the bare names the control (design.md §5.2).
      */
-    const controlProps = computed(() =>
-      omitAttrs(attrs as Record<string, unknown>, ['fl', 'layout', 'layout-item']),
-    )
+    const bags = useFormFieldAttrs(attrs as Record<string, unknown>)
+    const fl = bags.fl
+    const layoutProps = bags.layout
+    const layoutItemProps = bags['layout-item']
 
     const declared = computed(() => resolveDeclaredBinding(fl.value))
 
@@ -131,11 +124,11 @@ export const FormField = defineComponent({
     )
 
     /** Host Item channel: `item:*` props and `@item:*` listeners in one bag. */
-    const itemAttrs = computed(() => pickAttrs(controlProps.value, 'item'))
+    const itemAttrs = bags.item
 
     /** Bare names go to the control, never to the host Item (§5.2). */
     const controlAttrs = computed(() =>
-      stripPortBindings(omitAttrs(controlProps.value, ['item']), binding.value.models),
+      stripPortBindings(bags.default.value, binding.value.models),
     )
 
     const itemProps = computed(() =>
@@ -146,7 +139,7 @@ export const FormField = defineComponent({
     )
 
     return (): VNodeChild => {
-      const { itemSlots, controlSlots } = splitSlots(slots)
+      const { itemSlots, controlSlots } = useFormFieldSlots(slots)
       const fieldMode = resolveFieldMode(fl.value.field)
 
       if (fieldMode !== 'wrap-embed' && Object.keys(layoutProps.value).length > 0) {

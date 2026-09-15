@@ -14,7 +14,7 @@ import { readControlFormless } from './control-config'
 import { schemaExtras } from './fl-keys'
 import type { FieldSchema, ItemFl } from './field-schema'
 import { overlayProps, resolveProps, type HostProps } from './props-overlay'
-import { pickAttrs } from './attrs'
+import { dispatch } from './dispatch'
 import { upperFirst } from './utils'
 
 export interface CreateFormFieldOptions {
@@ -96,7 +96,12 @@ export function createFormFieldComponent(
           tagAttrs[key] = value
         }
 
-        const fl = pickAttrs(overlayProps(preset, tagAttrs), 'fl')
+        /**
+         * A merged bag (preset + tag), not the component's own attrs, and this
+         * runs in the render function — so read the one channel directly instead
+         * of going through `useFormFieldAttrs`.
+         */
+        const fl = dispatch(overlayProps(preset, tagAttrs), ['fl']).fl
         const declared = resolveDeclaredBinding(fl)
         const binding = fieldBinding(fl, declared, formFieldContext)
         const layer = createFieldLayer(
