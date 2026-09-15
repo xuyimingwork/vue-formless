@@ -2,7 +2,7 @@ import type { ControlVModel } from './control-binding'
 
 /**
  * Public `$props` of a Vue constructor, functional component, or SFC.
- * `never` / omitted widgets yield `{}` (`never extends Constructor` is true in TS).
+ * `never` / omitted controls yield `{}` (`never extends Constructor` is true in TS).
  */
 export type ComponentPublicProps<C> = [C] extends [never]
   ? {}
@@ -39,8 +39,8 @@ type LockedKeysForDef<Def> = LockedVModelKeys<
   SchemaModel<Def> extends ControlVModel | undefined ? SchemaModel<Def> : undefined
 >
 
-/** Widget props that may appear on `<User.Xxx />` (v-model ports stripped). */
-export type WidgetTagProps<Def> = Def extends { component?: infer C }
+/** Control props that may appear on `<User.Xxx />` (v-model ports stripped). */
+export type ControlTagProps<Def> = Def extends { component?: infer C }
   ? [Exclude<C, undefined>] extends [never]
     ? {}
     : Omit<ComponentPublicProps<Exclude<C, undefined>>, LockedKeysForDef<Def>>

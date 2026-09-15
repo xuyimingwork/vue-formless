@@ -7,7 +7,7 @@ import {
 } from './create-field-component'
 import type { FormFieldComponent } from './FormField'
 import type { FieldSchema } from './field-schema'
-import type { WidgetTagProps } from './widget-props'
+import type { ControlTagProps } from './control-props'
 
 export type {
   CreateFormFieldOptions,
@@ -20,8 +20,8 @@ export type { HostProps } from './props-overlay'
 export type {
   ComponentPublicProps,
   LockedVModelKeys,
-  WidgetTagProps,
-} from './widget-props'
+  ControlTagProps,
+} from './control-props'
 
 export type CreateFormFieldsOptions = CreateFormFieldOptions
 
@@ -31,10 +31,10 @@ export type FormFieldsSchema = Record<string, FieldSchema>
 /**
  * PascalCase field tags. `S` must not be `Record<string, _>` or `keyof` collapses
  * to `string` and Volar/TS lose `User.Name` / `User.IdCard` as named keys.
- * Tag props are `fl:*` plus the widget's public props (v-model ports locked).
+ * Tag props are `fl:*` plus the control's public props (v-model ports locked).
  */
 export type NamespacedFields<S> = {
-  [K in keyof S & string as CamelToPascal<K>]: FormFieldComponent<WidgetTagProps<S[K]>>
+  [K in keyof S & string as CamelToPascal<K>]: FormFieldComponent<ControlTagProps<S[K]>>
 }
 
 /**

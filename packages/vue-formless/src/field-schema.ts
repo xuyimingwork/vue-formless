@@ -20,15 +20,15 @@ export type FieldSchemaKernelKey =
  */
 export interface FieldSchema {
   /**
-   * Input widget only (no FormItem). Receives v-model bindings from formless.
-   * Widget may also declare static `formless: { model, item, field }`.
+   * The control only (no FormItem). Receives v-model bindings from formless.
+   * A control may also declare static `formless: { model, item, field }`.
    */
   component?: Component
-  /** Input defaults: static object, or derived from the field snapshot. */
+  /** Control defaults: static object, or derived from the field snapshot. */
   props?: HostProps<ItemFl>
   /**
-   * v-model names on the widget (ADR-011). Default `'modelValue'`.
-   * Locked with the component; tag cannot override. Prefer widget `formless.model`.
+   * v-model names on the control (ADR-011). Default `'modelValue'`.
+   * Locked with the component; tag cannot override. Prefer control `formless.model`.
    */
   model?: ControlVModel
   /**
@@ -44,7 +44,7 @@ export interface FieldSchema {
   item?: boolean
   /**
    * Assembly tree (ADR-020). Omit = `'wrap'`.
-   * Whole value replaced by nearer source (tag > widget > schema); no wrap∪embed merge.
+   * Whole value replaced by nearer source (tag > control > schema); no wrap∪embed merge.
    */
   field?: FieldMode
 }
@@ -86,7 +86,7 @@ export type FormFieldTagProps = {
   'fl:model'?: string | string[]
   'fl:item'?: boolean
   'fl:field'?: FieldMode
-  /** Ad-hoc widget (page `<FormField>`): the input component to render + bind. */
+  /** Ad-hoc control (page `<FormField>`): the component to render + bind. */
   'fl:component'?: Component
   'layout-item:span'?: string | number
   'layout-item:place'?: 'auto' | 'start' | 'end'

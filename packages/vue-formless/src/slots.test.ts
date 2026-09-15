@@ -13,7 +13,7 @@ describe('splitSlots', () => {
       item,
     } as unknown as Slots
     const split = splitSlots(slots)
-    expect(split.inputSlots).toEqual({ append, item })
+    expect(split.controlSlots).toEqual({ append, item })
     expect(split.itemSlots).toEqual({ label })
   })
 })

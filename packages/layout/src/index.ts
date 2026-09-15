@@ -1,4 +1,4 @@
-export type { ColSpanRaw, ColPlace } from './grid'
+export type { LayoutItemPlace, LayoutItemSpan } from './grid'
 export {
   createLayoutView,
   LayoutItem,

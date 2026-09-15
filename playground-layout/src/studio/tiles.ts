@@ -1,4 +1,4 @@
-import type { ColPlace } from '@vue-formless/layout'
+import type { LayoutItemPlace } from '@vue-formless/layout'
 import type { SpanSpec, Tile } from './types'
 
 export const GRID = 24
@@ -10,7 +10,7 @@ let seq = 0
 export function tile(
   label: string,
   span: SpanSpec = '1x',
-  place: ColPlace = 'auto',
+  place: LayoutItemPlace = 'auto',
   on = true,
 ): Tile {
   return { id: String(++seq), label, span, place, on }

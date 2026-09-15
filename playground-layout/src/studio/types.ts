@@ -1,12 +1,12 @@
-import type { ColPlace, ColSpanRaw } from '@vue-formless/layout'
+import type { LayoutItemPlace, LayoutItemSpan } from '@vue-formless/layout'
 
-export type SpanSpec = ColSpanRaw
+export type SpanSpec = LayoutItemSpan
 
 export type Tile = {
   id: string
   label: string
   span: SpanSpec
-  place: ColPlace
+  place: LayoutItemPlace
   on: boolean
 }
 

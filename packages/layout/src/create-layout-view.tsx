@@ -11,14 +11,14 @@ import {
   type Ref,
   type VNodeChild,
 } from 'vue'
-import { mergeColumn, normalizeColPlace, normalizeColSpan, type ColPlace, type ColSpan, type ColSpanRaw } from './grid'
+import { mergeColumn, normalizeColPlace, normalizeColSpan, type ColSpan, type LayoutItemPlace, type LayoutItemSpan } from './grid'
 import { LAYOUT_VIEW_KEY } from './injection-keys'
 import type { JsxHost } from './LayoutItem'
 import { calculateBlanks, calculateLayout, type Cell } from './calculate-layout'
 import { useDomChildren } from './use-dom-children'
 import { hostEl } from './utils'
 
-export type { ColPlace, ColSpanRaw } from './grid'
+export type { LayoutItemPlace, LayoutItemSpan } from './grid'
 export { LayoutItem, type LayoutItemProps } from './LayoutItem'
 
 export interface CreateLayoutViewOptions {
@@ -34,19 +34,19 @@ export interface LayoutViewProps {
 
 type ItemState = {
   span: ColSpan
-  place: ColPlace
+  place: LayoutItemPlace
   el: Element | null
   mounted: boolean
 }
 
 interface ItemHub {
   setup(
-    span?: MaybeRefOrGetter<ColSpanRaw | undefined>,
-    place?: MaybeRefOrGetter<ColPlace | undefined>,
+    span?: MaybeRefOrGetter<LayoutItemSpan | undefined>,
+    place?: MaybeRefOrGetter<LayoutItemPlace | undefined>,
   ): string
   span(id: string): ColSpan
   blank(id: string): { before: number[], after: number[] }
-  place(id: string): ColPlace
+  place(id: string): LayoutItemPlace
   ref(id: string, raw: unknown): void
   placed(id: string): boolean
 }
@@ -81,7 +81,7 @@ function useItemHub({
       const id = String(++seq)
       rawItems.value[id] = {
         span: computed(() => normalizeColSpan(toValue(span), toValue(column))) as unknown as ColSpan,
-        place: computed(() => normalizeColPlace(toValue(place))) as unknown as ColPlace,
+        place: computed(() => normalizeColPlace(toValue(place))) as unknown as LayoutItemPlace,
         el: null,
         mounted: false,
       }

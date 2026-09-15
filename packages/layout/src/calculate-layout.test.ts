@@ -4,9 +4,9 @@ import {
   calculateLayout,
   type Cell,
 } from './calculate-layout'
-import type { ColPlace, ColSpan } from './grid'
+import type { ColSpan, LayoutItemPlace } from './grid'
 
-function cell(span: ColSpan, place: ColPlace = 'auto'): Cell {
+function cell(span: ColSpan, place: LayoutItemPlace = 'auto'): Cell {
   return { span, place }
 }
 

@@ -1,23 +1,23 @@
 import { describe, expect, it } from 'vitest'
-import { readWidgetFormless } from './widget-config'
+import { readControlFormless } from './control-config'
 
-describe('readWidgetFormless', () => {
+describe('readControlFormless', () => {
   it('reads model / item / field from the component static bag', () => {
     expect(
-      readWidgetFormless({
+      readControlFormless({
         formless: { item: false, model: ['start', 'end'] },
       }),
     ).toEqual({ item: false, model: ['start', 'end'] })
     expect(
-      readWidgetFormless({
+      readControlFormless({
         formless: { field: 'embed', model: ['start', 'end'] },
       }),
     ).toEqual({ field: 'embed', model: ['start', 'end'] })
     expect(
-      readWidgetFormless({
+      readControlFormless({
         formless: { field: 'embed', layout: false, model: ['start', 'end'] },
       }),
     ).toEqual({ field: 'embed', model: ['start', 'end'] })
-    expect(readWidgetFormless({})).toEqual({})
+    expect(readControlFormless({})).toEqual({})
   })
 })

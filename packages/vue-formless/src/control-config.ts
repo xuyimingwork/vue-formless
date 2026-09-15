@@ -1,8 +1,8 @@
 import type { FieldMode } from './field-schema'
 import { omitUndefined } from './record-utils'
 
-/** Static `formless` bag a widget may declare on `ComponentCustomOptions`. */
-export interface WidgetFormless {
+/** Static `formless` bag a control may declare on `ComponentCustomOptions`. */
+export interface ControlFormless {
   model?: string | string[]
   item?: boolean
   field?: FieldMode
@@ -11,14 +11,14 @@ export interface WidgetFormless {
 
 declare module 'vue' {
   interface ComponentCustomOptions {
-    formless?: WidgetFormless
+    formless?: ControlFormless
   }
 }
 
-export function readWidgetFormless(component: unknown): WidgetFormless {
+export function readControlFormless(component: unknown): ControlFormless {
   if (component == null || typeof component !== 'object') return {}
   const bag = (component as { formless?: unknown }).formless
   if (bag == null || typeof bag !== 'object') return {}
-  const { model, item, field, prop } = bag as WidgetFormless
-  return omitUndefined({ model, item, field, prop }) as WidgetFormless
+  const { model, item, field, prop } = bag as ControlFormless
+  return omitUndefined({ model, item, field, prop }) as ControlFormless
 }

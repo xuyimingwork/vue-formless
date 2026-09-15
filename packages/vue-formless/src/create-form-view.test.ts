@@ -400,11 +400,11 @@ describe('FormField', () => {
     expect(html).toContain('x')
   })
 
-  it('renders an ad-hoc widget from fl:component and binds fl:prop', async () => {
+  it('renders an ad-hoc control from fl:component and binds fl:prop', async () => {
     const emit = vi.fn()
     const seen: Record<string, unknown>[] = []
-    const Input = defineComponent({
-      name: 'AdHocInput',
+    const Control = defineComponent({
+      name: 'AdHocControl',
       inheritAttrs: false,
       setup(_, { attrs }) {
         seen.push({ ...attrs })
@@ -413,7 +413,7 @@ describe('FormField', () => {
     })
     const FormView = createFormView({ layout: { Row, Col }, item: { component: Item } })
     const Probe = defineComponent({
-      setup: () => () => h(FormField, { 'fl:prop': 'name', 'fl:component': Input }),
+      setup: () => () => h(FormField, { 'fl:prop': 'name', 'fl:component': Control }),
     })
     const html = await render(
       h(

@@ -30,8 +30,8 @@ describe('createFormFields', () => {
     expectTypeOf(User).toHaveProperty('IdCard')
   })
 
-  it('forwards widget public props onto the namespaced tag', () => {
-    const Input = defineComponent({
+  it('forwards control public props onto the namespaced tag', () => {
+    const Control = defineComponent({
       props: {
         placeholder: { type: String, default: '' },
         rows: { type: Number, default: 2 },
@@ -40,7 +40,7 @@ describe('createFormFields', () => {
       setup: () => () => null,
     })
     const User = createFormFields({
-      remark: { component: Input },
+      remark: { component: Control },
     })
     type RemarkProps = ComponentPublicProps<typeof User.Remark>
     expectTypeOf<RemarkProps>().toHaveProperty('placeholder')
@@ -127,7 +127,7 @@ describe('createFormFields props overlay', () => {
 
   it('merges cluster, field, then tag; functions see label', async () => {
     const seen: Record<string, unknown>[] = []
-    const Input = defineComponent({
+    const Control = defineComponent({
       inheritAttrs: false,
       setup(_, { attrs }) {
         seen.push({ ...attrs })
@@ -138,14 +138,14 @@ describe('createFormFields props overlay', () => {
       {
         name: {
           label: '姓名',
-          component: Input,
+          component: Control,
           props: (fl) => ({
             placeholder: typeof fl.label === 'string' ? `请填写${fl.label}` : undefined,
           }),
         },
         mobile: {
           label: '手机',
-          component: Input,
+          component: Control,
           props: { placeholder: '11 位手机号' },
         },
       },
@@ -168,7 +168,7 @@ describe('createFormFields props overlay', () => {
     expect(seen[2]).toMatchObject({ placeholder: '姓名', clearable: true })
   })
 
-  it('does not wrap an embed widget in an outer Item', async () => {
+  it('does not wrap an embed control in an outer Item', async () => {
     const Fields = createFormFields({
       range: { component: Two, prop: ['fromTime', 'toTime'] },
     })
@@ -204,12 +204,12 @@ describe('createFormFields props overlay', () => {
   })
 
   it('skips Item for internal false but keeps Col', async () => {
-    const Input = defineComponent({
+    const Control = defineComponent({
       inheritAttrs: false,
       setup: () => () => h('input', { class: 'agency' }),
     })
     const Fields = createFormFields({
-      list: { component: Input, item: false },
+      list: { component: Control, item: false },
     })
     const html = await render(
       h(
@@ -224,12 +224,12 @@ describe('createFormFields props overlay', () => {
   })
 
   it('lets the tag wrap Item over internal false', async () => {
-    const Input = defineComponent({
+    const Control = defineComponent({
       inheritAttrs: false,
       setup: () => () => h('input', { class: 'agency' }),
     })
     const Fields = createFormFields({
-      list: { label: '机构', component: Input, item: false },
+      list: { label: '机构', component: Control, item: false },
     })
     const html = await render(
       h(
@@ -291,7 +291,7 @@ describe('createFormFields props overlay', () => {
   })
 
   it('renders exactly like a FormField preset with the same attrs', async () => {
-    const Input = defineComponent({
+    const Control = defineComponent({
       inheritAttrs: false,
       props: { placeholder: { type: String, default: '' } },
       setup: (p) => () => h('input', { class: 'w', 'data-ph': p.placeholder }),
@@ -299,12 +299,12 @@ describe('createFormFields props overlay', () => {
     const Fields = createFormFields({
       name: {
         label: '姓名',
-        component: Input,
+        component: Control,
         props: { placeholder: '请填写姓名' },
       },
     })
     const schemaAttrs = {
-      'fl:component': Input,
+      'fl:component': Control,
       'fl:prop': 'name',
       'fl:label': '姓名',
       placeholder: '请填写姓名',
@@ -324,7 +324,7 @@ describe('createFormFields props overlay', () => {
 
   it('resolves snapshot-dependent props into bare attrs', async () => {
     const seen: Record<string, unknown>[] = []
-    const Input = defineComponent({
+    const Control = defineComponent({
       inheritAttrs: false,
       setup(_, { attrs }) {
         seen.push({ ...attrs })
@@ -335,7 +335,7 @@ describe('createFormFields props overlay', () => {
       {
         name: {
           label: '姓名',
-          component: Input,
+          component: Control,
           props: (fl) => ({
             placeholder: `请填写${String(fl.label)}`,
             // The tag's :fl:prop relocation must reach the props snapshot.
@@ -361,13 +361,13 @@ describe('createFormFields props overlay', () => {
 
   it('leaves a multi-port cell unbound on the host Item', async () => {
     const props: Record<string, unknown>[] = []
-    const Input = defineComponent({
+    const Control = defineComponent({
       inheritAttrs: false,
       setup: () => () => h('input', { class: 'w' }),
     })
     const Fields = createFormFields({
       timeRange: {
-        component: Input,
+        component: Control,
         model: ['start', 'end'],
         prop: ['fromTime', 'toTime'],
       },
@@ -401,12 +401,12 @@ describe('createFormFields props overlay', () => {
   })
 
   it('lets the tag fl:field win over the schema and ignores an invalid one', async () => {
-    const Input = defineComponent({
+    const Control = defineComponent({
       inheritAttrs: false,
       setup: () => () => h('input', { class: 'w' }),
     })
     const Fields = createFormFields({
-      range: { label: '区间', component: Input, field: 'embed' },
+      range: { label: '区间', component: Control, field: 'embed' },
     })
     const view = () => shellView()
     const embedded = await render(

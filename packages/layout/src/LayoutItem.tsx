@@ -7,7 +7,7 @@ import {
   type PropType,
   type VNodeChild,
 } from 'vue'
-import type { ColPlace, ColSpanRaw } from './grid'
+import type { LayoutItemPlace, LayoutItemSpan } from './grid'
 import { LAYOUT_VIEW_KEY } from './injection-keys'
 import { hostEl } from './utils'
 
@@ -15,8 +15,8 @@ import { hostEl } from './utils'
 export type JsxHost = new () => { $props: Record<string, unknown> }
 
 export interface LayoutItemProps {
-  span?: ColSpanRaw
-  place?: ColPlace
+  span?: LayoutItemSpan
+  place?: LayoutItemPlace
 }
 
 const LayoutBlanks = defineComponent({
@@ -50,8 +50,8 @@ export const LayoutItem = defineComponent({
   name: 'LayoutItem',
   inheritAttrs: false,
   props: {
-    span: { type: [String, Number] as PropType<ColSpanRaw>, default: undefined },
-    place: { type: String as PropType<ColPlace>, default: undefined },
+    span: { type: [String, Number] as PropType<LayoutItemSpan>, default: undefined },
+    place: { type: String as PropType<LayoutItemPlace>, default: undefined },
   },
   setup(props, { slots, attrs, expose }) {
     const register = inject(LAYOUT_VIEW_KEY, null)

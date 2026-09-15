@@ -67,7 +67,7 @@ describe('FieldSchema extras inference', () => {
   })
 })
 
-describe('namespaced field widget props', () => {
+describe('namespaced field control props', () => {
   it('exposes ElInput props on User.Remark', () => {
     type RemarkProps = InstanceType<typeof User.Remark>['$props']
     expectTypeOf<RemarkProps>().toHaveProperty('placeholder')

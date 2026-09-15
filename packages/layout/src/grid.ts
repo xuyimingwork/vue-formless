@@ -17,10 +17,10 @@ type _Enumerate<N extends number, Acc extends number[] = []> =
 type IntRange<F extends number, T extends number> =
   Exclude<_Enumerate<T>, _Enumerate<F>> | T
 
-export type ColPlace = 'auto' | 'start' | 'end'
+export type LayoutItemPlace = 'auto' | 'start' | 'end'
 
 export type ColSpan = IntRange<1, typeof GRID_TOTAL>
-export type ColSpanRaw = ColSpan | `${ColSpan}` | `${ColSpan}x` | 'max'
+export type LayoutItemSpan = ColSpan | `${ColSpan}` | `${ColSpan}x` | 'max'
 
 function clampCol(n: number): ColSpan {
   return Math.min(GRID_TOTAL, Math.max(1, n)) as ColSpan
@@ -70,7 +70,7 @@ export function normalizeColSpan(raw: unknown, column: number): ColSpan {
   return clampCol(raw as number)
 }
 
-export function normalizeColPlace(place: unknown): ColPlace {
+export function normalizeColPlace(place: unknown): LayoutItemPlace {
   place = typeof place === 'string' ? place.trim().toLowerCase() : place
   if (place === 'start' || place === 'end') return place
   return 'auto'

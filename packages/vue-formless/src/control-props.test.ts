@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from 'vitest'
 import { defineComponent } from 'vue'
-import type { ComponentPublicProps, LockedVModelKeys, WidgetTagProps } from './widget-props'
+import type { ComponentPublicProps, LockedVModelKeys, ControlTagProps } from './control-props'
 
 describe('LockedVModelKeys', () => {
   it('defaults to modelValue', () => {
@@ -28,25 +28,25 @@ describe('LockedVModelKeys', () => {
 
 describe('ComponentPublicProps', () => {
   it('reads declared props from defineComponent', () => {
-    const Input = defineComponent({
+    const Control = defineComponent({
       props: {
         placeholder: { type: String, default: '' },
         rows: { type: Number, default: 2 },
       },
       setup: () => () => null,
     })
-    expectTypeOf<ComponentPublicProps<typeof Input>>().toHaveProperty('placeholder')
-    expectTypeOf<ComponentPublicProps<typeof Input>>().toHaveProperty('rows')
+    expectTypeOf<ComponentPublicProps<typeof Control>>().toHaveProperty('placeholder')
+    expectTypeOf<ComponentPublicProps<typeof Control>>().toHaveProperty('rows')
   })
 
-  it('is empty for omitted widgets', () => {
+  it('is empty for omitted controls', () => {
     expectTypeOf<ComponentPublicProps<undefined>>().toEqualTypeOf<{}>()
     expectTypeOf<ComponentPublicProps<never>>().toEqualTypeOf<{}>()
   })
 })
 
-describe('WidgetTagProps', () => {
-  const Input = defineComponent({
+describe('ControlTagProps', () => {
+  const Control = defineComponent({
     props: {
       placeholder: { type: String, default: '' },
       rows: { type: Number, default: 2 },
@@ -55,8 +55,8 @@ describe('WidgetTagProps', () => {
     setup: () => () => null,
   })
 
-  it('keeps widget props and strips the default v-model port', () => {
-    type Props = WidgetTagProps<{ component: typeof Input }>
+  it('keeps control props and strips the default v-model port', () => {
+    type Props = ControlTagProps<{ component: typeof Control }>
     expectTypeOf<Props>().toHaveProperty('placeholder')
     expectTypeOf<Props>().toHaveProperty('rows')
     expectTypeOf<Props>().not.toHaveProperty('modelValue')
@@ -72,7 +72,7 @@ describe('WidgetTagProps', () => {
       },
       setup: () => () => null,
     })
-    type Props = WidgetTagProps<{
+    type Props = ControlTagProps<{
       component: typeof Range
       model: ['start', 'end']
     }>
@@ -82,6 +82,6 @@ describe('WidgetTagProps', () => {
   })
 
   it('is empty when component is omitted', () => {
-    expectTypeOf<WidgetTagProps<{ label: string }>>().toEqualTypeOf<{}>()
+    expectTypeOf<ControlTagProps<{ label: string }>>().toEqualTypeOf<{}>()
   })
 })

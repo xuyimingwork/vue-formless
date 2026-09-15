@@ -4,10 +4,10 @@
 // --- layout re-exports -----------------------------------------------------
 export { createLayoutView, LayoutItem } from '@vue-formless/layout'
 export type {
-  ColPlace,
-  ColSpanRaw,
   CreateLayoutViewOptions,
+  LayoutItemPlace,
   LayoutItemProps,
+  LayoutItemSpan,
   LayoutViewProps,
 } from '@vue-formless/layout'
 
@@ -40,4 +40,4 @@ export type {
 } from './field-schema'
 export type { ControlProp, ControlVModel } from './control-binding'
 export type { HostProps } from './props-overlay'
-export type { WidgetFormless } from './widget-config'
+export type { ControlFormless } from './control-config'

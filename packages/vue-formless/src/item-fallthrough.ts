@@ -7,21 +7,21 @@ import { ITEM_ON_PREFIX, ITEM_PREFIX } from './channels'
 export function splitFallthrough(attrs: Record<string, unknown>): {
   itemAttrs: Record<string, unknown>
   itemOn: Record<string, unknown>
-  inputAttrs: Record<string, unknown>
+  controlAttrs: Record<string, unknown>
 } {
   const itemAttrs: Record<string, unknown> = {}
   const itemOn: Record<string, unknown> = {}
-  const inputAttrs: Record<string, unknown> = {}
+  const controlAttrs: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(attrs)) {
     if (key.startsWith(ITEM_ON_PREFIX) && key.length > ITEM_ON_PREFIX.length) {
       itemOn[toOnKey(key.slice(ITEM_ON_PREFIX.length))] = value
     } else if (key.startsWith(ITEM_PREFIX) && key.length > ITEM_PREFIX.length) {
       itemAttrs[key.slice(ITEM_PREFIX.length)] = value
     } else {
-      inputAttrs[key] = value
+      controlAttrs[key] = value
     }
   }
-  return { itemAttrs, itemOn, inputAttrs }
+  return { itemAttrs, itemOn, controlAttrs }
 }
 
 function toOnKey(event: string): string {

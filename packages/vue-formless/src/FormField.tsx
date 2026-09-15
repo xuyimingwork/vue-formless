@@ -47,7 +47,7 @@ export type FormFieldProps = FormFieldTagProps
 export type FormFieldComponent<P = {}> = DefineComponent<FormFieldProps & P>
 
 /**
- * One field: LayoutItem + optional host Item + Input (ADR-020).
+ * One field: LayoutItem + optional host Item + control (ADR-020).
  *
  * FormField has **one** configuration surface — its own tag attrs. A namespaced
  * `<User.Xxx />` is just a `FormField` with the schema preset as a lower attr
@@ -59,7 +59,7 @@ export type FormFieldComponent<P = {}> = DefineComponent<FormFieldProps & P>
  * `<FormField fl:model="…" />` slices work with or without the
  * `createFormFields` shell (ADR-013 / ADR-021 §7). A hit only consumes.
  *
- * Prefix routing (§5.2): bare names → the Input, `item:*` → the host Item.
+ * Prefix routing (§5.2): bare names → the control, `item:*` → the host Item.
  */
 export const FormField = defineComponent({
   name: 'FormField',
@@ -122,9 +122,9 @@ export const FormField = defineComponent({
 
     const fallthrough = computed(() => splitFallthrough(hostProps.value))
 
-    /** Bare names go to the Input, never to the host Item (§5.2). */
-    const inputProps = computed(() =>
-      stripPortBindings(fallthrough.value.inputAttrs, binding.value.models),
+    /** Bare names go to the control, never to the host Item (§5.2). */
+    const controlAttrs = computed(() =>
+      stripPortBindings(fallthrough.value.controlAttrs, binding.value.models),
     )
 
     const itemProps = computed(() => {
@@ -137,18 +137,18 @@ export const FormField = defineComponent({
     })
 
     return (): VNodeChild => {
-      const { itemSlots, inputSlots } = splitSlots(slots)
+      const { itemSlots, controlSlots } = splitSlots(slots)
       const fieldMode = resolveFieldMode(formlessProps.value.field)
 
       if (fieldMode !== 'wrap-embed' && Object.keys(layoutProps.value).length > 0) {
         console.warn('[vue-formless] :layout:* is ignored on a leaf field')
       }
 
-      const widget = formlessProps.value.component as Component | undefined
-      const Widget = widget as JsxHost | undefined
-      const widgetProps = { ...inputProps.value, ...bindings.value }
-      const inner: VNodeChild = Widget
-        ? <Widget {...widgetProps} v-slots={inputSlots} />
+      const control = formlessProps.value.component as Component | undefined
+      const Control = control as JsxHost | undefined
+      const controlProps = { ...controlAttrs.value, ...bindings.value }
+      const inner: VNodeChild = Control
+        ? <Control {...controlProps} v-slots={controlSlots} />
         : slots.default?.({ $bindings: bindings.value }) ?? null
 
       if (fieldMode === 'embed') return inner

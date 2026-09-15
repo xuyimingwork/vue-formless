@@ -5,12 +5,12 @@ describe('splitFallthrough', () => {
   it('routes onItem: events to Item onXxx', () => {
     const blur = () => {}
     const validate = () => {}
-    const { itemOn, inputAttrs } = splitFallthrough({
+    const { itemOn, controlAttrs } = splitFallthrough({
       placeholder: 'x',
       onBlur: blur,
       'onItem:validate': validate,
     })
-    expect(inputAttrs).toEqual({ placeholder: 'x', onBlur: blur })
+    expect(controlAttrs).toEqual({ placeholder: 'x', onBlur: blur })
     expect(itemOn).toEqual({ onValidate: validate })
   })
 
@@ -21,13 +21,13 @@ describe('splitFallthrough', () => {
   })
 
   it('strips item: prefix for Item props', () => {
-    const { itemAttrs, inputAttrs } = splitFallthrough({
+    const { itemAttrs, controlAttrs } = splitFallthrough({
       placeholder: 'x',
       'item:label-width': 123,
       'item:labelWidth': 96,
-      item: 'keep-on-input',
+      item: 'keep-on-control',
     })
-    expect(inputAttrs).toEqual({ placeholder: 'x', item: 'keep-on-input' })
+    expect(controlAttrs).toEqual({ placeholder: 'x', item: 'keep-on-control' })
     expect(itemAttrs).toEqual({ 'label-width': 123, labelWidth: 96 })
   })
 })

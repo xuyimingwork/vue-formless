@@ -10,7 +10,7 @@ import {
 } from './field-identity'
 import { FORM_FIELD_KEY } from './injection-keys'
 import { isFieldMode } from './field-mode'
-import { readWidgetFormless } from './widget-config'
+import { readControlFormless } from './control-config'
 import { schemaExtras } from './fl-keys'
 import type { FieldSchema, ItemFl } from './field-schema'
 import { overlayProps, resolveProps, type HostProps } from './props-overlay'
@@ -43,7 +43,7 @@ function schemaToFieldAttrs(
   schemaKey: string,
   schema: FieldSchemaInput,
 ): Record<string, unknown> {
-  const widgetFormless = readWidgetFormless(schema.component)
+  const controlFormless = readControlFormless(schema.component)
   const attrs: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(
     schemaExtras(schema as Record<string, unknown>),
@@ -52,11 +52,11 @@ function schemaToFieldAttrs(
   }
   return {
     ...attrs,
-    'fl:model': widgetFormless.model ?? schema.model,
+    'fl:model': controlFormless.model ?? schema.model,
     // Location default = the schema key (a tag :fl:prop still wins).
-    'fl:prop': widgetFormless.prop ?? schema.prop ?? schemaKey,
-    'fl:item': widgetFormless.item !== undefined ? widgetFormless.item : schema.item,
-    'fl:field': widgetFormless.field ?? schema.field,
+    'fl:prop': controlFormless.prop ?? schema.prop ?? schemaKey,
+    'fl:item': controlFormless.item !== undefined ? controlFormless.item : schema.item,
+    'fl:field': controlFormless.field ?? schema.field,
     'fl:component': schema.component,
   }
 }
@@ -91,7 +91,7 @@ export function createFormFieldComponent(
         for (const [key, value] of Object.entries(attrs as Record<string, unknown>)) {
           if (LOCKED_TAG_KEYS.has(key)) continue
           // Whole-value replacement only accepts a valid mode; a bad tag value
-          // must not clobber the schema/widget mode (§8).
+          // must not clobber the schema/control mode (§8).
           if (key === 'fl:field' && value !== undefined && !isFieldMode(value)) continue
           tagAttrs[key] = value
         }
@@ -109,13 +109,13 @@ export function createFormFieldComponent(
           binding,
           layer.getValues,
         )
-        const inputProps = overlayProps(
+        const controlProps = overlayProps(
           resolveProps(cluster?.props, snapshot),
           resolveProps(schema.props, snapshot),
         )
 
-        // preset (fl:* layer) < schema/cluster widget props < tag attrs.
-        return <FormField {...overlayProps(preset, inputProps, tagAttrs)} v-slots={slots} />
+        // preset (fl:* layer) < schema/cluster control props < tag attrs.
+        return <FormField {...overlayProps(preset, controlProps, tagAttrs)} v-slots={slots} />
       }
     },
   }) as FormFieldComponent

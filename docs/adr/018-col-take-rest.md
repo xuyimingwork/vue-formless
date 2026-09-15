@@ -69,7 +69,7 @@ v1 **只认** `'rest'` 与省略。不认 `max`（易与 `span="max"` 的 24 混
 
 ## 改造方案
 
-1. `ColSpanRaw` 不动。增加 `ColTakeRaw = 'rest'`（省略 = span）。
+1. `LayoutItemSpan` 不动。增加 `LayoutItemTake = 'rest'`（省略 = span）。
 2. `calculateOccupied`：先按 `place` + `span` 落地（`rest` 时落地规则同 `auto`）；若 `take === 'rest'`，再把占用拉到落地行行尾。
 3. `calculateBlanks` 拆出格后 pad；`LayoutItem` 在 HostCol **后**渲 `LayoutBlanks`。
 4. 单测：剩余 10 / 3 / 8 / 0；与后一格 `start` 画面对照；`end` + `take="rest"`（已在行尾则尾 pad 为 0）。

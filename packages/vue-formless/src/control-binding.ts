@@ -1,6 +1,6 @@
 /**
  * Field binding (ADR-011):
- * - `model` — v-model names on the widget (identity). Default `'modelValue'`.
+ * - `model` — v-model names on the control (identity). Default `'modelValue'`.
  * - `prop`  — location(s) from FormView root (`name`, `buyers[0].name`). Default: the schema key.
  * `prop` array pairs with `model` (prefix-aligned). Extra model ports are unbound.
  */
@@ -121,7 +121,7 @@ export function modelBindings(layer: FieldLayer): Record<string, unknown> {
   return bag
 }
 
-/** Page attrs must not override factory v-model ports on the widget. */
+/** Page attrs must not override factory v-model ports on the control. */
 export function stripPortBindings(
   attrs: Record<string, unknown>,
   models: string[],

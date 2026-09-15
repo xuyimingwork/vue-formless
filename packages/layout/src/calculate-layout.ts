@@ -1,8 +1,8 @@
-import { GRID_TOTAL, type ColPlace, type ColSpan } from './grid'
+import { GRID_TOTAL, type ColSpan, type LayoutItemPlace } from './grid'
 
 export type Cell = {
   span: ColSpan
-  place: ColPlace
+  place: LayoutItemPlace
 }
 
 export type CellPlaced<T extends Cell = Cell> = T & {
@@ -33,7 +33,7 @@ export function calculateOccupied({
   span,
 }: {
   cursor: number
-  place: ColPlace
+  place: LayoutItemPlace
   span: ColSpan
 }): number {
   const rest = GRID_TOTAL - cursor
