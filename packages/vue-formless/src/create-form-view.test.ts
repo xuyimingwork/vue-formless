@@ -314,7 +314,7 @@ describe('createFormView', () => {
 
   it('lets factory density set default span', async () => {
     const FormView = createFormView({
-      layout: { Row, Col, column: 3 },
+      layout: { Row, Col, props: { column: 3 } },
       item: { component: Item },
     })
     const html = await render(
@@ -324,6 +324,42 @@ describe('createFormView', () => {
     )
     expect(html).toContain('gutter="16"')
     expect(html).toContain('span="8"')
+  })
+
+  it('resolves factory layout.props from the { layout } snapshot', async () => {
+    const seen: Array<{ layout: boolean }> = []
+    const FormView = createFormView({
+      layout: {
+        Row,
+        Col,
+        props: (fl) => {
+          seen.push({ layout: fl.layout })
+          return { column: fl.layout ? 3 : 1 }
+        },
+      },
+      item: { component: Item },
+    })
+    const html = await render(
+      h(FormView, { modelValue: {}, 'fl:layout': true }, () =>
+        h(FormField, { 'fl:prop': 'name' }),
+      ),
+    )
+    expect(seen).toContainEqual({ layout: true })
+    expect(html).toContain('span="8"')
+  })
+
+  it('lets tag :layout:* overlay factory layout.props', async () => {
+    const FormView = createFormView({
+      layout: { Row, Col, props: { column: 3 } },
+      item: { component: Item },
+    })
+    const html = await render(
+      h(FormView, { modelValue: {}, 'fl:layout': true, 'layout:column': 2, 'layout:gutter': 16 }, () =>
+        h(FormField, { 'fl:prop': 'name' }),
+      ),
+    )
+    expect(html).toContain('gutter="16"')
+    expect(html).toContain('span="12"')
   })
 })
 

@@ -45,7 +45,7 @@ function toItemProp(prop: ItemFl['prop']): string | undefined {
 }
 
 export const FormView = createFormView({
-  layout: { Row: ElRow, Col: ElCol, column: 2 },
+  layout: { Row: ElRow, Col: ElCol, props: { column: 2 } },
   form: {
     component: ElForm,
     props: (fl) => ({ model: fl.modelValue }),

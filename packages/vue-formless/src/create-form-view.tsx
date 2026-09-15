@@ -22,10 +22,21 @@ import { toAttrBoolean, useFormlessProps } from './attrs'
 /** `Component` is a union; JSX needs a constructable host. */
 type JsxHost = new () => { $props: Record<string, unknown> }
 
+/** `layout.props` snapshot (design.md §10.1): grid enabled, before the `disabled` flip. */
+export type LayoutFl = {
+  /** Tag `:fl:layout` for **this** page LayoutView. Density lives in `layout.props`. */
+  layout: boolean
+}
+
 export interface FormViewLayoutBind {
   Row: Component
   Col: Component
-  column?: number
+  /**
+   * Default LayoutView props (density etc.): static object, or derived from the
+   * `{ layout }` snapshot. Tag `:layout:*` overlays them (near wins).
+   * `disabled` stays kernel-owned: always the `fl:layout` polarity flip.
+   */
+  props?: HostProps<LayoutFl>
 }
 
 export interface FormViewHostBind<TFl> {
@@ -34,7 +45,7 @@ export interface FormViewHostBind<TFl> {
 }
 
 export interface CreateFormViewOptions {
-  /** Row + Col for hosted grid, plus optional project density. */
+  /** Row + Col for the hosted grid, plus optional LayoutView props (density etc.). */
   layout?: FormViewLayoutBind
   /** Host form shell. Omit or `:fl:form="false"` skips wrapping. */
   form?: FormViewHostBind<FormFl>
@@ -44,13 +55,10 @@ export interface CreateFormViewOptions {
 
 export type { HostProps } from './props-overlay'
 
-/** FormView `:fl:layout` is a boolean switch. Density is factory / `:layout:*`. */
+/** FormView `:fl:layout` is a boolean switch. Density is factory `layout.props` / `:layout:*`. */
 export type FormLayoutProp = boolean
 
 export type FormFormProp = boolean | 'auto'
-
-/** Column density when factory `layout.column` and `:layout:column` are omitted. */
-const DEFAULT_COLUMN = 1
 
 /** v-model fallthrough listeners; FormView owns them, not the host Form. */
 const V_MODEL_PORT_KEYS = ['onUpdate:modelValue', 'onUpdate:model-value'] as const
@@ -65,8 +73,8 @@ export interface FormViewProps {
   modelValue?: unknown
   /**
    * Grid hosting switch. Default `false`.
-   * Column density: factory `layout.column` plus `:layout:column` for **this** page LayoutView only.
-   * wrap-embed inner LayoutView does not inherit them. Other `:layout:*` (e.g. gutter) fall through to the host Row.
+   * Density: factory `layout.props` plus `:layout:*` for **this** page LayoutView only.
+   * wrap-embed inner LayoutView inherits neither. Other `:layout:*` fall through to the host Row.
    */
   'fl:layout'?: FormLayoutProp
   'layout:column'?: number
@@ -139,19 +147,20 @@ function provideFormViewContext(options: {
  * @example
  * ```ts
  * export const FormView = createFormView({
- *   layout: { Row: ElRow, Col: ElCol, column: 2 },
+ *   layout: { Row: ElRow, Col: ElCol, props: { column: 2 } },
  *   form: { component: ElForm, props: (fl) => ({ model: fl.modelValue }) },
  *   item: { component: ElFormItem, props: toEpItemProps },
  * })
  * ```
  */
 export function createFormView(options: CreateFormViewOptions = {}): FormViewComponent {
-  const { Row, Col, column = DEFAULT_COLUMN } = options.layout ?? {}
+  const { Row, Col } = options.layout ?? {}
+  const layoutPropsSpec = options.layout?.props
   const Form = options.form?.component ? markRaw(options.form.component) : undefined
   const formProps = typeof options.form?.props === 'function' ? options.form?.props : () => options.form?.props
   const Item = options.item?.component ? markRaw(options.item.component) : undefined
   const itemProps = options.item?.props
-  /** Page LayoutView density only; not provided to Context / wrap-embed. */
+  /** Page LayoutView only; factory `layout.props` never reach Context / wrap-embed. */
   const LayoutView = createLayoutView({ Row, Col })
 
   return defineComponent({
@@ -192,10 +201,13 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
 
       return (): VNodeChild => {
         const HostLayoutView = LayoutView as JsxHost
+        const layout = toAttrBoolean(formlessProps.value.layout, false)
+        // Factory layout.props(fl) sets LayoutView defaults; tag :layout:* overlays (near wins).
+        // `disabled` is kernel-owned: fl:layout flips polarity (design.md §10.1).
         const body = (
           <HostLayoutView
-            {...overlayProps({ column }, layoutProps.value)}
-            disabled={!toAttrBoolean(formlessProps.value.layout, false)}
+            {...overlayProps(resolveProps(layoutPropsSpec, { layout }), layoutProps.value)}
+            disabled={!layout}
             v-slots={{ default: slots.default }}
           />
         )
