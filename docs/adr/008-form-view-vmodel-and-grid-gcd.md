@@ -19,6 +19,7 @@
   - 2026-09-01 — `:fl:layout` 只保 boolean；密度走工厂 `layout.column/gutter` 与 `:row:*`。布局子系统对外 `createLayoutView` + `useLayoutItem`。格宽 `:col:span` / `:col:place`。内核默认 `column: 1, gutter: 0`。
   - 2026-09-03 — 布局对外改为 `createLayoutView` + `LayoutItem`（不再 `useLayoutItem`）。
   - 2026-09-04 — 格占用 `:col:take="'rest'"` 见 [ADR-018](./018-col-take-rest.md)；Layout 行窗口 `:row:row` 见 [ADR-019](./019-layout-row-window.md)。
+  - 2026-09-15 — `:col:take` 已否（[ADR-018](./018-col-take-rest.md)）：行内占用保持 `:col:place` 单轴；§2 该句已改写。
 - **来源**：相对 [ADR-004](./004-form-layout-and-context.md) / [ADR-007](./007-layout-adapter-and-span-priority.md) 的后续澄清（命名、数据口、适配面与占位策略）
 
 ## 背景
@@ -107,7 +108,7 @@ createFormView({
 | `:row:column="4"` | 这一层覆盖 column（须同时 `fl:layout`） |
 | `:fl:layout="{ column: 4 }"` | **非法**；throw |
 
-格宽 `:col:span`（省略=`1x`，`'Nx'` / `'max'` / 绝对 1–24）；对齐 `:col:place`（`auto` / `start` / `end`）。占用 `:col:take`（省略=`span`，v1 仅 `'rest'`，见 [ADR-018](./018-col-take-rest.md)）。行窗口 `:row:row`（省略=不限，见 [ADR-019](./019-layout-row-window.md)）。空白格是 fragment 里的 Col，不用 `offset`。
+格宽 `:col:span`（省略=`1x`，`'Nx'` / `'max'` / 绝对 1–24）；行内落位 / 占行 `:col:place`（`auto` / `start` / `end`）。行窗口 `:row:row`（省略=不限，见 [ADR-019](./019-layout-row-window.md)）。空白格是 fragment 里的 Col，不用 `offset`。（原「占用 `:col:take`」已否，见 [ADR-018](./018-col-take-rest.md)。）
 
 ### 2.2 `form` / `item`：实例开关
 

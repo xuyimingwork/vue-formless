@@ -27,7 +27,7 @@ props: {
 return <HostRow ref={rowRef} {...attrs} data-layout-row="">
 ```
 
-`col:` 同理：`span` / `place` 是 `LayoutCell` 的 props（`LayoutCellProps`），而 ADR-018 / 019 加进来的 `take` / `show` **不写进 Col**，只是格子对 LayoutView 的登记指令。同一个前缀下「给宿主元素的」和「只给算法的」混装。
+`col:` 同理：`span` / `place` 是 `LayoutCell` 的 props（`LayoutCellProps`），而 ADR-019 加进来的 `show` **不写进 Col**，只是格子对 LayoutView 的登记指令。同一个前缀下「给宿主元素的」和「只给算法的」混装。
 
 ### 2. `prop` 三义
 
@@ -62,7 +62,7 @@ return overlayProps(
 
 - 前缀按**宿主元素（Row / Col）**命名，但 formless 只见 `LayoutView` / `LayoutCell` / 宿主 `Item`。换宿主要改前缀名，本身就是耦合。
 - 「无前缀」对 `FormView`（→ Form）、`FormField`（→ Input）、`FormCell`（→ Item）含义各不相同，却没有一条能念出来的规则。
-- 布局层把「窗口算法键」与「宿主元素键」塞进同一个前缀，制造了 `column`/`gutter`、`span`/`take` 两组内部混装。
+- 布局层把「窗口算法键」与「宿主元素键」塞进同一个前缀，制造了 `column`/`gutter`、`span`/`show` 两组内部混装。
 
 ## 决策
 
@@ -117,7 +117,7 @@ useFormCell        → 删除（§7）
 |------|---------|--------|
 | `fl:` | formless 内核 | 绑定 / 组树 / 壳开关 / 语义 extras：`fl:prop` `fl:model` `fl:item` `fl:tree` `fl:label` `fl:validate` |
 | `layout:` | `LayoutView` | 窗口键：`layout:column` `layout:gutter` `layout:row`（原 `row:`） |
-| `cell:` | `LayoutCell` | 格键：`cell:span` `cell:place` `cell:take` `cell:show`（原 `col:`） |
+| `cell:` | `LayoutCell` | 格键：`cell:span` `cell:place` `cell:show`（原 `col:`） |
 | `item:` | 宿主 `Item` | 越过主宿主时用：`item:label` `item:label-width` `item:prop` |
 | 裸名 | 当前组件的主宿主 | FormView→Form / FormField→Input / FormItem→FormItem |
 
@@ -133,7 +133,7 @@ useFormCell        → 删除（§7）
 
 三个归位说明：
 
-- `take` / `show` 归 `cell:`（不再是 `col:`）：它们是「这一格」的策略，和 `span` / `place` 同属 `LayoutCell`。这样 `cell:` 内部与 `item:` / `layout:` 一样纯——**一个前缀只对一颗组件**。
+- `show` 归 `cell:`（不再是 `col:`）：它是「这一格」的策略，和 `span` / `place` 同属 `LayoutCell`。这样 `cell:` 内部与 `item:` / `layout:` 一样纯——**一个前缀只对一颗组件**。
 - `gutter` 归 `layout:` 而不是 `row:`：作者配的是「这个布局窗口的间距」，窗口自己转发给 Row；同构于 `item:label` 配 Item。
 - `item:` 只在 `FormField` 上有「越过主宿主」的作用；在 `FormItem` 上主宿主已是 Item，`item:*` 与裸名等价。
 
@@ -202,8 +202,8 @@ useFormCell        → 删除（§7）
 
 ## 备选方案
 
-1. **把布局算法键（`column` / `take` / `show` / `row`）收进 `fl:`**（「少一个前缀」方案）：`gutter` 字面就是转发 `<el-row>` 的，叫 `fl:gutter` 是假话，只能留在 `row:`——于是 `row:` 只为装一个键而存在，`fl:` 变成「内核语义 + 布局策略」混合袋。**省不掉任何前缀**（现状 4 个、本方案 4 个）。否。
-2. **保留 `col:` / `row:` 命名**：与「formless 只跟 LayoutView / LayoutCell 交互」矛盾；`column`/`gutter`、`span`/`take` 的内部混装解释不掉。否。
+1. **把布局算法键（`column` / `show` / `row`）收进 `fl:`**（「少一个前缀」方案）：`gutter` 字面就是转发 `<el-row>` 的，叫 `fl:gutter` 是假话，只能留在 `row:`——于是 `row:` 只为装一个键而存在，`fl:` 变成「内核语义 + 布局策略」混合袋。**省不掉任何前缀**（现状 4 个、本方案 4 个）。否。
+2. **保留 `col:` / `row:` 命名**：与「formless 只跟 LayoutView / LayoutCell 交互」矛盾；`column`/`gutter`、`span`/`show` 的内部混装解释不掉。否。
 3. **`layout-cell:span`**：语义正确但太长。`LayoutCell` 日常就叫 cell，取 `cell:`。否为 `layout-cell:`。
 4. **结构化对象 `:layout="{ column: 4 }"` / `:cell="{ span: 12 }"` / `:item="{ label }"`**：真 props、Volar 可校验、一个部件一个名字；但不是平铺 attrs，且与 [ADR-013](./013-one-control-multiple-items.md) 已否的 `:formless` 袋子形似（动机相反）。保留为将来选择，v1 否。
 5. **合并 `item` 与 `tree` 成一根轴**（`fl:item="wrap" | "embed" | "wrap-embed" | false`）：同一个键要同时说「组树」与「要不要 label/error」，正是 [ADR-020](./020-form-view-cell-field.md) 备选 1 / 2 否掉的。保留两条正交轴。否。
@@ -223,7 +223,7 @@ useFormCell        → 删除（§7）
 
 内核：
 
-1. `split-fallthrough.ts`：`COL_PREFIX = 'cell:'`、`ROW_PREFIX = 'layout:'`；`COL_KEYS = { span, place, take, show }`、`ROW_KEYS = { column, gutter, row }`；`FormlessPropBags` 的 `rowProps` / `colProps` → `layoutProps` / `cellProps`（`FormView` / `FormField` / `FormItem` 的取用同步改）。
+1. `split-fallthrough.ts`：`COL_PREFIX = 'cell:'`、`ROW_PREFIX = 'layout:'`；`COL_KEYS = { span, place, show }`、`ROW_KEYS = { column, gutter, row }`；`FormlessPropBags` 的 `rowProps` / `colProps` → `layoutProps` / `cellProps`（`FormView` / `FormField` / `FormItem` 的取用同步改）。
 2. `FormCell.tsx` → `FormItem.tsx`：组件名 / 类型名全改；口切片从 `inject(FORM_CELL_PORT_KEY)` 改为读 `formlessProps.value.model`；删 `useFormCell`；`:row:*` 警告文案改 `layout:*`。
 3. `control-model.ts`：`bindingForPort` 函数保留、错误文案改 `fl:model`；`index.ts` 移除导出。
 4. `injection-keys.ts`：删 `FORM_CELL_PORT_KEY`。
@@ -231,7 +231,7 @@ useFormCell        → 删除（§7）
 6. `create-form-view.ts`：`FormViewProps` 的 `'row:column'` → `'layout:column'`；`fl:layout` → `fl:grid` 读取。
 7. `FormField.tsx`：`tagFl.cell` → `tagFl.tree`、`resolveCellMode` 参数名跟进；`:row:*` 警告文案。
 8. `index.ts`：导出 `FormItem` / `FormItemProps` / `FormItemSlotProps` / `FormItemTagProps`；删 `useFormCell` / `FORM_CELL_PORT_KEY` / `bindingForPort`。
-9. `layout` 包：`LayoutCell` 增 `take` / `show` 时沿用 `cell:`（ADR-018 / 019 落地）；本 ADR 只保证通道名。
+9. `layout` 包：`LayoutCell` 增 `show` 时沿用 `cell:`（ADR-019 落地）；`take` 已否（[ADR-018](./018-col-take-rest.md)），不加。本 ADR 只保证通道名。
 
 测试 / playground / 文档：
 
@@ -245,5 +245,5 @@ useFormCell        → 删除（§7）
 ## 后果
 
 - **正向**：一条规则（前缀 = 目标组件、裸名 = 主宿主）解释全部通道；`layout:` / `cell:` 各自只对一颗组件，`fl:` 回到「内核语义源」；`FormItem` 名字与主宿主一致；`cell` 一词唯一；`prop` 三义收敛为「`fl:prop` 绑定 vs `item:prop` 机械覆盖」两条明说的通道；`useFormCell` 退场后按口切片只剩 `fl:model` 一个入口。
-- **代价**：`FormCell` → `FormItem` 是全局重命名（类型、导出、测试、playground、多篇 ADR）；`col:` / `row:` 两个熟前缀消失；`fl:cell` / `fl:layout` 两个字段改名；`take` / `show` 在 018 / 019 落地时要与 `span` / `place` 一起从 `col:` 迁到 `cell:`；`fl:item`（壳开关）与 `item:`（宿主通道）同根不同 namespace，文档须点明。
-- **关联**：通道 [015](./015-formless-config-groups.md)；投影与覆盖 [016](./016-fl-project-and-overlay.md)；词表与三态 [020](./020-form-view-cell-field.md)；绑定 [011](./011-model-and-path.md)；一格多口 [013](./013-one-control-multiple-items.md) / [014](./014-multi-vmodel-host-validation.md)；格占用 [018](./018-col-take-rest.md)、窗口 [019](./019-layout-row-window.md)；写口 [008](./008-form-view-vmodel-and-grid-gcd.md)。
+- **代价**：`FormCell` → `FormItem` 是全局重命名（类型、导出、测试、playground、多篇 ADR）；`col:` / `row:` 两个熟前缀消失；`fl:cell` / `fl:layout` 两个字段改名；`show` 在 019 落地时要与 `span` / `place` 一起从 `col:` 迁到 `cell:`（`take` 已否，不再有这步）；`fl:item`（壳开关）与 `item:`（宿主通道）同根不同 namespace，文档须点明。
+- **关联**：通道 [015](./015-formless-config-groups.md)；投影与覆盖 [016](./016-fl-project-and-overlay.md)；词表与三态 [020](./020-form-view-cell-field.md)；绑定 [011](./011-model-and-path.md)；一格多口 [013](./013-one-control-multiple-items.md) / [014](./014-multi-vmodel-host-validation.md)；格占用 [018](./018-col-take-rest.md)（已否）、窗口 [019](./019-layout-row-window.md)；写口 [008](./008-form-view-vmodel-and-grid-gcd.md)。

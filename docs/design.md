@@ -78,7 +78,7 @@ packages/
 
 分层职责：
 
-- **layout**：只管栅格——行窗口、格登记、`span`/`take`/`place`/`show` 归一化、空白格计算。不知道表单、v-model、Item。
+- **layout**：只管栅格——行窗口、格登记、`span`/`place`/`show` 归一化、空白格计算。不知道表单、v-model、Item。
 - **formless**：把参数分给宿主 Form/Item、control 与 LayoutItem；把 v-model 归集到 FormView；按配置挂树。
 
 ---
@@ -558,19 +558,18 @@ interface LayoutViewProps {
 interface LayoutItemProps {
   span?: LayoutItemSpan  // '1'..'24' | '1x'..'Nx' | 'max' | number
   place?: LayoutItemPlace // 'auto' | 'start' | 'end'
-  take?: 'rest'          // 落地行占用（ADR-018；省略 = span）
   show?: 'auto' | 'required'  // 窗口折叠必展示（ADR-019；省略 = 'auto'）
 }
 ```
 
-- `span` 只决定宿主 Col 实宽；`place` 决定对齐；`take` 决定纸带占用；`show` 决定窗口折叠是否必展示。
+- `span` 只决定宿主 Col 实宽；`place` 决定行内落位 / 占行模式；`show` 决定窗口折叠是否必展示。（`take` 已否，见 ADR-018：行内占用不再单开一条轴。）
 - 归一化：`normalizeColSpan(raw, column)`（`1x` = `24/column`，`max` = 24，clamp 1..24）；`normalizeColPlace`。
 - 渲染：`LayoutBlanks(before)` + `HostCol` + `LayoutBlanks(after)`，`disabled` 时直接透传 children。
 
 ### 13.3 布局算法（`calculate-layout`）
 
 - 先切可见集（有 `row` 窗口时：`budget = row*24`，先扣 required，再按 DOM 序灌 auto）。
-- 再 `calculateLayout`（paper-tape）：按 `place`+`span` 落地，`take='rest'` 再拉到落地行行尾。
+- 再 `calculateLayout`（paper-tape）：按 `place`+`span` 落地（`place` 同时决定行内落位与占行模式）。
 - `calculateBlanks` 算前后空白格。
 
 栅格模数 `GRID_TOTAL = 24`；缺省 `DEFAULT_COLUMN = 1`。

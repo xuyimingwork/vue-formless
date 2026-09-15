@@ -23,10 +23,10 @@ describe('splitFlAttrs', () => {
 describe('takePrefixed', () => {
   it('strips the prefix and keeps an open bag', () => {
     const { taken, rest } = takePrefixed(
-      { 'layout-item:span': '2x', 'layout-item:take': 'rest', label: 'x' },
+      { 'layout-item:span': '2x', 'layout-item:place': 'end', label: 'x' },
       'layout-item:',
     )
-    expect(taken).toEqual({ span: '2x', take: 'rest' })
+    expect(taken).toEqual({ span: '2x', place: 'end' })
     expect(rest).toEqual({ label: 'x' })
   })
 })

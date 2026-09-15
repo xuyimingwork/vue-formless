@@ -15,6 +15,7 @@
   - 2026-09-09 — 通道加 `cell`；`item` 仅 boolean；`FormCell` / `useFormCell`；`FieldSchema` / `fieldKey`。废止 `'self'`，见 [ADR-020](./020-form-view-cell-field.md)。
   - 2026-09-10 — **通道前缀重写**：`row:` → `layout:`（LayoutView）、`col:` → `cell:`（LayoutCell）、`fl:cell` → `fl:tree`、`fl:layout` → `fl:grid`；`FormCell` → `FormItem`；`useFormCell` 退场，按口切片改 `fl:model`。§1 表 / §3 / 不纳入以 [ADR-021](./021-channel-prefix-and-form-item.md) 为准。
   - 2026-09-14 — **Item snapshot 去掉 `fieldKey`**（内核不发身份名，见 [ADR-011](./011-model-and-path.md) 修订）：snapshot 只余 extras + `binding` + `getValues()`（+ `fl:` 面上不再有 `fl:key`）。
+  - 2026-09-15 — `:col:take` 已否（[ADR-018](./018-col-take-rest.md)）：格上不再有 `take`，行内占用保持 `:col:place` 单轴。§1 表已去掉该键。
 - **来源**：[ADR-008](./008-form-view-vmodel-and-grid-gcd.md) / [ADR-011](./011-model-and-path.md) / [ADR-012](./012-input-item-and-rule-compile.md) / [ADR-013](./013-one-control-multiple-items.md) / [ADR-020](./020-form-view-cell-field.md) / [ADR-021](./021-channel-prefix-and-form-item.md)。本文钉 **配置怎么写、进哪一层**。不改 `component` 不含 Item、不改写口、不改按口切片吃口名（前缀与词表见 021）。
 
 ## 决策
@@ -25,9 +26,9 @@
 
 | 组件 | 无前缀 | `fl:` | `row:` / `col:` | 另 |
 |------|--------|--------|-----------------|-----|
-| `User.Xxx` | → `component` | `prop` + boolean `item` + `cell` + extras | `col:span` `col:place` `col:take` `col:show`；`wrap-embed` 上 `row:column` `row:gutter` | `:item:` / `@item:` / `#item:` → 宿主 Item |
+| `User.Xxx` | → `component` | `prop` + boolean `item` + `cell` + extras | `col:span` `col:place` `col:show`；`wrap-embed` 上 `row:column` `row:gutter` | `:item:` / `@item:` / `#item:` → 宿主 Item |
 | `FormView` | → 适配 Form | 组树 `layout`(boolean) / `form` / `item` | `row:column` `row:gutter` `row:row`（声明 props） | **`v-model` 是 FormView 写口** |
-| `FormCell` | → 适配 Item | `prop` + extras + boolean `item`。**无 `fl:model`、无 `fl:layout`** | `col:span` `col:place` `col:take` `col:show` | 无 `:item:` |
+| `FormCell` | → 适配 Item | `prop` + extras + boolean `item`。**无 `fl:model`、无 `fl:layout`** | `col:span` `col:place` `col:show` | 无 `:item:` |
 
 内核 `h(Form, overlay(form.props(snapshot), attrs))`；FormCell 内 `h(Item, overlay(item.props(snapshot), itemAttrs))`。Snapshot 只进 `props` 函数，不是宿主 prop。
 

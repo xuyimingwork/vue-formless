@@ -23,7 +23,7 @@
 | [015](./015-formless-config-groups.md) | Formless 配置通道 | Accepted（修订） |
 | [016](./016-fl-project-and-overlay.md) | fl → 宿主 props | Accepted（修订） |
 | [017](./017-composite-item-self.md) | 组合体 control、`item: 'self'` 与自述 | Superseded（[020](./020-form-view-cell-field.md)） |
-| [018](./018-col-take-rest.md) | `col:take="rest"`（实宽与行占用分离） | 待定（通道改 `cell:` 见 021） |
+| [018](./018-col-take-rest.md) | 不实现 `cell:take`（行内占用保持单一 `place` 轴） | Rejected（2026-09-15） |
 | [019](./019-layout-row-window.md) | LayoutView `row` 窗口与必展示 / 自动 | 待定（通道改 `layout:` 见 021） |
 | [020](./020-form-view-cell-field.md) | FormView / FormCell / FormField 与 `cell` 三态 | Accepted（修订） |
 | [021](./021-channel-prefix-and-form-item.md) | 通道前缀 = 目标组件（FormCell → FormItem） | Accepted |
@@ -48,7 +48,7 @@
  ├── 004 运行时粘合 = Context + 域表（内核 UI 无关）
  │    ├── 007 外部 Row/Col 适配；字段 span > 页级默认；响应式只在页级
  │    ├── 008 FormView：v-model（嵌套可 inherit）；可选 Form（`fl:form` auto）；`:layout` 栅格（不拆公开 FormLayout）；公约数 Row/Col/Item；格子 020 改 Cell
- │    ├── 018 `take="rest"`：实宽仍是 span；落地行吃完；否 `span="rest"`
+ │    ├── 018 已否 `take="rest"`：行内占用保持单一 `place` 轴（实宽仍是 span；否 `span="rest"`）
  │    └── 019 LayoutView `row` 窗口；格子 `show` 必展示 / 自动；筛选折叠
  └── 006 动态性默认走生成/CI，而非运行时全量 JSON
 ```

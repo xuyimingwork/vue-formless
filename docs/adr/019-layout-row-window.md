@@ -10,7 +10,7 @@
 
 `place="end"` 只解决查询靠右。10 个筛选项、`column=4`、收起 2 行时，可见槽是 8：7 个筛选项 + 查询。展开则 10 个筛选项 + 查询仍 `end`。
 
-这不是「当前格多吃空白」（[ADR-018](./018-col-take-rest.md)）。收起要把多出来的筛选项 **从排版流里拿掉**。CSS `max-height` 会裁掉 DOM 末尾的查询；`v-show` 仍占槽；按「前 7 个」`v-if` 在 `column` 变化或出现 `2x` 时会错。
+这不是「当前格多吃空白」（该提案 [ADR-018](./018-col-take-rest.md) 已否）。收起要把多出来的筛选项 **从排版流里拿掉**。CSS `max-height` 会裁掉 DOM 末尾的查询；`v-show` 仍占槽；按「前 7 个」`v-if` 在 `column` 变化或出现 `2x` 时会错。
 
 「7」应是预算推出来的：`row × 24 − 必展示占用`，不是页面写死的个数。
 
@@ -75,9 +75,9 @@ rest     = budget - reserved
 
 隐藏的 auto **不进排版**（不注册 / 不渲 Col）。不要 `v-show`。`v-model` 值仍在。强制藏某一项用页面 `v-if`，不提供 filter 函数。
 
-### 4. 不做进通用 `place` / `take`
+### 4. 不做进通用 `place`
 
-折叠是 Layout 级窗口，不是格对齐、也不是多吃空白。录单不写 `row`。落地时机：筛选 playground 真写「多项 + 查询进最后一格 + 展开」时再改内核；此前不必为它动 `calculateLayout`。
+折叠是 Layout 级窗口，不是格对齐、也不是多吃空白（多吃空白的 `take` 已否，见 [ADR-018](./018-col-take-rest.md)）。录单不写 `row`。落地时机：筛选 playground 真写「多项 + 查询进最后一格 + 展开」时再改内核；此前不必为它动 `calculateLayout`。
 
 ## 备选方案
 
@@ -86,7 +86,7 @@ rest     = budget - reserved
 3. **容器裁两行**：查询在 DOM 末尾会被裁掉。已否。
 4. **查询 `span="max"`**：独占一行，收起变成多一行。已否。
 5. **行窗口叫 `rows`**：躲开 `:row:row` 叠词，但与 `column` 不对称。已否。通道叠词接受（`:row:` = 布局层）。
-6. **用 `take="rest"` 折叠**：切不掉后面的筛选项。见 [ADR-018](./018-col-take-rest.md)。
+6. **用 `take="rest"` 折叠**：切不掉后面的筛选项；且 `take` 本身已否。见 [ADR-018](./018-col-take-rest.md)。
 
 ## 不纳入
 
@@ -108,4 +108,4 @@ rest     = budget - reserved
 
 - **正向**：筛选条是 `column` × `row` 窗口 + 钉住操作格；与页级密度一致；录单默认不受影响。
 - **代价**：布局多一个可选轴；`:row:row` 读起来叠词；切可见集要在 blanks 之前。
-- **关联**：密度落在 Layout 见 [ADR-007](./007-layout-adapter-and-span-priority.md)；`place="end"` 见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)；通道见 [ADR-015](./015-formless-config-groups.md)；格占用见 [ADR-018](./018-col-take-rest.md)。
+- **关联**：密度落在 Layout 见 [ADR-007](./007-layout-adapter-and-span-priority.md)；`place="end"` 见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)；通道见 [ADR-015](./015-formless-config-groups.md)；格占用（`take` 已否）见 [ADR-018](./018-col-take-rest.md)。
