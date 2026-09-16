@@ -25,7 +25,8 @@ import { resolveFieldMode } from './field-mode'
 import { FORM_FIELD_KEY } from './injection-keys'
 import type { FormFieldTagProps, ItemFl } from './field-schema'
 import { overlayProps, resolveProps } from './props-overlay'
-import { useFormFieldAttrs, useFormFieldSlots } from './use-form-attrs'
+import { FIELD_SLOT_CHANNELS, useFormFieldAttrs } from './use-form-attrs'
+import { dispatch } from '@/dispatch'
 
 /** `Component` is a union; JSX needs a constructable host. */
 type JsxHost = new () => { $props: Record<string, unknown> }
@@ -72,10 +73,13 @@ export const FormField = defineComponent({
      * kernel semantic source, `layout:*` / `layout-item:*` the window / this cell,
      * `item:*` the host Item shell, and the bare names the control (design.md §5.2).
      */
-    const bags = useFormFieldAttrs(attrs as Record<string, unknown>)
-    const fl = bags.fl
-    const layoutProps = bags.layout
-    const layoutItemProps = bags['layout-item']
+    const { 
+      fl, 
+      layout: layoutAttrs, 
+      layoutItem: layoutItemAttrs,
+      default: controlRawAttrs,
+      item: itemAttrs,
+    } = useFormFieldAttrs(attrs as Record<string, unknown>)
 
     const declared = computed(() => resolveDeclaredBinding(fl.value))
 
@@ -123,12 +127,9 @@ export const FormField = defineComponent({
       () => formViewContext.Item != null && fieldFl.value.item === true,
     )
 
-    /** Host Item channel: `item:*` props and `@item:*` listeners in one bag. */
-    const itemAttrs = bags.item
-
     /** Bare names go to the control, never to the host Item (§5.2). */
     const controlAttrs = computed(() =>
-      stripPortBindings(bags.default.value, binding.value.models),
+      stripPortBindings(controlRawAttrs.value, binding.value.models),
     )
 
     const itemProps = computed(() =>
@@ -138,25 +139,25 @@ export const FormField = defineComponent({
       ),
     )
 
+    
+
     return (): VNodeChild => {
-      const { itemSlots, controlSlots } = useFormFieldSlots(slots)
+      const { item: itemSlots, default: controlSlots } = dispatch(slots, FIELD_SLOT_CHANNELS)
       const fieldMode = resolveFieldMode(fl.value.field)
 
-      if (fieldMode !== 'wrap-embed' && Object.keys(layoutProps.value).length > 0) {
-        console.warn('[vue-formless] :layout:* is ignored on a leaf field')
-      }
+      const Control = fl.value.component as unknown as JsxHost | undefined
 
-      const control = fl.value.component as Component | undefined
-      const Control = control as JsxHost | undefined
-      const inputProps = { ...controlAttrs.value, ...bindings.value }
       const inner: VNodeChild = Control
-        ? <Control {...inputProps} v-slots={controlSlots} />
+        ? <Control {...{
+          ...controlAttrs.value, 
+          ...bindings.value 
+        }} v-slots={controlSlots} />
         : slots.default?.({ $bindings: bindings.value }) ?? null
 
       if (fieldMode === 'embed') return inner
 
       const HostLayoutView = formViewContext.LayoutView as JsxHost
-      const windowProps = { ...layoutProps.value }
+      const windowProps = { ...layoutAttrs.value }
       const fieldBody =
         fieldMode === 'wrap-embed'
           ? <HostLayoutView {...windowProps} v-slots={{ default: () => inner }} />
@@ -176,7 +177,7 @@ export const FormField = defineComponent({
           fieldBody
         )
 
-      return <LayoutItem {...layoutItemProps.value}>{body}</LayoutItem>
+      return <LayoutItem {...layoutItemAttrs.value}>{body}</LayoutItem>
     }
   },
 }) as FormFieldComponent
