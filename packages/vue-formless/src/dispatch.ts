@@ -1,9 +1,43 @@
 import { upperFirst } from './utils'
 
+/**
+ * The closed set of channels. A channel name *is* a tag prefix minus its colon
+ * (`item` ↔ `item:`), so there is no second table to keep in sync (design.md §5.1).
+ *
+ * The order carries no meaning: `resolveKey` looks a prefix up whole, colon
+ * included, so `layout-item:` can never be answered by `layout:`.
+ */
 const CHANNELS = ['fl', 'layout-item', 'layout', 'item'] as const
+
+/** The channel names the kernel knows about, as a union of string literals. */
+export type Channel = (typeof CHANNELS)[number]
+
+/**
+ * What a prefix means: which channel claims it, and in which of the two forms it
+ * arrived. `type` describes the *input* spelling (a `:`-prefixed prop vs. an
+ * `on…:`-prefixed listener), not the resolved key it produces.
+ */
 type KeyMeta<C extends Channel> = { channel: C; type: 'prop' | 'listener' }
+
+/**
+ * Every spelling a channel is allowed to use, derived rather than typed out —
+ * four entries per channel in `CHANNELS`:
+ *
+ * - `item:` / `onItem:` — the channel name as written
+ * - `layoutItem:` / `onLayoutItem:` — its camelCase spelling, for hyphenated names
+ *
+ * Both the camelCase form and the listener form are computed from the channel
+ * name (`on` + PascalCase), so adding a channel above teaches the table all four
+ * spellings. Vue compiles `@item:validate` to the attr `onItem:validate`, which is
+ * why the listener spelling has to be accepted here at all (design.md §5.1).
+ *
+ * The table itself is *global* — it knows every channel. Whether a channel is
+ * actually claimed for a given call is decided later, per call, in `resolveKey`
+ * by checking the caller's `channels`.
+ */
 const CHANNEL_PREFIX_TABLE = new Map<string, KeyMeta<Channel>>(
   CHANNELS.map((channel) => {
+    // kebab-case → camelCase: `layout-item` → `layoutItem`.
     const camel = channel.replace(/-([a-z])/g, (_, c) => c.toUpperCase())
     const entries: [string, KeyMeta<Channel>][] = [
       [`${channel}:`, { channel, type: 'prop' }],
@@ -15,27 +49,52 @@ const CHANNEL_PREFIX_TABLE = new Map<string, KeyMeta<Channel>>(
   }).flat(),
 )
 
-
-export type Channel = (typeof CHANNELS)[number]
-
+/**
+ * The result of one dispatch: one bucket per claimed channel, plus a `default`
+ * bucket for every key no claimed channel answered for. `T` is whatever the bag
+ * carried — prop values when dispatching attrs, slot functions when dispatching
+ * slot names (design.md §5.2).
+ */
 export type ChannelBuckets<T, C extends Channel> = {
   readonly [K in C]: Record<string, T>
 } & {
   readonly default: Record<string, T>
 }
 
+/**
+ * One pass over `bag`, one bucket per channel (design.md §5.2):
+ *
+ * - `item:label-width` → `item` bucket, key `label-width`
+ * - `onItem:validate` → `item` bucket, key `onValidate`
+ * - anything no claimed channel answers for keeps its own shape, colon included,
+ *   and lands in `default` (`foo:bar` is a name here, not a channel prefix)
+ *
+ * Values are copied exactly as they are — `undefined` included, no filtering and
+ * no merging. Channel identity comes from the key spelling alone, so a bare name
+ * and a prefixed name stay distinct entries even when their tails collide.
+ *
+ * @param bag      merged props / listeners (or slot names) to split
+ * @param channels the channels this call site claims; anything else falls to `default`
+ */
 export function dispatch<T, C extends Channel>(
   bag: Record<string, T>,
   channels: readonly C[],
 ): ChannelBuckets<T, C> {
-  const buckets: Record<string, Record<string, T>> = Object.create(null)
-  buckets['default'] = {}
-  for (const channel of channels) buckets[channel] = {}
+  // `Object.create(null)` on purpose: a bag may carry keys like `constructor` or
+  // `__proto__`, which have to become ordinary own entries, not prototype hits.
+  const buckets: Record<string, Record<string, T>> = {}
+  for (const channel of [...channels, 'default']) buckets[channel] = Object.create(null)
 
+  // Resolve every key once, up front: the two passes below then share the results,
+  // and `resolveKey` never runs twice for the same key.
   const entries = Object.entries(bag)
-    .map(([key, value]) => ({  ...resolveKey(key, channels as any), value }))
+    .map(([key, value]) => ({  ...resolveKey(key, channels), value }))
 
-  
+  // Two passes, props first: a listener overwrites a prop when both resolve to the
+  // same key in the same bucket (`item:onClick` and `onItem:click` both become
+  // `onClick`), because the explicit listener spelling is the stronger intent.
+  // This precedence is the whole reason the loops are split — see the
+  // "lets a listener win over a prop on a key collision" case in dispatch.test.ts.
   for (const { key, value, channel, type } of entries) {
     if (type === 'listener') continue
     buckets[channel || 'default'][key] = value
@@ -49,24 +108,48 @@ export function dispatch<T, C extends Channel>(
   return buckets as ChannelBuckets<T, C>
 }
 
-
+/**
+ * Reads a single key against the channels a call site claims.
+ *
+ * A claimed key comes back as `{ key, channel, type }`: the prefix stripped, and
+ * for a listener the tail renamed back to Vue's `onXxx` (`onItem:validate` →
+ * `onValidate`; the tail is carried over verbatim, colons included, so
+ * `onItem:update:modelValue` → `onUpdate:modelValue`). `upperFirst` is what turns
+ * `validate` into `Validate`.
+ *
+ * Any key that is not claimed whole comes back as `{ key }` alone — `channel` and
+ * `type` left undefined, the key byte-for-byte unchanged. That covers four cases:
+ * no colon at all, a prefix with an empty tail (`item:`, `onItem:`), an unknown
+ * prefix (`onUpdate:modelValue` is not any channel's listener prefix), and a known
+ * prefix whose channel this caller did not list.
+ *
+ * @param key      a raw attr / listener / slot name
+ * @param channels the channels the caller claims; a channel not listed never claims
+ */
 export function resolveKey<K extends string, C extends Channel>(
   key: K,
-  channels: C[],
+  channels: readonly C[],
 ): {
   key: string
 } & Partial<KeyMeta<C>> {
-  const colon = key.indexOf(':'); 
+  const colon = key.indexOf(':')
+  // No colon (`plain`): nothing can be claimed, keep the key as it is.
   if (colon === -1) return { key }
 
+  // The prefix keeps its colon, so it can be looked up as a whole and a longer
+  // channel name never answers to a shorter one.
   const prefix = key.substring(0, colon + 1)
+  // A prefix with an empty tail (`item:`): a bare prefix is not a key name.
   if (key.length === prefix.length) return { key }
 
   const meta = CHANNEL_PREFIX_TABLE.get(prefix)
+  // Unknown prefix, or a channel this caller does not claim: both leave the key
+  // untouched, colons and all, for `dispatch` to send to `default`.
   if (!meta || !channels.includes(meta.channel as C)) return { key }
 
   return {
     key: meta.type === 'listener'
+        // `onItem:validate` → `onValidate`; `on` + upperFirst(tail).
         ? `on${upperFirst(key.replace(prefix, ''))}`
         : key.replace(prefix, ''),
     channel: meta.channel as C,
