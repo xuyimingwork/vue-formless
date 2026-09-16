@@ -10,6 +10,8 @@ export function isFieldMode(value: unknown): value is FieldMode {
  * schema/control mode (already merged into the attr layer by the factory);
  * anything else is `'wrap'`, the omitted default.
  */
-export function resolveFieldMode(tagField: unknown): FieldMode {
-  return isFieldMode(tagField) ? tagField : 'wrap'
+export function normalizeField(field: unknown): FieldMode {
+  if (field === 'embed') return field
+  if (field === 'wrap-embed') return field
+  return 'wrap'
 }

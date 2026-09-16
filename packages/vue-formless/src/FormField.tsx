@@ -21,7 +21,7 @@ import {
   mergedFieldFl,
   resolveDeclaredBinding,
 } from './field-identity'
-import { resolveFieldMode } from './field-mode'
+import { normalizeField as normalizeField } from './field-mode'
 import { FORM_FIELD_KEY } from './injection-keys'
 import type { FormFieldTagProps, ItemFl } from './field-schema'
 import { overlayProps, resolveProps } from './props-overlay'
@@ -74,14 +74,14 @@ export const FormField = defineComponent({
      * `item:*` the host Item shell, and the bare names the control (design.md §5.2).
      */
     const { 
-      fl, 
+      fl: flRawAttrs, 
       layout: layoutAttrs, 
       layoutItem: layoutItemAttrs,
       default: controlRawAttrs,
       item: itemAttrs,
     } = useFormFieldAttrs(attrs as Record<string, unknown>)
 
-    const declared = computed(() => resolveDeclaredBinding(fl.value))
+    const declared = computed(() => resolveDeclaredBinding(flRawAttrs.value))
 
     if (formFieldContext == null) {
       // Only the identity root provides; nested slices never re-provide.
@@ -99,7 +99,7 @@ export const FormField = defineComponent({
 
     /** Inherited identity (slice) or our own declaration (root). */
     const binding = computed(() =>
-      fieldBinding(fl.value, declared.value, formFieldContext),
+      fieldBinding(flRawAttrs.value, declared.value, formFieldContext),
     )
 
     /**
@@ -115,7 +115,7 @@ export const FormField = defineComponent({
     )
 
     /** page < schema (preset attrs) < field (tag). Near wins; undefined does not write. */
-    const fieldFl = computed(() => mergedFieldFl(formViewContext, fl.value))
+    const fieldFl = computed(() => mergedFieldFl(formViewContext, flRawAttrs.value))
 
     const itemFl = computed((): ItemFl =>
       buildItemFl(fieldFl.value, binding.value, layer.value.getValues),
@@ -139,13 +139,11 @@ export const FormField = defineComponent({
       ),
     )
 
-    
-
     return (): VNodeChild => {
       const { item: itemSlots, default: controlSlots } = dispatch(slots, FIELD_SLOT_CHANNELS)
-      const fieldMode = resolveFieldMode(fl.value.field)
+      const fieldMode = normalizeField(flRawAttrs.value.field)
 
-      const Control = fl.value.component as unknown as JsxHost | undefined
+      const Control = flRawAttrs.value.component as unknown as JsxHost | undefined
 
       const inner: VNodeChild = Control
         ? <Control {...{
