@@ -12,7 +12,6 @@ describe('resolveKey', () => {
   describe('a claimed key', () => {
     it('strips the channel prefix', () => {
       expect(resolveKey('item:label-width', ['item'])).toEqual({
-        raw: 'item:label-width',
         channel: 'item',
         key: 'label-width',
         type: 'prop'
@@ -21,7 +20,6 @@ describe('resolveKey', () => {
 
     it('derives the listener prefix from the channel name', () => {
       expect(resolveKey('onLayout-item:close', ['layout-item'])).toEqual({
-        raw: 'onLayout-item:close',
         channel: 'layout-item',
         key: 'onClose',
         type: 'listener'
@@ -54,7 +52,7 @@ describe('resolveKey', () => {
       ['onUpdate:modelValue', 'a colon from another vocabulary'],
       ['plain', 'no colon at all'],
     ])('leaves %s (%s) exactly as it was', (key) => {
-      expect(resolveKey(key, ['item'])).toEqual({ raw: key, channel: undefined, key })
+      expect(resolveKey(key, ['item'])).toEqual({ channel: undefined, key })
     })
   })
 })
