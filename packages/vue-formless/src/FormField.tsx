@@ -14,7 +14,6 @@ import {
   modelBindings,
   stripPortBindings,
 } from './control-binding'
-import { useFormContext } from './context'
 import {
   buildItemFl,
   fieldBinding,
@@ -22,7 +21,7 @@ import {
   resolveDeclaredBinding,
 } from './field-identity'
 import { normalizeField as normalizeField } from './field-mode'
-import { FORM_FIELD_KEY } from './injection-keys'
+import { FORM_FIELD_KEY, FORM_VIEW_KEY } from './injection-keys'
 import type { FormFieldTagProps, ItemFl } from './field-schema'
 import { overlayProps, resolveProps } from './props-overlay'
 import { FIELD_SLOT_CHANNELS, useFormFieldAttrs } from './use-form-attrs'
@@ -37,51 +36,27 @@ export interface FormFieldSlotProps {
   $bindings: Record<string, unknown>
 }
 
-/**
- * Kernel `fl:` / `item:` / `layout:` / `layout-item:` keys on `<FormField>` / `<User.Xxx />`,
- * plus schema extras (`fl:label`…). `FormFieldTagProps` stays internal.
- */
 export type FormFieldProps = FormFieldTagProps
 
 export type FormFieldComponent<P = {}> = DefineComponent<FormFieldProps & P>
 
-/**
- * One field: LayoutItem + optional host Item + control (design.md §8).
- *
- * FormField has **one** configuration surface — its own tag attrs. A namespaced
- * `<User.Xxx />` is just a `FormField` with the schema preset as a lower attr
- * layer (`fl:component` / `fl:prop` / `fl:model` / `fl:item` / `fl:field` /
- * `fl:label`…), so there is no private side channel (design.md §16.3).
- *
- * It is the **identity root** when it hits no ancestor `FORM_FIELD_KEY`: it
- * resolves its own port ↔ location map and provides it, so nested
- * `<FormField fl:model="…" />` slices work with or without the
- * `createFormFields` shell (design.md §7.2 / §16.2). A hit only consumes.
- *
- * Channel dispatch (§5.2): bare names → the control, `item:*` → the host Item.
- */
 export const FormField = defineComponent({
   name: 'FormField',
   inheritAttrs: false,
   setup(_, { slots, attrs }) {
-    const formViewContext = useFormContext()
-    /** Ancestor identity: present = nested slice (consume only), absent = root. */
+    const formViewContext = inject(FORM_VIEW_KEY, null)
     const formFieldContext = inject(FORM_FIELD_KEY, null)
 
-    /**
-     * One dispatch pass over the tag attrs, one bucket per channel: `fl:*` is the
-     * kernel semantic source, `layout:*` / `layout-item:*` the window / this cell,
-     * `item:*` the host Item shell, and the bare names the control (design.md §5.2).
-     */
+    // 当前 attrs
     const { 
-      fl: flRawAttrs, 
-      layout: layoutAttrs, 
-      layoutItem: layoutItemAttrs,
-      default: controlRawAttrs,
-      item: itemAttrs,
+      fl: fieldFormlessOptions, 
+      layoutItem: fieldLayoutItemAttrs,
+      item: fieldItemAttrs,
+      layout: fieldLayoutAttrs, 
+      default: fieldControlAttrs,
     } = useFormFieldAttrs(attrs as Record<string, unknown>)
 
-    const declared = computed(() => resolveDeclaredBinding(flRawAttrs.value))
+    const declared = computed(() => resolveDeclaredBinding(fieldFormlessOptions.value))
 
     if (formFieldContext == null) {
       // Only the identity root provides; nested slices never re-provide.
@@ -99,7 +74,7 @@ export const FormField = defineComponent({
 
     /** Inherited identity (slice) or our own declaration (root). */
     const binding = computed(() =>
-      fieldBinding(flRawAttrs.value, declared.value, formFieldContext),
+      fieldBinding(fieldFormlessOptions.value, declared.value, formFieldContext),
     )
 
     /**
@@ -115,7 +90,7 @@ export const FormField = defineComponent({
     )
 
     /** page < schema (preset attrs) < field (tag). Near wins; undefined does not write. */
-    const fieldFl = computed(() => mergedFieldFl(formViewContext, flRawAttrs.value))
+    const fieldFl = computed(() => mergedFieldFl(formViewContext, fieldFormlessOptions.value))
 
     const itemFl = computed((): ItemFl =>
       buildItemFl(fieldFl.value, binding.value, layer.value.getValues),
@@ -129,21 +104,21 @@ export const FormField = defineComponent({
 
     /** Bare names go to the control, never to the host Item (§5.2). */
     const controlAttrs = computed(() =>
-      stripPortBindings(controlRawAttrs.value, binding.value.models),
+      stripPortBindings(fieldControlAttrs.value, binding.value.models),
     )
 
     const itemProps = computed(() =>
       overlayProps(
         resolveProps(formViewContext.itemProps, itemFl.value),
-        itemAttrs.value,
+        fieldItemAttrs.value,
       ),
     )
 
     return (): VNodeChild => {
       const { item: itemSlots, default: controlSlots } = dispatch(slots, FIELD_SLOT_CHANNELS)
-      const fieldMode = normalizeField(flRawAttrs.value.field)
+      const fieldMode = normalizeField(fieldFormlessOptions.value.field)
 
-      const Control = flRawAttrs.value.component as unknown as JsxHost | undefined
+      const Control = fieldFormlessOptions.value.component as unknown as JsxHost | undefined
 
       const inner: VNodeChild = Control
         ? <Control {...{
@@ -155,7 +130,7 @@ export const FormField = defineComponent({
       if (fieldMode === 'embed') return inner
 
       const HostLayoutView = formViewContext.LayoutView as JsxHost
-      const windowProps = { ...layoutAttrs.value }
+      const windowProps = { ...fieldLayoutAttrs.value }
       const fieldBody =
         fieldMode === 'wrap-embed'
           ? <HostLayoutView {...windowProps} v-slots={{ default: () => inner }} />
@@ -175,7 +150,7 @@ export const FormField = defineComponent({
           fieldBody
         )
 
-      return <LayoutItem {...layoutItemAttrs.value}>{body}</LayoutItem>
+      return <LayoutItem {...fieldLayoutItemAttrs.value}>{body}</LayoutItem>
     }
   },
 }) as FormFieldComponent
