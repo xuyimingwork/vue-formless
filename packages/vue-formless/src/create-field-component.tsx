@@ -5,7 +5,6 @@ import { useFormContext } from './context'
 import {
   buildItemFl,
   fieldBinding,
-  mergedFieldFl,
   resolveDeclaredBinding,
 } from './field-identity'
 import { FORM_FIELD_KEY } from './injection-keys'
@@ -110,7 +109,7 @@ export function createFormFieldComponent(
           formViewContext.update,
         )
         const snapshot = buildItemFl(
-          mergedFieldFl(formViewContext, fl),
+          fl,
           binding,
           layer.getValues,
         )

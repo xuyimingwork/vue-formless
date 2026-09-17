@@ -1,9 +1,8 @@
 /**
  * Field identity and Item snapshot (design.md §16.2 / §10.1).
  *
- * Shared by `FormField` (identity root + assembly) and the factory shell, which
- * needs the same snapshot to resolve `FieldSchema.props` before it can pass
- * plain attrs down — one implementation, so the two can never drift.
+ * Used by the factory shell to resolve the field's declared binding and the
+ * `ItemFl` snapshot before it can pass plain attrs down.
  */
 import {
   bindingForPort,
@@ -14,18 +13,8 @@ import {
   type FieldLayer,
   type ResolvedControlBinding,
 } from './control-binding'
-import type { FormContext } from './injection-keys'
 import type { ItemFl } from './field-schema'
 import { omitShellKeys } from './fl-keys'
-import { overlayProps } from './props-overlay'
-
-/** This field's merged `fl` bag: page < preset layer (factory/schema) < tag. */
-export function mergedFieldFl(
-  ctx: FormContext,
-  formlessFl: Record<string, unknown>,
-): Record<string, unknown> {
-  return overlayProps({ item: ctx.item }, formlessFl)
-}
 
 /** This field's own declaration: `fl:prop` locations + `fl:model` ports. */
 export function resolveDeclaredBinding(

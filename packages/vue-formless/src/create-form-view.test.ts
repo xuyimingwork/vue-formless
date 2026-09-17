@@ -473,6 +473,44 @@ describe('FormField', () => {
     expect(html).toContain('x')
   })
 
+  it('merges the page :fl:item default and lets the field fl:item win', async () => {
+    const FormView = createFormView({
+      layout: { Row, Col },
+      item: { component: Item },
+    })
+    const Field = defineComponent({
+      setup() {
+        return () => h(FormField, { 'fl:prop': 'name' }, { default: () => 'x' })
+      },
+    })
+
+    // Page default off → field unset stays off (no <item> shell).
+    const htmlOff = await render(
+      h(FormView, { modelValue: {}, 'fl:layout': true, 'fl:item': false }, () => h(Field)),
+    )
+    expect(htmlOff).toContain('<grid-col')
+    expect(htmlOff).not.toContain('<item')
+    expect(htmlOff).toContain('x')
+
+    // Field fl:item=true wins over the page default.
+    const htmlOn = await render(
+      h(FormView, { modelValue: {}, 'fl:layout': true, 'fl:item': false }, () =>
+        h(FormField, { 'fl:prop': 'name', 'fl:item': true }, { default: () => 'x' }),
+      ),
+    )
+    expect(htmlOn).toContain('<item')
+    expect(htmlOn).toContain('x')
+
+    // A bare fl:item (empty string attr) counts as true.
+    const htmlBare = await render(
+      h(FormView, { modelValue: {}, 'fl:layout': true, 'fl:item': false }, () =>
+        h(FormField, { 'fl:prop': 'name', 'fl:item': '' }, { default: () => 'x' }),
+      ),
+    )
+    expect(htmlBare).toContain('<item')
+    expect(htmlBare).toContain('x')
+  })
+
   it('never wraps Item when the factory omitted item.component', async () => {
     const FormView = createFormView({ layout: { Row, Col } })
     const Field = defineComponent({

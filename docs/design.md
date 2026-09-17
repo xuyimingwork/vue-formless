@@ -360,7 +360,7 @@ defineOptions({
 | `fl:layout` | boolean | 是否渲染 LayoutView（译成 `disabled = !fl:layout`） | `false` |
 | `fl:form` | `'auto' \| boolean` | 是否渲染 ElForm | `'auto'`（根开、嵌套关） |
 
-- `fl:item` 合并：标签 `fl:item` > schema/control `item` > 页 `FormView :fl:item`。没写 ≠ `true`（跟页）。
+- `fl:item` 合并：组装件 **FormItem** 在 `setup` 里 `overlayProps({ item: 页 fl:item }, 格 fl)` 层叠加 + `toAttrBoolean` 一次归一（页 < 格，近的赢）。标签 `fl:item` > schema/control `item` > 页 `FormView :fl:item`；没写 ≠ `true`（跟页）。裸 `fl:item`（attr 空串）算 `true`。
 - `fl:item=false` 只是「有格、无 label/error」，**不是**「不要 FormField」。
 - `fl:layout` 是 formless 语义（是否启用栅格），内核翻转成 LayoutView 的 `disabled`。
 - `fl:form='auto'`：根 FormView 开、嵌套 FormView 关；显式 `true`/`false` 赢。
@@ -390,6 +390,18 @@ interface CreateFormViewOptions {
   }
 }
 ```
+
+`item` 实际是「组装 Item」的原料：`createFormView` 在 `setup` 里 `createFormItem({ ...options.item, fl: viewFormlessOptions })`，把宿主 component、`props` 规格与本层页 `fl` 包收成一个组装件（内核私有，不进 `index.ts`）：
+
+```ts
+interface CreateFormItemOptions {
+  component?: Component                                  // 宿主 Item；未绑 = 只透传 children
+  props?: (fl: ItemFl) => Record<string, unknown>        // 传给宿主 Item
+  fl?: MaybeRefOrGetter<Record<string, unknown>>         // 本层页 fl 包（页级 fl:item 默认）
+}
+```
+
+- `component` / `props` 是工厂规格；`fl` 是**本层页作用域**（`setup` 里拿到的 computed，满足 `MaybeRefOrGetter`），组装放 `setup` 换来「页级默认是响应式的」。
 
 三个 `props` **统一为函数形式**（映射器：`snapshot → 宿主 props`，纯函数、无副作用）。snapshot 类型：
 
@@ -464,14 +476,12 @@ interface FormViewProps {
 |------|------|--------|
 | `model` | 当前 FormView 的 `modelValue`（父快照，勿改） | FormField（`$bindings` / `getValues`）、嵌套 FormView（继承读源） |
 | `update(prop, value)` | 上报字段写入 | FormField、嵌套 FormView（转发到祖先 writer） |
-| `item` | 本层 `:fl:item`，即格的 `fl:item` merge 底层默认 | FormField |
 
 **B. 工厂绑定资源**（同一 `createFormView` 下恒定）
 
 | 字段 | 含义 | 消费方 |
 |------|------|--------|
-| `Item` | 宿主 ElFormItem（未绑则为 `undefined` = 永不包 Item） | FormField |
-| `itemProps` | 宿主 Item 的默认 props（`props` 函数） | FormField（overlay 底层） |
+| `Item` | 组装好的 FormItem（宿主 Item + `props` 规格 + 页级 `fl:item` 默认）；未绑宿主 = 只透传 children | FormField |
 | `LayoutView` | 工厂绑定的 LayoutView（wrap-embed 用它建内层窗口） | FormField |
 
 `FORM_VIEW_KEY` 有三个消费者：**FormField**、**嵌套 FormView**（只吃 A 组的 `model` / `update` + 判嵌套）、以及 formless 自身。
@@ -666,7 +676,8 @@ quoted   := '"' keychar* '"' | "'" keychar* "'"   转义 '\'
 | 文件 | 职责 |
 |------|------|
 | `create-form-view.ts` | 根：v-model、可选 Form、页级 LayoutView、provide context |
-| `FormField.tsx`（原 `FormCell.tsx`） | 一格 + 组装：LayoutItem + 可选 ElFormItem + control + `$bindings`；剥 attrs 一次、switch(fieldMode)、v-model 归集；`fl:component` 临场控件 |
+| `create-form-item.tsx` | 组装宿主 Item：`createFormItem({ component, props, fl })` → `FormItem`（收 FormField 的 `fl` / `item` 两个 prop；`setup` 里合并页级 `fl:item` 开关 + 投影 `props`） |
+| `FormField.tsx`（原 `FormCell.tsx`） | 一格 + 组装：LayoutItem + 组装 Item + control + `$bindings`；剥 attrs 一次、switch(fieldMode)、v-model 归集；`fl:component` 临场控件 |
 | `create-field-component.ts` | 单 Field 工厂壳：把 schema 译成一层 `fl:*` 预设 attrs，交给 `FormField`（无私有参数、不 provide） |
 | `create-form-fields.ts` | 域表工厂，产出 PascalCase Field 标签 |
 | `injection-keys.ts` | `FORM_VIEW_KEY`、`FORM_FIELD_KEY` |
@@ -680,7 +691,7 @@ quoted   := '"' keychar* '"' | "'" keychar* "'"   转义 '\'
 | `control-config.ts` | control 静态 `formless` 读取（`ControlFormless` + `ComponentCustomOptions` 增强） |
 | `fl-keys.ts` | schema extras、shell keys（`omitShellKeys` / `schemaExtras`） |
 | `field-mode.ts` | `isFieldMode` / `resolveFieldMode` |
-| `field-identity.ts` | 身份与快照 helper：`mergedFieldFl` / `resolveDeclaredBinding` / `fieldBinding` / `buildItemFl`（FormField 与工厂壳共用） |
+| `field-identity.ts` | 身份与快照 helper：`resolveDeclaredBinding` / `fieldBinding` / `buildItemFl`（FormField 与工厂壳共用） |
 | `field-schema.ts` | `FieldSchema` / `ItemFl` / tag props 类型 |
 | `use-form-view-model.ts` | 写口归集：`useFormViewModelValue` |
 | `model-writer.ts` | `createModelWriter`：同 tick 合并的不可变路径写入器 |
@@ -693,7 +704,7 @@ vue-formless 内两根注入键，各是一个**作用域**（layout 包另有 `
 
 | 键 | 提供者 | 装什么 | 消费者 |
 |----|--------|--------|--------|
-| `FORM_VIEW_KEY` | FormView | 页作用域 `model` / `update` / `item` + 工厂资源 `Item` / `itemProps` / `LayoutView` | FormField、嵌套 FormView |
+| `FORM_VIEW_KEY` | FormView | 页作用域 `model` / `update` + 工厂资源 `Item` / `LayoutView` | FormField、嵌套 FormView |
 | `FORM_FIELD_KEY` | 身份根 FormField | 身份层 `FieldLayer`：`models[i] ↔ props[i]` 已对齐 **+ 按口读写访问器** | 组合体 control 内的 FormField |
 
 二者**不可合并**：装的是两件事（页通道 / 工厂资源 vs 绑定面），提供者与换代时机不同，且同一颗 FormField 两者都要读。
@@ -708,11 +719,9 @@ interface FormContext {
   // A. 本层运行时（嵌套 FormView 继承 model / update）
   model: unknown
   update: (prop: string, value: unknown) => void
-  item: boolean              // 页级 :fl:item，格的 fl:item merge 底层默认
 
   // B. 工厂绑定资源（同一 createFormView 下恒定）
-  Item?: Component
-  itemProps?: HostProps<ItemFl>
+  Item: Component            // 组装好的 FormItem；未绑宿主 = 只透传 children
   LayoutView: Component      // wrap-embed 内层窗口
 }
 
@@ -731,9 +740,7 @@ interface FieldLayer extends ResolvedControlBinding {
 |------|-----------|------|
 | `model` | 读不出 `$bindings` 值、组不出 `ItemFl.getValues`、嵌套层无法继承读源 | §14.1 |
 | `update` | 输入写不回 FormView（也没有祖先 writer 可转发） | §14.2 |
-| `item` | 格上 `fl:item` merge 缺页级默认，退化成「工厂绑 Item 才算 true」 | §9 |
-| `Item` | FormField 渲不出宿主 Item 壳（label/error 全丢）；`undefined` 是「工厂未绑」的合法态 | §4.1 / §9 |
-| `itemProps` | 宿主 Item 拿不到 `props` 函数产出的默认（label/rules 等） | §12.1 |
+| `Item` | FormField 渲不出宿主 Item 壳（label/error 全丢）；页级 `fl:item` 开关与 `props` 投影都收在组装件内 | §4.1 / §9 / §12.1 |
 | `LayoutView` | `wrap-embed` 无法按工厂 Row/Col 建内层窗口 | §8 |
 
 `FORM_FIELD_KEY` 逐项的存在理由（谁缺了它就做不了什么）：
@@ -759,14 +766,14 @@ interface FieldLayer extends ResolvedControlBinding {
       prop      → fl:prop（缺省 = 域名表的键）   item → fl:item
       field     → fl:field          extras(label…) → fl:<extra>
   render:
-      fl, snapshot = 用 field-identity.ts 的 helper 现算（与 FormField 同一套）
+      fl, snapshot = 用 field-identity.ts 的 helper 现算（一套实现，不漂移）
       controlProps = overlay(cluster.props(snapshot), schema.props(snapshot))   // 快照函数在此求值
       h(FormField, overlay(preset, controlProps, tagAttrs), slots)             // 标签近的赢
   仅三处「挡」：fl:model / fl:component 由 schema 锁死（身份已锁，§7.2）；
                  非法 fl:field 落回 preset 值（§8 只认合法值整颗替换）
 ```
 
-`props` 是唯一必须在工厂壳里落地的东西：attrs 只能装平值，而 `props` 可能是快照函数。求值用的身份 / snapshot **不是另算一套**，而是与 FormField 共用 `field-identity.ts`（`mergedFieldFl` / `resolveDeclaredBinding` / `fieldBinding` / `buildItemFl`），所以 `cluster.props`、`schema.props`、`item.props` 三个函数看到的是同一份 `ItemFl`（含标签 `:fl:prop` 搬家后的真实位置）。工厂壳因此**仍不 provide**：身份层只有 FormField 提供。
+`props` 是唯一必须在工厂壳里落地的东西：attrs 只能装平值，而 `props` 可能是快照函数。求值用的身份 / snapshot **不是另算一套**，而是共用 `field-identity.ts`（`resolveDeclaredBinding` / `fieldBinding` / `buildItemFl`），所以 `cluster.props`、`schema.props` 看到的是同一份 `ItemFl`（含标签 `:fl:prop` 搬家后的真实位置）。`item.props` 由组装件 FormItem 投影（当前传原始 fl 桶，快照归一化挂账）。工厂壳因此**仍不 provide**：身份层只有 FormField 提供。
 
 FormField 自己 inject-or-self：命中祖先就当切片，未命中就是身份根并 provide。
 
@@ -781,14 +788,11 @@ setup:
   layer   = createFieldLayer(() => binding, () => formViewContext.model, formViewContext.update)   // 本格的口 → 位置门面
 render:
   fieldMode = resolveFieldMode(fl.value.field)                        // 合法值整颗替换，否则 'wrap'
-  fieldFl = mergedFieldFl(formViewContext, fl.value)              // 页 < 预设层 < 标签
-  itemFl = buildItemFl(fieldFl, binding, layer.getValues)              // → { model, prop, getValues, ...extras }
-  itemAttrs    = item                                                  // 宿主 Item：props + 监听同一袋
   controlAttrs = stripPortBindings(controlAttrsBag.value, binding.models)  // 裸名只给 control（§5.2）
-  itemProps  = overlay(item.props(itemFl), itemAttrs)                  // 裸名不进 Item
   bindings = modelBindings(layer)                                 // 口名 + 现值 + 按口写；位置不出层
   control = h(fl:component, { ...controlAttrs, ...bindings }, controlSlots)  // control 或 slot 手写
-  switch (fieldMode): embed → control；否则 LayoutItem → (itemOn ? ElFormItem → control : control)
+  switch (fieldMode): embed → control；否则 LayoutItem → (FormItem → control : control)
+    FormItem 只收两个参数：fl = 原始 fl 桶、item = item 通道整桶；页级 fl:item 合并 + item.props 投影都在其 setup 内
     wrap-embed 时 fieldBody = LayoutView({ ...layout.value }) → control
 ```
 

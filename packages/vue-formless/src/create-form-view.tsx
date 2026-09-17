@@ -11,6 +11,7 @@ import {
   type VNodeChild,
 } from 'vue'
 import { createLayoutView } from '@vue-formless/layout'
+import { createFormItem } from './create-form-item'
 import { FORM_VIEW_KEY, type FormContext } from './injection-keys'
 import { useFormViewModelValue } from './use-form-view-model'
 import type { ItemFl } from './field-schema'
@@ -117,9 +118,7 @@ function proxyExpose(host: { value: object | null }): object {
 function provideFormViewContext(options: {
   getModel: () => unknown
   update: FormContext['update']
-  Item?: Component
-  itemProps?: HostProps<ItemFl>
-  getItem?: () => boolean
+  Item: Component
   LayoutView: Component
 }): void {
   provide(
@@ -129,11 +128,7 @@ function provideFormViewContext(options: {
         return options.getModel()
       },
       update: options.update,
-      Item: options.Item ? markRaw(options.Item) : undefined,
-      itemProps: options.itemProps,
-      get item() {
-        return options.getItem?.() ?? true
-      },
+      Item: markRaw(options.Item),
       LayoutView: markRaw(options.LayoutView),
       getModelBinding(prop: string) {
         return {
@@ -169,8 +164,6 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
   const layoutPropsSpec = options.layout?.props
   const Form = options.form?.component ? markRaw(options.form.component) : undefined
   const formProps = typeof options.form?.props === 'function' ? options.form?.props : () => options.form?.props
-  const Item = options.item?.component ? markRaw(options.item.component) : undefined
-  const itemProps = options.item?.props
   /** Page LayoutView only; factory `layout.props` never reach Context / wrap-embed. */
   const LayoutView = createLayoutView({ Row, Col })
 
@@ -208,12 +201,13 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
         },
       )
 
+      // Page `fl` is per-instance: assemble here so the page default tracks this layer's attrs.
+      const Item = createFormItem({ ...options.item, fl: viewFormlessOptions })
+
       provideFormViewContext({
         getModel: () => model.value,
         update,
         Item,
-        itemProps,
-        getItem: () => toAttrBoolean(viewFormlessOptions.value.item, true),
         LayoutView,
       })
 

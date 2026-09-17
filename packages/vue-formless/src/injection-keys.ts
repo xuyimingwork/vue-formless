@@ -1,19 +1,12 @@
 import type { Component, InjectionKey } from 'vue'
-import type { FieldLayer } from './control-binding'
-import type { ItemFl } from './field-schema'
-import type { HostProps } from './props-overlay'
 
 export interface FormContext {
   /** Current FormView `modelValue` (parent snapshot; do not mutate). */
   model: unknown
   /** Report a field write; FormView patches and emits `update:modelValue`. */
   update: (prop: string, value: unknown) => void
-  /** Host Item (e.g. ElFormItem). Omit = FormField never wraps Item. */
-  Item?: Component
-  /** Defaults for the host Item (static or from the field snapshot). */
-  itemProps?: HostProps<ItemFl>
-  /** This FormView layer's `:fl:item`. */
-  item: boolean
+  /** Assembled host Item (e.g. ElFormItem). Unbound = passthrough children. */
+  Item: Component
   /** Same factory-bound LayoutView; wrap-embed creates an inner window with it. */
   LayoutView: Component
   getModelBinding(prop?: string): { value: any, update: (v: any) => void }

@@ -100,15 +100,6 @@ export const FormField = defineComponent({
       }
     })
 
-    const item = computed(() => {
-      return fieldFormlessOptions.value.item !== false
-    })
-
-    const viewItemAttrs = computed(() => {
-      if (typeof viewContext?.itemProps === 'function') return viewContext.itemProps(fieldFormlessOptions.value as any)
-      return viewContext?.itemProps as any
-    })
-
     return (): VNodeChild => {
       const { item: itemSlots, default: controlSlots } = dispatch(slots, FIELD_SLOT_CHANNELS)
       const fieldMode = normalizeField(fieldFormlessOptions.value.field)
@@ -131,10 +122,10 @@ export const FormField = defineComponent({
 
       const HostItem = viewContext?.Item as JsxHost | undefined
       const body =
-      item.value && HostItem ? (
+      HostItem ? (
           <HostItem
-            { ...viewItemAttrs.value }
-            { ...fieldItemAttrs.value }
+            fl={fieldFormlessOptions.value}
+            item={fieldItemAttrs.value}
             v-slots={{
               ...itemSlots,
               default: () => fieldBody,
