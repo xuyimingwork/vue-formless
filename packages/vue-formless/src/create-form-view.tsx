@@ -16,7 +16,7 @@ import { useFormViewModelValue } from './use-form-view-model'
 import type { ItemFl } from './field-schema'
 import { overlayProps, resolveProps, type HostProps } from './props-overlay'
 import { omit, toAttrBoolean } from './utils'
-import { useFormViewAttrs } from './use-form-attrs'
+import { VIEW_ATTR_CHANNELS, useDispatch } from './use-form-attrs'
 import { getIn } from '@/path-access'
 
 /** `Component` is a union; JSX needs a constructable host. */
@@ -197,7 +197,7 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
         fl: viewFormlessOptions,
         layout: viewLayoutAttrs,
         default: viewHostAttrs,
-      } = useFormViewAttrs(attrs as Record<string, unknown>)
+      } = useDispatch(attrs as Record<string, unknown>, VIEW_ATTR_CHANNELS)
 
       /** v-model write port: fallthrough listener (camel or DOM-case tag). */
       const { model, update } = useFormViewModelValue(

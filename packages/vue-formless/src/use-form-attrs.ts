@@ -1,10 +1,11 @@
 import { computed, type ComputedRef } from 'vue'
-import { dispatch } from './dispatch'
+import { dispatch, type Channel, type DispatchOptions } from './dispatch'
+import { toCamel, type ToCamel } from './utils'
 
 /**
- * Channel dispatch at the two component call sites: which channels each one
- * claims (design.md §5.3). A channel shows up on tag attrs **and** on slot
- * names, so the slot side of FormField lives here too.
+ * Channel dispatch at the component call sites: which channels each one claims
+ * (design.md §5.3). A channel shows up on tag attrs **and** on slot names, so the
+ * slot side of FormField lives here too.
  */
 
 /**
@@ -12,53 +13,55 @@ import { dispatch } from './dispatch'
  * deliberately absent: neither is a FormView channel, so both stay in the
  * default bag and fall through to the host Form.
  */
-const VIEW_ATTR_CHANNELS = ['fl', 'layout'] as const
+export const VIEW_ATTR_CHANNELS = ['fl', 'layout'] as const
 
-/** The channels a FormField claims, the host Item shell included. */
-const FIELD_ATTR_CHANNELS = ['fl', 'layout', 'layout-item', 'item'] as const
+/**
+ * The channels a FormField claims, the host Item shell included (design.md §5.2):
+ * `fl` / `layout` / `layout-item` go to the kernel, the page window and this
+ * cell; `item` to the host Item shell; `default` — the bare names — to the
+ * control, never to the Item.
+ */
+export const FIELD_ATTR_CHANNELS = ['fl', 'layout', 'layout-item', 'item'] as const
 
 /** The one channel a slot name can carry. */
 export const FIELD_SLOT_CHANNELS = ['item'] as const
 
-/** One channel's attrs; a ref, so call sites read `fl.value` as before. */
+/** One channel's attrs. */
 type Bag = ComputedRef<Record<string, unknown>>
 
 /**
- * Page attrs, one bucket per channel (design.md §5.2): `fl` is the kernel
- * semantic source, `layout` the page window's props. `layout-item:*` and
- * `item:*` are not FormView channels, so both fall through in `default` (§5.3).
+ * The one bag ref per claimed channel, keyed by the channel's camelCase spelling
+ * (`layout-item` → `layoutItem`), plus `default`. Derived from `Channel` through
+ * `ToCamel`, so adding a channel to `CHANNELS` teaches the bucket names too.
  */
-export function useFormViewAttrs(attrs: Record<string, unknown>): {
-  fl: Bag
-  layout: Bag
-  default: Bag
-} {
-  const bags = computed(() => dispatch(attrs, VIEW_ATTR_CHANNELS))
-  return {
-    fl: computed(() => bags.value.fl),
-    layout: computed(() => bags.value.layout),
-    default: computed(() => bags.value.default),
-  }
+export type BucketRefs<C extends Channel> = {
+  readonly [K in C as ToCamel<K>]: Bag
+} & {
+  readonly default: Bag
 }
 
 /**
- * Field attrs, one bucket per channel (design.md §5.2): `fl` / `layout` /
- * `layout-item` go to the kernel, the window and this cell; `item` to the host
- * Item shell; `default` — the bare names — to the control, never to the Item.
+ * Reactive attrs → one ref per claimed channel (design.md §5.2). The entry point
+ * for component attrs; `dispatch` stays the plain primitive for bags that are not
+ * a component's own attrs (`slots`, the factory shell's merged preset).
+ *
+ * `C` is inferred from `channels`, never widened to `Channel`: only the claimed
+ * channels get a bucket, so a widened type would promise refs that do not exist.
+ *
+ * `options.prefix` is forwarded as-is (`'drop'` by default; `'keep'` keeps the
+ * input key spelling so a call site can hand the slice to a child component that
+ * re-claims the same channel).
  */
-export function useFormFieldAttrs(attrs: Record<string, unknown>): {
-  fl: Bag
-  layout: Bag
-  layoutItem: Bag
-  item: Bag
-  default: Bag
-} {
-  const bags = computed(() => dispatch(attrs, FIELD_ATTR_CHANNELS))
-  return {
-    fl: computed(() => bags.value.fl),
-    layout: computed(() => bags.value.layout),
-    layoutItem: computed(() => bags.value['layout-item']),
-    item: computed(() => bags.value.item),
-    default: computed(() => bags.value.default),
+export function useDispatch<C extends Channel>(
+  attrs: Record<string, unknown>,
+  channels: readonly C[],
+  options?: DispatchOptions,
+): BucketRefs<C> {
+  const bags = computed(() => dispatch(attrs, channels, options))
+  const refs: Record<string, Bag> = {}
+  for (const channel of channels) {
+    refs[toCamel(channel)] = computed(() => bags.value[channel])
   }
+  refs.default = computed(() => bags.value.default)
+  return refs as BucketRefs<C>
 }

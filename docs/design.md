@@ -136,12 +136,14 @@ FormView
 
 每个通道有两种形态：**props**（`item:label-width`）与**监听**（模板 `@item:validate`，Vue 把 v-on 编译成 attr `onItem:validate`，`@item:update:modelValue` → `onItem:update:modelValue`）。监听前缀由通道名**派生**（`on` + PascalCase + `:`，见 `dispatch.ts` 的 `listenerPrefix`），不单独维护常量表；剥掉监听前缀后按 Vue 的 `onXxx` 命名还原目标 prop（`validate` → `onValidate`，`update:modelValue` → `onUpdate:modelValue`；实现就是 `on` + `upperFirst`，冒号及其后原样带过）。
 
-### 5.2 通道分发：`dispatch` + 两个 `use*`
+### 5.2 通道分发：`dispatch` + `useDispatch`
 
 通道表在 `dispatch.ts`（`fl` / `layout-item` / `layout` / `item`；通道名就是标签前缀去掉冒号，不另存常量表），剥皮只有一个原语，**一次分桶**：
 
 ```ts
-dispatch(bag, channels)   // 每通道一桶（剥前缀的 props + 还原成 onXxx 的监听，同一袋）+ default 残差
+dispatch(bag, channels, { prefix })   // 每通道一桶 + default 残差；prefix 默认 'drop'
+                                      // 'drop' = 剥前缀的 props + 还原成 onXxx 的监听，同一袋
+                                      // 'keep' = 输入键形原样（前缀与监听拼写都不动）
 ```
 
 - **分桶天然隔离**：不同通道能剥出**同名键**（`fl:span` 与 `layout-item:span` 都 → `span`，`fl:column` 与 `layout:column` 都 → `column`），但各进各桶，故「一个通道一袋」是原语的形状，不是调用点要守的纪律。
@@ -149,16 +151,20 @@ dispatch(bag, channels)   // 每通道一桶（剥前缀的 props + 还原成 on
 - `default` 是**残差**，不是「无冒号键」：`onUpdate:modelValue`（v-model 写口，DOM-case 的 `onUpdate:model-value` 同理）这种含冒号的裸名照样留下。裸 `item`（或裸 `item:`）不被吃，也留在这里。
 - **不筛值、不丢键**：每个键恰好进一个桶或 `default`，值原样（`undefined` 也照传）。
 - 通道集是**闭集数组**，props 与监听两种形态一视同仁：`dispatch` 不区分收到的是 tag attrs 还是 slot 名，同一规则、同一条路径（`onItem:xxx` slot 名照样剥成 `onXxx`）。
+- **两种投影**：`prefix` 只改**被认领通道**的键形，`default` 两模式完全一致。`keep` 是给**转发**用的：桶内键保留输入拼写，因此可被同一张通道表**再认领一次**（`dispatch(dispatch(bag, ch, { prefix: 'keep' })[ch], ch)[ch]` 等于 `dispatch(bag, ch)[ch]`）——将来父组件把某一通道原样交给子组件时走这条。它不是调用点常备项，也不是「另一种归一化」。`resolveKey` 不为它长分支：`keep` 只用它的通道归属，丢掉它算出的 `key` / `type`。
 
-各调用点**声明自己认领哪些通道**（不再有共享的 `FormlessPropBags`）：
+各调用点**声明自己认领哪些通道**（不再有共享的 `FormlessPropBags`）。attrs 侧走 `useDispatch`（一次分桶 + 每桶一个 ref，桶名是通道名的 camelCase 拼写，由 `Channel` 类型派生：`layout-item` → `layoutItem`）：
 
 ```text
-useFormViewAttrs(attrs)   → fl / layout / default
+useDispatch(attrs, VIEW_ATTR_CHANNELS)   → fl / layout / default
                             页：layout-item:* / item:* 都不是页通道，在 default 里透传
-useFormFieldAttrs(attrs)  → fl / layout / layout-item / item / default
+useDispatch(attrs, FIELD_ATTR_CHANNELS)  → fl / layout / layoutItem / item / default
 dispatch(slots, FIELD_SLOT_CHANNELS) → item 桶是宿主 Item 槽，default 桶是 control 槽
 dispatch(bag, …)          → 工厂壳只取 fl（那袋是 preset + tag 合并后的，不是组件的 attrs）
 ```
+
+`dispatch` 与 `useDispatch` 分工：前者是**平值原语**（slot 名、工厂壳的合并袋都走它，那里既不是组件的 attrs 也不在响应式上下文里）；后者是 **attrs 关口**（加响应式包装与桶名）。`dispatch(slots, …)` 拿不到响应式包裹，也不该被 camelize——Vue 不归一化槽名，`item:label-width` 归一成 `labelWidth` 就再也匹配不上。
+
 
 通道归谁：`layout:` 只给 LayoutView（FormField 仅 wrap-embed 内层），`layout-item:` 只给本格 LayoutItem，`item:` 只给宿主 Item 壳。**`FormView` 没有 LayoutItem**，故 `layout-item:` 不是页通道——和 `item:` 一样留在 `default` 里原样透传给宿主 Form。
 
@@ -668,9 +674,9 @@ quoted   := '"' keychar* '"' | "'" keychar* "'"   转义 '\'
 | `control-binding.ts` | `resolveControlBinding` / `bindingForPort` / `createFieldLayer` / `modelBindings` / `stripPortBindings`（转私有） |
 | `path-access.ts` / `path-parse.ts` | 不可变 get/set + 路径解析 |
 | `props-overlay.ts` | `resolveProps` / `overlayProps` / `HostProps` |
-| `dispatch.ts` | 通道表 `CHANNELS`（`fl` / `layout-item` / `layout` / `item`）；`channelPrefix` / `listenerPrefix`（前缀由通道名派生，不写字面量常量）；`dispatch`（一次分桶）：每通道一桶（props + 还原成 `onXxx` 的监听同袋）+ `default` 裸名残差；`onXxx` 命名还原（`on` + `upperFirst`）、读键（私有 `resolveKey(raw, owners)`：`ownerTable` 由本次认领的 `channels` 派生，返回 `{ type: 'prop' \| 'listener', channel, key }`，认领不到则 `undefined` 落 `default`） |
-| `use-form-attrs.ts` | 两个组件的通道认领：`useFormViewAttrs`（`fl` / `layout` / `default`，`layout-item:` / `item:` 都透传）/ `useFormFieldAttrs`（每桶一个 `computed`，`fl` / `layout` / `layout-item` / `item` / `default`）+ `FIELD_SLOT_CHANNELS`（随 render 交给 `dispatch(slots, …)`：`item` 桶 → 宿主 Item 槽，`default` 桶 → control 槽） |
-| `utils.ts` | 通用工具（按 lodash 命名，无 formless 语义）：`upperFirst` / `UpperFirst`、`omit` / `omitUndefined`、`toAttrBoolean`（Vue 布尔 attr 语义） |
+| `dispatch.ts` | 通道表 `CHANNELS`（`fl` / `layout-item` / `layout` / `item`）；前缀由通道名派生（不写字面量常量），kebab → camel 归 `utils.toCamel`；`dispatch(bag, channels, { prefix })`（一次分桶）：每通道一桶 + `default` 裸名残差；`prefix: 'drop'`（默认）= props + 还原成 `onXxx` 的监听同袋，`prefix: 'keep'` = 输入键形原样（可被同一张表再认领，供转发；`default` 两模式一致）；`onXxx` 命名还原（`on` + `upperFirst`）、读键（私有 `resolveKey(raw, channels)`：前缀表全局、按本次认领的 `channels` 过滤，返回 `{ type: 'prop' \| 'listener', channel, key }`，认领不到则 `undefined` 落 `default`） |
+| `use-form-attrs.ts` | 通道认领的 attrs 关口：`useDispatch(attrs, channels, options?)` → 每桶一个 ref（`BucketRefs<C>`：桶名 = 通道名 camelCase，由 `Channel` 经 `utils.ToCamel` 派生；只给认领的通道建桶）+ 三个通道集：`VIEW_ATTR_CHANNELS`（`fl` / `layout`，`layout-item:` / `item:` 都透传，§5.3）/ `FIELD_ATTR_CHANNELS`（`fl` / `layout` / `layout-item` / `item`）/ `FIELD_SLOT_CHANNELS`（随 render 交给 `dispatch(slots, …)`：`item` 桶 → 宿主 Item 槽，`default` 桶 → control 槽） |
+| `utils.ts` | 通用工具（按 lodash 命名，无 formless 语义）：`upperFirst` / `UpperFirst`、`toCamel` / `ToCamel`（kebab → camel，通道名 / 桶名共用）、`omit` / `omitUndefined`、`toAttrBoolean`（Vue 布尔 attr 语义） |
 | `control-config.ts` | control 静态 `formless` 读取（`ControlFormless` + `ComponentCustomOptions` 增强） |
 | `fl-keys.ts` | schema extras、shell keys（`omitShellKeys` / `schemaExtras`） |
 | `field-mode.ts` | `isFieldMode` / `resolveFieldMode` |
@@ -766,23 +772,24 @@ FormField 自己 inject-or-self：命中祖先就当切片，未命中就是身�
 
 ```
 setup:
-  bags = useFormFieldAttrs(attrs)                  // 一次分桶：fl / layout / layout-item / item / default
+  { fl, layout, layoutItem, item, default: controlAttrsBag }
+      = useDispatch(attrs, FIELD_ATTR_CHANNELS)     // 一次分桶 + 每桶一个 ref（桶名 = 通道名 camelCase）
   formFieldContext = inject(FORM_FIELD_KEY, null)  // 命中 = 组合体内层切片
-  declared = resolveDeclaredBinding(bags.fl.value)            // 临场格 / 身份根：标签即声明
+  declared = resolveDeclaredBinding(fl.value)            // 临场格 / 身份根：标签即声明
   if (!formFieldContext) provide(FORM_FIELD_KEY, reactive(createFieldLayer(() => declared, () => formViewContext.model, formViewContext.update)))
-  binding = fieldBinding(bags.fl.value, declared, formFieldContext)    // 切片：fl:model 单串选口，否则整份继承
+  binding = fieldBinding(fl.value, declared, formFieldContext)    // 切片：fl:model 单串选口，否则整份继承
   layer   = createFieldLayer(() => binding, () => formViewContext.model, formViewContext.update)   // 本格的口 → 位置门面
 render:
-  fieldMode = resolveFieldMode(bags.fl.value.field)                        // 合法值整颗替换，否则 'wrap'
-  fieldFl = mergedFieldFl(formViewContext, bags.fl.value)              // 页 < 预设层 < 标签
+  fieldMode = resolveFieldMode(fl.value.field)                        // 合法值整颗替换，否则 'wrap'
+  fieldFl = mergedFieldFl(formViewContext, fl.value)              // 页 < 预设层 < 标签
   itemFl = buildItemFl(fieldFl, binding, layer.getValues)              // → { model, prop, getValues, ...extras }
-  itemAttrs    = bags.item                                             // 宿主 Item：props + 监听同一袋
-  controlAttrs = stripPortBindings(bags.default.value, binding.models)  // 裸名只给 control（§5.2）
+  itemAttrs    = item                                                  // 宿主 Item：props + 监听同一袋
+  controlAttrs = stripPortBindings(controlAttrsBag.value, binding.models)  // 裸名只给 control（§5.2）
   itemProps  = overlay(item.props(itemFl), itemAttrs)                  // 裸名不进 Item
   bindings = modelBindings(layer)                                 // 口名 + 现值 + 按口写；位置不出层
   control = h(fl:component, { ...controlAttrs, ...bindings }, controlSlots)  // control 或 slot 手写
   switch (fieldMode): embed → control；否则 LayoutItem → (itemOn ? ElFormItem → control : control)
-    wrap-embed 时 fieldBody = LayoutView({ ...bags.layout }) → control
+    wrap-embed 时 fieldBody = LayoutView({ ...layout.value }) → control
 ```
 
 作用域值用 `reactive(createFieldLayer(...))` 提供（对齐 `provideFormViewContext` 的写法）；层的每个成员都是**懒读**：`fl:prop` 可能被标签重述、嵌套 FormView 可能换 model 源，所以位置与 model 都不能在提供时拍死。
@@ -862,7 +869,9 @@ HostProps, LayoutItemSpan, LayoutItemPlace
 
 1. 词表与类型：`FormField` 上位（`FormItem` 移除）、`fl:field`、通道常量改名。
 2. `channels.ts` / `attrs.ts`：前缀常量与 bag 改名（`row:`→`layout:`、`col:`→`layout-item:`）。（已落地）
-2b. **通道分发合一**（已落地）：`channels.ts` / `attrs.ts` / `slots.ts` 三个文件合并为 `dispatch.ts`（通道表 + 前缀派生 + 一次分桶原语）+ `use-form-attrs.ts`（`useFormViewAttrs` / `useFormFieldAttrs` / `useFormFieldSlots`，通道集由这层持有），`pickAttrs` / `omitAttrs` / `splitSlots` 退场；`toAttrBoolean` 归 `utils.ts`。此前 2b 的 `splitFlAttrs` / `takePrefixed` / `splitFormlessProps` / `useFormlessProps` / `item-fallthrough.ts` 退场与响应式包装回调用点不变。
+2b. **通道分发合一**（已落地）：`channels.ts` / `attrs.ts` / `slots.ts` 三个文件合并为 `dispatch.ts`（通道表 + 前缀派生 + 一次分桶原语）+ `use-form-attrs.ts`（通道集由这层持有），`pickAttrs` / `omitAttrs` / `splitSlots` 退场；`toAttrBoolean` 归 `utils.ts`。此前 2b 的 `splitFlAttrs` / `takePrefixed` / `splitFormlessProps` / `useFormlessProps` / `item-fallthrough.ts` 退场与响应式包装回调用点不变。
+
+2c. **`useDispatch` 统一 + `keep` 投影**（已落地）：`useFormViewAttrs` / `useFormFieldAttrs` 两个 hook 合成 `useDispatch(attrs, channels, options?)`，桶名由 `Channel` 经 `ToCamel` 派生（`layout-item` → `layoutItem`），通道集改为导出的 `VIEW_ATTR_CHANNELS` / `FIELD_ATTR_CHANNELS`（`FIELD_SLOT_CHANNELS` 不变，`dispatch(slots, …)` 照旧）；`dispatch` 增可选 `{ prefix: 'keep' | 'drop' }`（默认 `'drop'`），`keep` 保留输入键形、可被同一张表再认领，供父组件把某通道原样交给子组件。行为不变，属重构 + 新投影。
 3. `FormCell.tsx` → 并入 `FormField.tsx`：绑定下沉、`$bindings` 输出、支持 `:component`、删 `useFormCell`。
 4. `injection-keys.ts`：`FIELD_RUNTIME_KEY` → `FORM_FIELD_KEY`，值降为身份层 `FieldLayer`（`ResolvedControlBinding` + 按口读写访问器，`createFieldLayer` / `modelBindings`）；`FormField.tsx` 改 inject-or-self（未命中才 provide）+ `reactive(...)` 提供；身份 / 快照 helper 抽到 `field-identity.ts`；工厂壳改为纯「schema → `fl:*` 预设 attrs」，经 `overlay(preset, controlProps, tagAttrs)` 传给 FormField（无私有参数，`props` 函数在壳里用同一套 helper 求值）。
 5. **裸名口径对齐 §5.2**：FormField 的宿主 Item 不再吃裸名（`item:*` 才有），工厂求出的 control props 因此不会漏到 ElFormItem 上；`fl:label` 走快照 → 适配 Item `label`。

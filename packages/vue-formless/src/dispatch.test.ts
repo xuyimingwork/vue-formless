@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { dispatch, resolveKey } from './dispatch'
+import { toCamel } from './utils'
 
 /**
  * Re-declared rather than imported on purpose: `Channel` is derived from
@@ -189,5 +190,98 @@ describe('the default bag', () => {
         ['item'],
       ).default,
     ).toEqual({ 'layout:gutter': 16 })
+  })
+})
+
+describe('dispatch with prefix: keep', () => {
+  it('round-trips: a kept slice re-claims to the same buckets', () => {
+    const change = () => {}
+    const bag = {
+      'fl:label': '名字',
+      'fl:model': ['start'],
+      'fl:item': true,
+      'onFl:change': change,
+      'item:label': 'x',
+      'onItem:validate': change,
+      'layout-item:span': 2,
+      labelWidth: 96,
+      'onUpdate:modelValue': change,
+    }
+    const kept = dispatch(bag, ['fl', 'item', 'layout-item'], { prefix: 'keep' })
+    for (const channel of ['fl', 'item', 'layout-item'] as const) {
+      // Compare the channel's own bucket: a slice carries no residual, so its
+      // `default` is empty by construction while the original's is not.
+      expect(dispatch(kept[channel], [channel])[channel]).toEqual(dispatch(bag, [channel])[channel])
+    }
+  })
+
+  it('keeps the input spelling: prefix, camelCase and listener forms alike', () => {
+    const close = () => {}
+    const bags = dispatch(
+      {
+        'layout-item:span': 2,
+        'layoutItem:place': 'end',
+        'onLayoutItem:close': close,
+        'onLayout-item:close': close,
+      },
+      ['layout-item'],
+      { prefix: 'keep' },
+    )
+    expect(bags['layout-item']).toEqual({
+      'layout-item:span': 2,
+      'layoutItem:place': 'end',
+      'onLayoutItem:close': close,
+      'onLayout-item:close': close,
+    })
+  })
+
+  it('does not rename a listener tail back to onXxx', () => {
+    const validate = () => {}
+    expect(
+      dispatch({ 'onItem:update:modelValue': validate }, ['item'], { prefix: 'keep' }).item,
+    ).toEqual({ 'onItem:update:modelValue': validate })
+  })
+
+  it('leaves the default bag byte-for-byte identical to drop mode', () => {
+    const bag = {
+      'fl:label': 'x',
+      'item:label': 'y',
+      labelWidth: 96,
+      'onUpdate:modelValue': () => {},
+      item: 'bare',
+      'item:': 'bare-prefix',
+    }
+    expect(dispatch(bag, ['fl'], { prefix: 'keep' }).default)
+      .toEqual(dispatch(bag, ['fl']).default)
+  })
+
+  it('loses nothing and doubles nothing', () => {
+    const bag = {
+      'fl:prop': 'a',
+      'onFl:validate': 1,
+      'layout:gutter': 2,
+      'layout-item:span': 3,
+      'item:label': 4,
+      'onItem:validate': 5,
+      'onUpdate:modelValue': 6,
+      'foo:bar': 7,
+      item: 8,
+      plain: 9,
+      'item:': 10,
+      'onItem:': 11,
+    }
+    const bags = dispatch(bag, CHANNELS, { prefix: 'keep' })
+    const flattened = Object.values(bags).flatMap((bucket) => Object.values(bucket))
+    expect(flattened).toHaveLength(Object.keys(bag).length)
+    expect(new Set(flattened).size).toBe(flattened.length)
+    expect(new Set(flattened)).toEqual(new Set(Object.values(bag)))
+  })
+})
+
+describe('the channel table', () => {
+  it('derives bucket names that never collide, and never spell default', () => {
+    const bucketNames = CHANNELS.map(toCamel)
+    expect(new Set(bucketNames).size).toBe(bucketNames.length)
+    expect(bucketNames).not.toContain('default')
   })
 })

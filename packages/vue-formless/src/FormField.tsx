@@ -10,7 +10,7 @@ import { LayoutItem } from '@vue-formless/layout'
 import { normalizeField as normalizeField } from './field-mode'
 import { FORM_FIELD_KEY, FORM_VIEW_KEY } from './injection-keys'
 import type { FormFieldTagProps } from './field-schema'
-import { FIELD_SLOT_CHANNELS, useFormFieldAttrs } from './use-form-attrs'
+import { FIELD_SLOT_CHANNELS, FIELD_ATTR_CHANNELS, useDispatch } from './use-form-attrs'
 import { dispatch } from '@/dispatch'
 
 /** `Component` is a union; JSX needs a constructable host. */
@@ -48,9 +48,9 @@ export const FormField = defineComponent({
       fl: fieldFormlessOptions, 
       layoutItem: fieldLayoutItemAttrs,
       item: fieldItemAttrs,
-      layout: fieldLayoutAttrs, 
+      layout: fieldLayoutAttrs,
       default: fieldControlAttrs,
-    } = useFormFieldAttrs(attrs as Record<string, unknown>)
+    } = useDispatch(attrs as Record<string, unknown>, FIELD_ATTR_CHANNELS)
 
     // 供 control 使用的 model 永远有默认值
     const model = computed(() => {

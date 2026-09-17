@@ -28,6 +28,19 @@ export type UpperFirst<S extends string> = S extends `${infer F}${infer R}`
   ? `${Uppercase<F>}${R}`
   : S
 
+/**
+ * `layout-item` → `layoutItem`. Kebab-case only; segments before the last one
+ * are left as they are (`fl` → `fl`). Used for channel names and bucket names.
+ */
+export function toCamel(s: string): string {
+  return s.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())
+}
+
+/** Type-level `toCamel` (built-in `Capitalize`): `'layout-item'` → `'layoutItem'`. */
+export type ToCamel<S extends string> = S extends `${infer Head}-${infer Tail}`
+  ? `${Head}${Capitalize<ToCamel<Tail>>}`
+  : S
+
 /** Shallow copy of `record` without `keys`. Values are copied as-is. lodash `omit`. */
 export function omit(
   record: Record<string, unknown>,

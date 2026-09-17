@@ -1,4 +1,4 @@
-import { upperFirst } from './utils'
+import { toCamel, upperFirst } from './utils'
 
 /**
  * The closed set of channels. A channel name *is* a tag prefix minus its colon
@@ -38,7 +38,7 @@ type KeyMeta<C extends Channel> = { channel: C; type: 'prop' | 'listener' }
 const CHANNEL_PREFIX_TABLE = new Map<string, KeyMeta<Channel>>(
   CHANNELS.map((channel) => {
     // kebab-case → camelCase: `layout-item` → `layoutItem`.
-    const camel = channel.replace(/-([a-z])/g, (_, c) => c.toUpperCase())
+    const camel = toCamel(channel)
     const entries: [string, KeyMeta<Channel>][] = [
       [`${channel}:`, { channel, type: 'prop' }],
       [`${camel}:`, { channel, type: 'prop' }],
@@ -62,6 +62,23 @@ export type ChannelBuckets<T, C extends Channel> = {
 }
 
 /**
+ * Which key shape a bucket carries (design.md §5.2):
+ *
+ * - `drop` — the normalized key: channel prefix stripped, listener tail renamed
+ *   back to Vue's `onXxx` (`onItem:validate` → `onValidate`).
+ * - `keep` — the input spelling, verbatim: prefix and listener spelling kept
+ *   (`onItem:validate` stays `onItem:validate`). Buckets are then re-claimable by
+ *   the same channel table downstream, which is what a forwarding call site
+ *   needs; see the round-trip law in dispatch.test.ts.
+ */
+export type PrefixMode = 'keep' | 'drop'
+
+export interface DispatchOptions {
+  /** Key shape of the bucket. Default `'drop'`. */
+  prefix?: PrefixMode
+}
+
+/**
  * One pass over `bag`, one bucket per channel (design.md §5.2):
  *
  * - `item:label-width` → `item` bucket, key `label-width`
@@ -73,36 +90,55 @@ export type ChannelBuckets<T, C extends Channel> = {
  * no merging. Channel identity comes from the key spelling alone, so a bare name
  * and a prefixed name stay distinct entries even when their tails collide.
  *
+ * `options.prefix` picks the key shape:
+ *
+ * - `'drop'` (default) — the key the target component actually wants: prefix
+ *   stripped, listener tail renamed to `onXxx`.
+ * - `'keep'` — the key as written: prefix and listener spelling intact, so the
+ *   bucket can be re-dispatched by the *same* channel table downstream. The
+ *   channel's own bucket then comes back unchanged
+ *   (`dispatch(dispatch(bag, ch, { prefix: 'keep' })[ch], ch)[ch]` equals
+ *   `dispatch(bag, ch)[ch]`; the slice carries no residual, so its `default` is
+ *   empty by construction). Only claimed channels are affected: `default` carries
+ *   unclaimed keys, which were never stripped, and is therefore identical in both
+ *   modes. `resolveKey` keeps no mode branch — `keep` uses its channel answer and
+ *   discards the `key` / `type` it computed.
+ *
  * @param bag      merged props / listeners (or slot names) to split
  * @param channels the channels this call site claims; anything else falls to `default`
+ * @param options  key shape (`prefix: 'keep' | 'drop'`, default `'drop'`)
  */
 export function dispatch<T, C extends Channel>(
   bag: Record<string, T>,
   channels: readonly C[],
+  options: DispatchOptions = {},
 ): ChannelBuckets<T, C> {
+  const keep = options.prefix === 'keep'
+
   // `Object.create(null)` on purpose: a bag may carry keys like `constructor` or
   // `__proto__`, which have to become ordinary own entries, not prototype hits.
   const buckets: Record<string, Record<string, T>> = {}
   for (const channel of [...channels, 'default']) buckets[channel] = Object.create(null)
 
   // Resolve every key once, up front: the two passes below then share the results,
-  // and `resolveKey` never runs twice for the same key.
+  // and `resolveKey` never runs twice for the same key. `rawKey` rides along for
+  // the `keep` shape only; `default` never needs it (its keys are already raw).
   const entries = Object.entries(bag)
-    .map(([key, value]) => ({  ...resolveKey(key, channels), value }))
+    .map(([rawKey, value]) => ({ ...resolveKey(rawKey, channels), rawKey, value }))
 
   // Two passes, props first: a listener overwrites a prop when both resolve to the
   // same key in the same bucket (`item:onClick` and `onItem:click` both become
   // `onClick`), because the explicit listener spelling is the stronger intent.
   // This precedence is the whole reason the loops are split — see the
   // "lets a listener win over a prop on a key collision" case in dispatch.test.ts.
-  for (const { key, value, channel, type } of entries) {
+  for (const { rawKey, key, value, channel, type } of entries) {
     if (type === 'listener') continue
-    buckets[channel || 'default'][key] = value
+    buckets[channel || 'default'][keep && channel ? rawKey : key] = value
   }
 
-  for (const { key, value, channel, type } of entries) {
+  for (const { rawKey, key, value, channel, type } of entries) {
     if (type !== 'listener') continue
-    buckets[channel || 'default'][key] = value
+    buckets[channel || 'default'][keep && channel ? rawKey : key] = value
   }
 
   return buckets as ChannelBuckets<T, C>

@@ -99,7 +99,7 @@ export function createFormFieldComponent(
         /**
          * A merged bag (preset + tag), not the component's own attrs, and this
          * runs in the render function — so read the one channel directly instead
-         * of going through `useFormFieldAttrs`.
+         * of going through `useDispatch`.
          */
         const fl = dispatch(overlayProps(preset, tagAttrs), ['fl']).fl
         const declared = resolveDeclaredBinding(fl)
