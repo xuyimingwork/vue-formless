@@ -67,7 +67,7 @@ export const FormField = defineComponent({
         if (!binding) return
         return { [model]: binding.value, [`onUpdate:${model}`]: binding.update }
       }
-      return fieldContext?.getModelBinding(model)
+      return fieldContext?.getProp(model)
     } 
 
     // 依据 model 拿到的 bindings
@@ -81,7 +81,7 @@ export const FormField = defineComponent({
     })
 
     provide(FORM_FIELD_KEY, {
-      getModelBinding(model?: string) {
+      getProp(model?: string) {
         if (!model) return
         return modelBindings.value?.[model]
       }

@@ -31,7 +31,7 @@ export const FORM_VIEW_KEY: InjectionKey<FormContext | null> = Symbol(
  * selection, never a declaration. Consumers ask by port, never by location.
  */
 export const FORM_FIELD_KEY: InjectionKey<{
-  getModelBinding(model?: string): any
+  getProp(model?: string): any
 } | null> = Symbol(
   'vue-formless:form-field',
 )
