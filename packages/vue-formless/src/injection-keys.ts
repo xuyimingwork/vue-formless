@@ -6,7 +6,7 @@ export interface FormContext {
   /** Report a field write; FormView patches and emits `update:modelValue`. */
   update: (prop: string, value: unknown) => void
   /** Assembled host Item (e.g. ElFormItem). Unbound = passthrough children. */
-  Item: Component
+  FormItem: Component
   /** Same factory-bound LayoutView; wrap-embed creates an inner window with it. */
   LayoutView: Component
   getModelBinding(prop?: string): { value: any, update: (v: any) => void }

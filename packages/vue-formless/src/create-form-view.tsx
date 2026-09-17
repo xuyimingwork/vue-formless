@@ -118,7 +118,7 @@ function proxyExpose(host: { value: object | null }): object {
 function provideFormViewContext(options: {
   getModel: () => unknown
   update: FormContext['update']
-  Item: Component
+  FormItem: Component
   LayoutView: Component
 }): void {
   provide(
@@ -128,7 +128,7 @@ function provideFormViewContext(options: {
         return options.getModel()
       },
       update: options.update,
-      Item: markRaw(options.Item),
+      FormItem: markRaw(options.FormItem),
       LayoutView: markRaw(options.LayoutView),
       getModelBinding(prop: string) {
         return {
@@ -202,12 +202,12 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
       )
 
       // Page `fl` is per-instance: assemble here so the page default tracks this layer's attrs.
-      const Item = createFormItem({ ...options.item, fl: viewFormlessOptions })
+      const FormItem = createFormItem({ ...options.item, fl: viewFormlessOptions })
 
       provideFormViewContext({
         getModel: () => model.value,
         update,
-        Item,
+        FormItem,
         LayoutView,
       })
 

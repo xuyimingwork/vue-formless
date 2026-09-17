@@ -120,7 +120,7 @@ export const FormField = defineComponent({
           ? <HostLayoutView {...fieldLayoutAttrs.value} v-slots={{ default: () => inner }} />
           : inner
 
-      const HostItem = viewContext?.Item as JsxHost | undefined
+      const HostItem = viewContext?.FormItem as JsxHost | undefined
       const body =
       HostItem ? (
           <HostItem
