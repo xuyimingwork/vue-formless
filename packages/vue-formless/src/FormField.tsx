@@ -8,10 +8,17 @@ import {
 } from 'vue'
 import { LayoutItem } from '@vue-formless/layout'
 import { normalizeField as normalizeField } from './field-mode'
-import { FORM_FIELD_KEY, FORM_VIEW_KEY } from './injection-keys'
+import { FORM_FIELD_KEY } from './injection-keys'
 import type { FormFieldTagProps } from './field-schema'
 import { FIELD_SLOT_CHANNELS, FIELD_ATTR_CHANNELS, useDispatch } from './use-form-attrs'
 import { dispatch } from '@/dispatch'
+import { modelBindings } from './control-binding'
+import {
+  fieldPropBinding,
+  resolveDeclaredBinding,
+  resolveFieldBinding,
+} from './field-identity'
+import { readControlFormless } from './control-config'
 
 /** `Component` is a union; JSX needs a constructable host. */
 type JsxHost = new () => { $props: Record<string, unknown> }
@@ -31,74 +38,53 @@ function normalizeModel(model: unknown): string[] | undefined {
   return models.length === 0 ? undefined : models
 }
 
-function normalizeProp(prop: unknown): string[] | undefined {
-  const props = (Array.isArray(prop) ? prop : [prop]).filter(Boolean)
-  return props.length === 0 ? undefined : props
-}
-
 export const FormField = defineComponent({
   name: 'FormField',
   inheritAttrs: false,
   setup(_, { slots, attrs }) {
-    const viewContext = inject(FORM_VIEW_KEY, null)
+    // FormField 唯一消费的上行上下文：model 源 + 身份映射 + 壳资源都在这里。
     const fieldContext = inject(FORM_FIELD_KEY, null)
 
-    // 当前 attrs
-    const { 
-      fl: fieldFormlessOptions, 
+    const {
+      fl: fieldFormlessOptions,
       layoutItem: fieldLayoutItemAttrs,
       item: fieldItemAttrs,
       layout: fieldLayoutAttrs,
       default: fieldControlAttrs,
     } = useDispatch(attrs as Record<string, unknown>, FIELD_ATTR_CHANNELS)
 
-    // 供 control 使用的 model 永远有默认值
-    const model = computed(() => {
-      return normalizeModel(fieldFormlessOptions.value.model) 
-      || normalizeModel((fieldFormlessOptions.value as any)?.component?.formless?.model)
-      || normalizeModel('modelValue')
-    })
+    // ad-hoc 控件：补 component.formless.model（工厂壳已在 schemaToFieldAttrs 烙进 fl:model）。
+    const fl = computed(() => ({
+      ...fieldFormlessOptions.value,
+      model:
+        normalizeModel(fieldFormlessOptions.value.model)
+        || normalizeModel(readControlFormless(fieldFormlessOptions.value.component).model)
+        || ['modelValue'],
+    }))
 
-    // prop 没有默认值
-    const prop = computed(() => normalizeProp(fieldFormlessOptions.value.prop))
-    const getModelBinding = (model: string, index: number) => {
-      if (prop.value) {
-        const binding = viewContext?.getModelBinding(prop.value[index])
-        if (!binding) return
-        return { [model]: binding.value, [`onUpdate:${model}`]: binding.update }
-      }
-      return fieldContext?.getProp(model)
-    } 
+    const declared = computed(() => resolveDeclaredBinding(fl.value))
 
-    // 依据 model 拿到的 bindings
-    const modelBindings = computed<any>(() => {
-      return model.value!.reduce((bindings, model, index) => {
-        const binding = getModelBinding(model, index)
-        if (!binding) return bindings
-        bindings[model] = binding
-        return bindings
-      }, {} as any)
-    })
+    // 统一 accessor：自有 prop 自实现，否则父级；后续（provide 与解析）都只认它。
+    const getPropBinding = fieldPropBinding(() => declared.value, fieldContext)
 
+    // FormField 无条件 provide：只叠加 getPropBinding，其余（model 源 + 壳资源）原样透传。
     provide(FORM_FIELD_KEY, {
-      getProp(model?: string) {
-        if (!model) return
-        return modelBindings.value?.[model]
-      }
+      getModelBinding: (prop) => fieldContext?.getModelBinding(prop),
+      getPropBinding,
+      FormItem: fieldContext?.FormItem,
+      LayoutView: fieldContext?.LayoutView,
     })
 
-    const controlAttrs = computed(() => {
-      const attrs = Object.values(modelBindings.value).reduce((attrs: any, binding: any) => {
-        return {
-          ...attrs,
-          ...binding,
-        }
-      }, {} as any) as any
-      return {
-        ...fieldControlAttrs.value,
-        ...attrs,
-      }
-    })
+    const binding = computed(() => resolveFieldBinding(declared.value, getPropBinding))
+    const bindings = computed(() =>
+      modelBindings(binding.value, (prop) => fieldContext?.getModelBinding(prop)),
+    )
+
+    // 裸名给 control，v-model 绑定覆盖同名裸名（§5.2）。
+    const controlAttrs = computed(() => ({
+      ...fieldControlAttrs.value,
+      ...bindings.value,
+    }))
 
     return (): VNodeChild => {
       const { item: itemSlots, default: controlSlots } = dispatch(slots, FIELD_SLOT_CHANNELS)
@@ -107,22 +93,20 @@ export const FormField = defineComponent({
       const Control = fieldFormlessOptions.value.component as unknown as JsxHost | undefined
 
       const inner: VNodeChild = Control
-        ? <Control {...{
-          ...controlAttrs.value, 
-        }} v-slots={controlSlots} />
-        : slots.default?.({ $bindings: controlAttrs.value }) ?? null
+        ? <Control {...controlAttrs.value} v-slots={controlSlots} />
+        : slots.default?.({ $bindings: bindings.value }) ?? null
 
       if (fieldMode === 'embed') return inner
 
-      const HostLayoutView = viewContext?.LayoutView as JsxHost
+      const HostLayoutView = fieldContext?.LayoutView as JsxHost
       const fieldBody =
         fieldMode === 'wrap-embed' && HostLayoutView
           ? <HostLayoutView {...fieldLayoutAttrs.value} v-slots={{ default: () => inner }} />
           : inner
 
-      const HostItem = viewContext?.FormItem as JsxHost | undefined
+      const HostItem = fieldContext?.FormItem as JsxHost | undefined
       const body =
-      HostItem ? (
+        HostItem ? (
           <HostItem
             fl={fieldFormlessOptions.value}
             item={fieldItemAttrs.value}

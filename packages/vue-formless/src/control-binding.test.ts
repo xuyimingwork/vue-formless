@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   bindingForPort,
-  createFieldLayer,
   modelBindings,
   resolveControlBinding,
 } from './control-binding'
@@ -103,43 +102,49 @@ describe('resolveControlBinding', () => {
   })
 })
 
-describe('FieldLayer', () => {
+describe('modelBindings', () => {
   const pair = {
     models: ['start', 'end'],
     props: ['buyers[0].fromTime', 'buyers[0].toTime'],
   }
 
-  it('reads values lazily from the live model', () => {
-    let model: unknown = { buyers: [{ fromTime: 'a', toTime: 'b' }] }
-    const layer = createFieldLayer(() => pair, () => model, vi.fn())
-    expect(layer.getValues()).toEqual(['a', 'b'])
-    model = { buyers: [{ fromTime: 'z', toTime: 'b' }] }
-    expect(layer.getValues()).toEqual(['z', 'b'])
+  it('pairs each bound prop with its port through the model accessor', () => {
+    const bindings = modelBindings(pair, (prop) => ({
+      get value() {
+        return prop === 'buyers[0].fromTime' ? 'a' : 'b'
+      },
+      update: vi.fn(),
+    }))
+    expect(bindings.start).toBe('a')
+    expect(bindings.end).toBe('b')
   })
 
-  it('writes by port, resolving the location inside', () => {
+  it('writes by port through the accessor update', () => {
     const update = vi.fn()
-    const layer = createFieldLayer(
-      () => pair,
-      () => ({ buyers: [{ fromTime: 'a', toTime: 'b' }] }),
-      update,
-    )
-    layer.setValue('end', 'q')
-    expect(update).toHaveBeenCalledWith('buyers[0].toTime', 'q')
-    expect(() => layer.setValue('modelValue', 'q')).toThrow(/not a v-model port/)
-    expect(() => layer.setValue('start', 'q')).not.toThrow()
+    const bindings = modelBindings(pair, () => ({ value: 'x', update }))
+    ;(bindings['onUpdate:end'] as (next: unknown) => void)('q')
+    expect(update).toHaveBeenCalledWith('q')
   })
 
-  it('builds v-model props and handlers off the layer', () => {
-    const layer = createFieldLayer(
-      () => ({ models: ['modelValue', 'option'], props: ['name'] }),
-      () => ({ name: 'Ada' }),
-      vi.fn(),
-    )
-    const bindings = modelBindings(layer)
+  it('leaves unbound ports off when props are shorter than models', () => {
+    const short = { models: ['modelValue', 'option'], props: ['name'] }
+    const bindings = modelBindings(short, (prop) => ({
+      get value() {
+        return prop === 'name' ? 'Ada' : undefined
+      },
+      update: vi.fn(),
+    }))
     expect(bindings.modelValue).toBe('Ada')
-    expect(bindings.option).toBeUndefined()
-    expect(bindings['onUpdate:option']).toBeUndefined()
+    expect(bindings).not.toHaveProperty('option')
+    expect(bindings).not.toHaveProperty('onUpdate:option')
+  })
+
+  it('skips a port whose model accessor returns undefined', () => {
+    const bindings = modelBindings(
+      { models: ['modelValue'], props: ['name'] },
+      () => undefined,
+    )
+    expect(bindings).toEqual({})
   })
 })
 

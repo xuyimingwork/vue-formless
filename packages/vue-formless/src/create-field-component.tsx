@@ -1,11 +1,10 @@
 import { defineComponent, inject, type VNodeChild } from 'vue'
 import { FormField, type FormFieldComponent } from './FormField'
-import { createFieldLayer } from './control-binding'
-import { useFormContext } from './context'
 import {
   buildItemFl,
-  fieldBinding,
+  fieldPropBinding,
   resolveDeclaredBinding,
+  resolveFieldBinding,
 } from './field-identity'
 import { FORM_FIELD_KEY } from './injection-keys'
 import { isFieldMode } from './field-mode'
@@ -82,7 +81,6 @@ export function createFormFieldComponent(
     name: `Field_${upperFirst(schemaKey)}`,
     inheritAttrs: false,
     setup(_, { attrs, slots }) {
-      const formViewContext = useFormContext()
       const formFieldContext = inject(FORM_FIELD_KEY, null)
 
       return (): VNodeChild => {
@@ -102,16 +100,14 @@ export function createFormFieldComponent(
          */
         const fl = dispatch(overlayProps(preset, tagAttrs), ['fl']).fl
         const declared = resolveDeclaredBinding(fl)
-        const binding = fieldBinding(fl, declared, formFieldContext)
-        const layer = createFieldLayer(
-          () => binding,
-          () => formViewContext.model,
-          formViewContext.update,
-        )
+        const getPropBinding = fieldPropBinding(() => declared, formFieldContext)
+        const binding = resolveFieldBinding(declared, getPropBinding)
+        const getValues = () =>
+          binding.props.map((p) => formFieldContext?.getModelBinding(p)?.value)
         const snapshot = buildItemFl(
           fl,
           binding,
-          layer.getValues,
+          getValues,
         )
         const controlProps = overlayProps(
           resolveProps(cluster?.props, snapshot),

@@ -12,7 +12,7 @@ import {
 } from 'vue'
 import { createLayoutView } from '@vue-formless/layout'
 import { createFormItem } from './create-form-item'
-import { FORM_VIEW_KEY, type FormContext } from './injection-keys'
+import { FORM_FIELD_KEY, FORM_VIEW_KEY, type FormFieldContext, type FormViewContext } from './injection-keys'
 import { useFormViewModelValue } from './use-form-view-model'
 import type { ItemFl } from './field-schema'
 import { overlayProps, resolveProps, type HostProps } from './props-overlay'
@@ -117,7 +117,7 @@ function proxyExpose(host: { value: object | null }): object {
 
 function provideFormViewContext(options: {
   getModel: () => unknown
-  update: FormContext['update']
+  update: FormViewContext['update']
   FormItem: Component
   LayoutView: Component
 }): void {
@@ -128,21 +128,27 @@ function provideFormViewContext(options: {
         return options.getModel()
       },
       update: options.update,
-      FormItem: markRaw(options.FormItem),
-      LayoutView: markRaw(options.LayoutView),
-      getModelBinding(prop: string) {
-        return {
-          get value() {
-            if (!prop) return
-            return getIn(options.getModel(), prop)
-          },
-          update: (value: unknown) => {
-            options.update(prop, value)
-          },
-        }
-      }
-    }) as FormContext,
+    }) as FormViewContext,
   )
+
+  // FormField 只读 FORM_FIELD_KEY。FormView 在这里换成本层的 model 源、下放壳资源，
+  // 并缺省 getPropBinding 以无条件截断外层身份——内层 FormField 因此成为新的身份根、
+  // 自声明 fl:prop（子表单 / 嵌套分区都由此成立）。
+  provide(FORM_FIELD_KEY, {
+    getModelBinding(prop: string) {
+      if (!prop) return undefined
+      return {
+        get value() {
+          return getIn(options.getModel(), prop)
+        },
+        update: (value: unknown) => {
+          options.update(prop, value)
+        },
+      }
+    },
+    FormItem: markRaw(options.FormItem),
+    LayoutView: markRaw(options.LayoutView),
+  } as FormFieldContext)
 }
 
 /**

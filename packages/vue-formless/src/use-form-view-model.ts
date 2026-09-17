@@ -5,7 +5,7 @@ import {
   type ComputedRef,
   type MaybeRefOrGetter,
 } from 'vue'
-import { FORM_VIEW_KEY, type FormContext } from './injection-keys'
+import { FORM_VIEW_KEY, type FormViewContext } from './injection-keys'
 import { createModelWriter } from './model-writer'
 
 /** A raw value, a ref, or a computed — anything `toValue` can read. */
@@ -33,7 +33,7 @@ export function useFormViewModelValue(
   /** This layer's current model (bound value, else the ancestor snapshot). */
   model: ComputedRef<unknown>
   /** Report a field write; same-tick writes coalesce into one emit. */
-  update: FormContext['update']
+  update: FormViewContext['update']
 } {
   const listener = computed<((next: unknown) => void) | undefined>(() => {
     const value = toValue(onUpdateModelValue)

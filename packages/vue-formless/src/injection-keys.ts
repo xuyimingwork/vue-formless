@@ -1,30 +1,34 @@
 import type { Component, InjectionKey } from 'vue'
+import type { ModelBinding } from './control-binding'
 
-export interface FormContext {
-  /** Current FormView `modelValue` (parent snapshot; do not mutate). */
+/** `FORM_VIEW_KEY`：只供嵌套 FormView 继承（读/写源 + nested 判定）。 */
+export interface FormViewContext {
+  /** 当前 FormView 的 `modelValue`（父快照，勿改）。 */
   model: unknown
-  /** Report a field write; FormView patches and emits `update:modelValue`. */
+  /** 上报字段写入；嵌套 FormView 转发到祖先 writer。 */
   update: (prop: string, value: unknown) => void
-  /** Assembled host Item (e.g. ElFormItem). Unbound = passthrough children. */
-  FormItem: Component
-  /** Same factory-bound LayoutView; wrap-embed creates an inner window with it. */
-  LayoutView: Component
-  getModelBinding(prop?: string): { value: any, update: (v: any) => void }
 }
 
-export const FORM_VIEW_KEY: InjectionKey<FormContext | null> = Symbol(
+/**
+ * FormField 唯一消费的上行上下文，由 FormView 与 FormField 身份根共同提供：
+ * - `getModelBinding`（model 源）+ `FormItem` / `LayoutView`（壳资源）来自 FormView；
+ * - `getPropBinding`（口 → 位置对应）来自 FormField 身份根，缺失即「截断」。
+ */
+export interface FormFieldContext {
+  /** 位置 → 现值 + 写回（model 源，由 FormView 提供）。 */
+  getModelBinding(prop: string): ModelBinding | undefined
+  /** 口 → 对应关系（身份映射，由 FormField 身份根提供）。缺省 = 无外层身份。 */
+  getPropBinding?(model: string): { model: string; prop: string } | undefined
+  /** 组装好的宿主 Item（由 FormView 提供，FormField 身份根透传）。 */
+  FormItem?: Component
+  /** 工厂绑定的 LayoutView（wrap-embed 内层窗口；由 FormView 提供，透传）。 */
+  LayoutView?: Component
+}
+
+export const FORM_VIEW_KEY: InjectionKey<FormViewContext | null> = Symbol(
   'vue-formless:form-view',
 )
 
-/**
- * Identity layer (design.md §7.2 / §16.2): the effective v-model port ↔ location
- * map a field resolves for itself, **plus** its port-keyed read/write accessor.
- * The **root** `FormField` provides it (closing over the page scope); every
- * nested slice consumes it to select a port — `fl:model` on a slice is a
- * selection, never a declaration. Consumers ask by port, never by location.
- */
-export const FORM_FIELD_KEY: InjectionKey<{
-  getProp(model?: string): any
-} | null> = Symbol(
+export const FORM_FIELD_KEY: InjectionKey<FormFieldContext | null> = Symbol(
   'vue-formless:form-field',
 )

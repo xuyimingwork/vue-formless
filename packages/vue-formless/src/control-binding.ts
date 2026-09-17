@@ -4,7 +4,6 @@
  * - `prop`  — location(s) from FormView root (`name`, `buyers[0].name`). Default: the schema key.
  * `prop` array pairs with `model` (prefix-aligned). Extra model ports are unbound.
  */
-import { getIn } from './path-access'
 
 export type ControlVModel = string | readonly string[]
 export type ControlProp = string | readonly string[]
@@ -16,6 +15,12 @@ export interface ControlBindingOverrides {
 export interface ResolvedControlBinding {
   models: string[]
   props: string[]
+}
+
+/** A location's live value + write-back (the model source, provided by FormView). */
+export interface ModelBinding {
+  readonly value: unknown
+  update: (value: unknown) => void
 }
 
 export function toBindingList(value: ControlVModel | ControlProp): string[] {
@@ -72,51 +77,22 @@ export function bindingForPort(
 }
 
 /**
- * Identity layer value (design.md §16.2): the effective
- * binding **plus** the port-keyed accessor built on it. The root `FormField`
- * provides it and closes over the page scope; consumers ask by **port**, so
- * locations are resolved inside and page paths never travel down.
+ * v-model props + handlers for a resolved binding's bound ports. `getModelBinding`
+ * is the model source accessor supplied by the nearest FormView, so the value /
+ * write-back are always resolved against the *current* model — never snapshotted.
+ * Ports without a location (`props` shorter than `models`) stay off.
  */
-export interface FieldLayer extends ResolvedControlBinding {
-  /** Live values at this layer's locations, in binding order (design.md §14.1). */
-  getValues(): unknown[]
-  /** Write one declared v-model port by name. */
-  setValue(port: string, value: unknown): void
-}
-
-/**
- * Build a layer over a live binding + the scope it reads/writes. Everything is
- * read lazily: `fl:prop` may be restated on the tag and a nested FormView may
- * swap the model source, so neither the location nor the model is snapshotted.
- */
-export function createFieldLayer(
-  getBinding: () => ResolvedControlBinding,
-  getModel: () => unknown,
-  update: (prop: string, value: unknown) => void,
-): FieldLayer {
-  return {
-    get models() {
-      return getBinding().models
-    },
-    get props() {
-      return getBinding().props
-    },
-    getValues: () => getBinding().props.map((p) => getIn(getModel(), p)),
-    setValue: (port, value) => {
-      // Resolve port → location here: the caller never handles paths.
-      update(bindingForPort(getBinding(), port).props[0]!, value)
-    },
-  }
-}
-
-/** v-model props + handlers for the layer's bound ports (unbound ports stay off). */
-export function modelBindings(layer: FieldLayer): Record<string, unknown> {
-  const values = layer.getValues()
+export function modelBindings(
+  binding: ResolvedControlBinding,
+  getModelBinding: (prop: string) => ModelBinding | undefined,
+): Record<string, unknown> {
   const bag: Record<string, unknown> = {}
-  for (let i = 0; i < layer.props.length; i++) {
-    const port = layer.models[i]!
-    bag[port] = values[i]
-    bag[`onUpdate:${port}`] = (next: unknown) => layer.setValue(port, next)
+  for (let i = 0; i < binding.props.length; i++) {
+    const port = binding.models[i]!
+    const mb = getModelBinding(binding.props[i]!)
+    if (!mb) continue
+    bag[port] = mb.value
+    bag[`onUpdate:${port}`] = (next: unknown) => mb.update(next)
   }
   return bag
 }

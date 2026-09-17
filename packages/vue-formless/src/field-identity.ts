@@ -10,9 +10,9 @@ import {
   toBindingList,
   type ControlProp,
   type ControlVModel,
-  type FieldLayer,
   type ResolvedControlBinding,
 } from './control-binding'
+import type { FormFieldContext } from './injection-keys'
 import type { ItemFl } from './field-schema'
 import { omitShellKeys } from './fl-keys'
 
@@ -42,19 +42,44 @@ export function resolveDeclaredBinding(
 }
 
 /**
- * Effective binding. Inside an ancestor identity `fl:model` **selects** one
- * declared port (design.md §7.2, 1 identity : N fields); at the root it declares.
+ * One FormField's effective `getPropBinding` accessor: with its own `fl:prop` it
+ * resolves the port against its own declaration, otherwise it forwards to the
+ * ancestor identity layer. The identity root thus owns the `model[i] ↔ prop[i]`
+ * map; a slice borrows only the location. `ancestor` carries `getPropBinding`
+ * (an identity root) or omits it (a FormView boundary, i.e. "truncated").
  */
-export function fieldBinding(
-  fl: Record<string, unknown>,
+export function fieldPropBinding(
+  getDeclared: () => ResolvedControlBinding,
+  ancestor: FormFieldContext | null,
+): (model: string) => { model: string; prop: string } | undefined {
+  return (model) => {
+    const declared = getDeclared()
+    if (declared.props.length > 0) {
+      const pair = bindingForPort(declared, model)
+      return { model: pair.models[0]!, prop: pair.props[0]! }
+    }
+    return ancestor?.getPropBinding?.(model)
+  }
+}
+
+/**
+ * Effective binding. A field with its own `fl:prop` is simply its declaration
+ * (prefix-aligned `model`/`prop`, unbound ports kept off); a slice without one
+ * resolves each declared port against `getPropBinding` (the ancestor map). With
+ * no ancestor identity, every port resolves to no location and the binding is
+ * empty — the field renders but is not wired.
+ */
+export function resolveFieldBinding(
   declared: ResolvedControlBinding,
-  ancestor: FieldLayer | null,
+  getPropBinding: (model: string) => { model: string; prop: string } | undefined,
 ): ResolvedControlBinding {
-  if (ancestor == null) return declared
-  const port = fl.model
-  return typeof port === 'string' && port !== ''
-    ? bindingForPort(ancestor, port)
-    : ancestor
+  if (declared.props.length > 0) return declared
+  return {
+    models: declared.models,
+    props: declared.models
+      .map((m) => getPropBinding(m)?.prop)
+      .filter((p): p is string => p != null),
+  }
 }
 
 /**
