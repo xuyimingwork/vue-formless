@@ -17,6 +17,7 @@ import type { ItemFl } from './field-schema'
 import { overlayProps, resolveProps, type HostProps } from './props-overlay'
 import { omit, toAttrBoolean } from './utils'
 import { useFormViewAttrs } from './use-form-attrs'
+import { getIn } from '@/path-access'
 
 /** `Component` is a union; JSX needs a constructable host. */
 type JsxHost = new () => { $props: Record<string, unknown> }
@@ -134,6 +135,17 @@ function provideFormViewContext(options: {
         return options.getItem?.() ?? true
       },
       LayoutView: markRaw(options.LayoutView),
+      getModelBinding(prop: string) {
+        return {
+          get value() {
+            if (!prop) return
+            return getIn(options.getModel(), prop)
+          },
+          update: (value: unknown) => {
+            options.update(prop, value)
+          },
+        }
+      }
     }) as FormContext,
   )
 }

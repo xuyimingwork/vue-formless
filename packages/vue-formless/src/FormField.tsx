@@ -3,27 +3,13 @@ import {
   defineComponent,
   inject,
   provide,
-  reactive,
-  type Component,
   type DefineComponent,
   type VNodeChild,
 } from 'vue'
 import { LayoutItem } from '@vue-formless/layout'
-import {
-  createFieldLayer,
-  modelBindings,
-  stripPortBindings,
-} from './control-binding'
-import {
-  buildItemFl,
-  fieldBinding,
-  mergedFieldFl,
-  resolveDeclaredBinding,
-} from './field-identity'
 import { normalizeField as normalizeField } from './field-mode'
 import { FORM_FIELD_KEY, FORM_VIEW_KEY } from './injection-keys'
-import type { FormFieldTagProps, ItemFl } from './field-schema'
-import { overlayProps, resolveProps } from './props-overlay'
+import type { FormFieldTagProps } from './field-schema'
 import { FIELD_SLOT_CHANNELS, useFormFieldAttrs } from './use-form-attrs'
 import { dispatch } from '@/dispatch'
 
@@ -40,12 +26,22 @@ export type FormFieldProps = FormFieldTagProps
 
 export type FormFieldComponent<P = {}> = DefineComponent<FormFieldProps & P>
 
+function normalizeModel(model: unknown): string[] | undefined {
+  const models = (Array.isArray(model) ? model : [model]).filter(Boolean)
+  return models.length === 0 ? undefined : models
+}
+
+function normalizeProp(prop: unknown): string[] | undefined {
+  const props = (Array.isArray(prop) ? prop : [prop]).filter(Boolean)
+  return props.length === 0 ? undefined : props
+}
+
 export const FormField = defineComponent({
   name: 'FormField',
   inheritAttrs: false,
   setup(_, { slots, attrs }) {
-    const formViewContext = inject(FORM_VIEW_KEY, null)
-    const formFieldContext = inject(FORM_FIELD_KEY, null)
+    const viewContext = inject(FORM_VIEW_KEY, null)
+    const fieldContext = inject(FORM_FIELD_KEY, null)
 
     // 当前 attrs
     const { 
@@ -56,63 +52,62 @@ export const FormField = defineComponent({
       default: fieldControlAttrs,
     } = useFormFieldAttrs(attrs as Record<string, unknown>)
 
-    const declared = computed(() => resolveDeclaredBinding(fieldFormlessOptions.value))
+    // 供 control 使用的 model 永远有默认值
+    const model = computed(() => {
+      return normalizeModel(fieldFormlessOptions.value.model) 
+      || normalizeModel((fieldFormlessOptions.value as any)?.component?.formless?.model)
+      || normalizeModel('modelValue')
+    })
 
-    if (formFieldContext == null) {
-      // Only the identity root provides; nested slices never re-provide.
-      provide(
-        FORM_FIELD_KEY,
-        reactive(
-          createFieldLayer(
-            () => declared.value,
-            () => formViewContext.model,
-            formViewContext.update,
-          ),
-        ),
-      )
-    }
+    // prop 没有默认值
+    const prop = computed(() => normalizeProp(fieldFormlessOptions.value.prop))
+    const getModelBinding = (model: string, index: number) => {
+      if (prop.value) {
+        const binding = viewContext?.getModelBinding(prop.value[index])
+        if (!binding) return
+        return { [model]: binding.value, [`onUpdate:${model}`]: binding.update }
+      }
+      return fieldContext?.getModelBinding(model)
+    } 
 
-    /** Inherited identity (slice) or our own declaration (root). */
-    const binding = computed(() =>
-      fieldBinding(fieldFormlessOptions.value, declared.value, formFieldContext),
-    )
+    // 依据 model 拿到的 bindings
+    const modelBindings = computed<any>(() => {
+      return model.value!.reduce((bindings, model, index) => {
+        const binding = getModelBinding(model, index)
+        if (!binding) return bindings
+        bindings[model] = binding
+        return bindings
+      }, {} as any)
+    })
 
-    /**
-     * This field's own accessor: port-keyed read/write over its resolved
-     * locations. The `glue` to the page scope lives here, not in the consumer.
-     */
-    const layer = computed(() =>
-      createFieldLayer(
-        () => binding.value,
-        () => formViewContext.model,
-        formViewContext.update,
-      ),
-    )
+    provide(FORM_FIELD_KEY, {
+      getModelBinding(model?: string) {
+        if (!model) return
+        return modelBindings.value?.[model]
+      }
+    })
 
-    /** page < schema (preset attrs) < field (tag). Near wins; undefined does not write. */
-    const fieldFl = computed(() => mergedFieldFl(formViewContext, fieldFormlessOptions.value))
+    const controlAttrs = computed(() => {
+      const attrs = Object.values(modelBindings.value).reduce((attrs: any, binding: any) => {
+        return {
+          ...attrs,
+          ...binding,
+        }
+      }, {} as any) as any
+      return {
+        ...fieldControlAttrs.value,
+        ...attrs,
+      }
+    })
 
-    const itemFl = computed((): ItemFl =>
-      buildItemFl(fieldFl.value, binding.value, layer.value.getValues),
-    )
+    const item = computed(() => {
+      return fieldFormlessOptions.value.item !== false
+    })
 
-    const bindings = computed(() => modelBindings(layer.value))
-
-    const itemOn = computed(
-      () => formViewContext.Item != null && fieldFl.value.item === true,
-    )
-
-    /** Bare names go to the control, never to the host Item (§5.2). */
-    const controlAttrs = computed(() =>
-      stripPortBindings(fieldControlAttrs.value, binding.value.models),
-    )
-
-    const itemProps = computed(() =>
-      overlayProps(
-        resolveProps(formViewContext.itemProps, itemFl.value),
-        fieldItemAttrs.value,
-      ),
-    )
+    const viewItemAttrs = computed(() => {
+      if (typeof viewContext?.itemProps === 'function') return viewContext.itemProps(fieldFormlessOptions.value as any)
+      return viewContext?.itemProps as any
+    })
 
     return (): VNodeChild => {
       const { item: itemSlots, default: controlSlots } = dispatch(slots, FIELD_SLOT_CHANNELS)
@@ -123,24 +118,23 @@ export const FormField = defineComponent({
       const inner: VNodeChild = Control
         ? <Control {...{
           ...controlAttrs.value, 
-          ...bindings.value 
         }} v-slots={controlSlots} />
-        : slots.default?.({ $bindings: bindings.value }) ?? null
+        : slots.default?.({ $bindings: controlAttrs.value }) ?? null
 
       if (fieldMode === 'embed') return inner
 
-      const HostLayoutView = formViewContext.LayoutView as JsxHost
-      const windowProps = { ...fieldLayoutAttrs.value }
+      const HostLayoutView = viewContext?.LayoutView as JsxHost
       const fieldBody =
-        fieldMode === 'wrap-embed'
-          ? <HostLayoutView {...windowProps} v-slots={{ default: () => inner }} />
+        fieldMode === 'wrap-embed' && HostLayoutView
+          ? <HostLayoutView {...fieldLayoutAttrs.value} v-slots={{ default: () => inner }} />
           : inner
 
-      const HostItem = formViewContext.Item as JsxHost | undefined
+      const HostItem = viewContext?.Item as JsxHost | undefined
       const body =
-        itemOn.value && HostItem ? (
+      item.value && HostItem ? (
           <HostItem
-            {...itemProps.value}
+            { ...viewItemAttrs.value }
+            { ...fieldItemAttrs.value }
             v-slots={{
               ...itemSlots,
               default: () => fieldBody,

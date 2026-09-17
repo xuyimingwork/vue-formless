@@ -16,6 +16,7 @@ export interface FormContext {
   item: boolean
   /** Same factory-bound LayoutView; wrap-embed creates an inner window with it. */
   LayoutView: Component
+  getModelBinding(model?: string): { value: any, update: (v: any) => void }
 }
 
 export const FORM_VIEW_KEY: InjectionKey<FormContext | null> = Symbol(
@@ -29,6 +30,8 @@ export const FORM_VIEW_KEY: InjectionKey<FormContext | null> = Symbol(
  * nested slice consumes it to select a port — `fl:model` on a slice is a
  * selection, never a declaration. Consumers ask by port, never by location.
  */
-export const FORM_FIELD_KEY: InjectionKey<FieldLayer | null> = Symbol(
+export const FORM_FIELD_KEY: InjectionKey<{
+  getModelBinding(model?: string): any
+} | null> = Symbol(
   'vue-formless:form-field',
 )
