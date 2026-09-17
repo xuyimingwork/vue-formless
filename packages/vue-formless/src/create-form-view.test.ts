@@ -386,7 +386,7 @@ describe('createFormView', () => {
     expect(seen[0]).toMatchObject({ onGutter })
   })
 
-  it('keeps item:* falling through to the host Form and drops layout-item:*', async () => {
+  it('lets item:* and layout-item:* fall through to the host Form', async () => {
     const seen: Record<string, unknown>[] = []
     const ProbeForm = defineComponent({
       name: 'ProbeForm',
@@ -411,8 +411,7 @@ describe('createFormView', () => {
       ),
     )
     expect(seen).toHaveLength(1)
-    expect(seen[0]).toMatchObject({ 'item:label': 'x' })
-    expect(seen[0]).not.toHaveProperty('layout-item:span')
+    expect(seen[0]).toMatchObject({ 'item:label': 'x', 'layout-item:span': 24 })
   })
 })
 

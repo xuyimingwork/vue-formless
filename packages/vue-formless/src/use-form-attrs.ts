@@ -1,5 +1,4 @@
 import { computed, type ComputedRef } from 'vue'
-import type { Slot, Slots } from 'vue'
 import { dispatch } from './dispatch'
 
 /**
@@ -9,11 +8,11 @@ import { dispatch } from './dispatch'
  */
 
 /**
- * The channels a page FormView claims. `item:*` is deliberately absent: it is
- * not a FormView channel, so it stays in the default bag and keeps falling
- * through to the host Form.
+ * The channels a page FormView claims. `item:*` and `layout-item:*` are both
+ * deliberately absent: neither is a FormView channel, so both stay in the
+ * default bag and fall through to the host Form.
  */
-const VIEW_ATTR_CHANNELS = ['fl', 'layout', 'layout-item'] as const
+const VIEW_ATTR_CHANNELS = ['fl', 'layout'] as const
 
 /** The channels a FormField claims, the host Item shell included. */
 const FIELD_ATTR_CHANNELS = ['fl', 'layout', 'layout-item', 'item'] as const
@@ -26,21 +25,18 @@ type Bag = ComputedRef<Record<string, unknown>>
 
 /**
  * Page attrs, one bucket per channel (design.md §5.2): `fl` is the kernel
- * semantic source, `layout` the page window's props. `layout-item` is claimed
- * but never consumed — a page window has no LayoutItem, so it must not reach
- * the host Form. `item:*` falls through in `default` (§5.3).
+ * semantic source, `layout` the page window's props. `layout-item:*` and
+ * `item:*` are not FormView channels, so both fall through in `default` (§5.3).
  */
 export function useFormViewAttrs(attrs: Record<string, unknown>): {
   fl: Bag
   layout: Bag
-  'layout-item': Bag
   default: Bag
 } {
   const bags = computed(() => dispatch(attrs, VIEW_ATTR_CHANNELS))
   return {
     fl: computed(() => bags.value.fl),
     layout: computed(() => bags.value.layout),
-    'layout-item': computed(() => bags.value['layout-item']),
     default: computed(() => bags.value.default),
   }
 }

@@ -190,14 +190,14 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
       const nested = inject(FORM_VIEW_KEY, null) != null
       /**
        * Page channels (design.md §5.3): `fl` is the kernel semantic source and
-       * `layout` the page window's props. `layout-item` is claimed but unused — a
-       * page window has no LayoutItem, so it must not reach the host Form.
-       * `item:*` is not a FormView channel: it stays in default and falls through.
+       * `layout` the page window's props. `layout-item:*` and `item:*` are not
+       * FormView channels: both stay in default and fall through to the host Form.
        */
-      const bags = useFormViewAttrs(attrs as Record<string, unknown>)
-      const fl = bags.fl
-      const layoutProps = bags.layout
-      const hostAttrs = bags.default
+      const {
+        fl: viewFormlessOptions,
+        layout: viewLayoutAttrs,
+        default: viewHostAttrs,
+      } = useFormViewAttrs(attrs as Record<string, unknown>)
 
       /** v-model write port: fallthrough listener (camel or DOM-case tag). */
       const { model, update } = useFormViewModelValue(
@@ -213,25 +213,25 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
         update,
         Item,
         itemProps,
-        getItem: () => toAttrBoolean(fl.value.item, true),
+        getItem: () => toAttrBoolean(viewFormlessOptions.value.item, true),
         LayoutView,
       })
 
       return (): VNodeChild => {
         const HostLayoutView = LayoutView as JsxHost
-        const layout = toAttrBoolean(fl.value.layout, false)
+        const layout = toAttrBoolean(viewFormlessOptions.value.layout, false)
         // Factory layout.props(fl) sets LayoutView defaults; tag :layout:* overlays (near wins).
         // `disabled` is kernel-owned: fl:layout flips polarity (design.md §10.1).
         const body = (
           <HostLayoutView
-            {...overlayProps(resolveProps(layoutPropsSpec, { layout }), layoutProps.value)}
+            {...overlayProps(resolveProps(layoutPropsSpec, { layout }), viewLayoutAttrs.value)}
             disabled={!layout}
             v-slots={{ default: slots.default }}
           />
         )
 
         if (!Form) return body
-        if (!toAttrBoolean(fl.value.form, !nested)) return body
+        if (!toAttrBoolean(viewFormlessOptions.value.form, !nested)) return body
 
         const HostForm = Form as JsxHost
         // Factory form.props(fl) sets host defaults; tag host attrs overlay (near wins).
@@ -242,7 +242,7 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
             ref={hostForm}
             {...overlayProps(
               formProps({ modelValue: model.value }) as any,
-              omit(hostAttrs.value, V_MODEL_PORT_KEYS),
+              omit(viewHostAttrs.value, V_MODEL_PORT_KEYS),
             )}
             v-slots={{ default: () => body }}
           />

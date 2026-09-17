@@ -153,14 +153,14 @@ dispatch(bag, channels)   // 每通道一桶（剥前缀的 props + 还原成 on
 各调用点**声明自己认领哪些通道**（不再有共享的 `FormlessPropBags`）：
 
 ```text
-useFormViewAttrs(attrs)   → fl / layout / layout-item / default
-                            页：layout-item 认而不消费；item:* 不是页通道，在 default 里透传
+useFormViewAttrs(attrs)   → fl / layout / default
+                            页：layout-item:* / item:* 都不是页通道，在 default 里透传
 useFormFieldAttrs(attrs)  → fl / layout / layout-item / item / default
-useFormFieldSlots(slots)  → item 桶是宿主 Item 槽，default 桶是 control 槽
+dispatch(slots, FIELD_SLOT_CHANNELS) → item 桶是宿主 Item 槽，default 桶是 control 槽
 dispatch(bag, …)          → 工厂壳只取 fl（那袋是 preset + tag 合并后的，不是组件的 attrs）
 ```
 
-通道归谁：`layout:` 只给 LayoutView（FormField 仅 wrap-embed 内层），`layout-item:` 只给本格 LayoutItem，`item:` 只给宿主 Item 壳。**`FormView` 没有 LayoutItem**，故 `useFormViewAttrs` 把 `layout-item` 声明下来（拿到即弃）而不消费，不至于落到宿主 Form；`item:` 不是 FormView 的通道，留在 `default` 里原样透传给宿主 Form。
+通道归谁：`layout:` 只给 LayoutView（FormField 仅 wrap-embed 内层），`layout-item:` 只给本格 LayoutItem，`item:` 只给宿主 Item 壳。**`FormView` 没有 LayoutItem**，故 `layout-item:` 不是页通道——和 `item:` 一样留在 `default` 里原样透传给宿主 Form。
 
 `fl:` 与其它通道**一视同仁**：`onFl:*` 照样剥成 `onXxx` 进同一个袋子。内核目前不 emit 事件，所以这个袋子实际用不到——但「今天没有监听」不是通道级属性，不值得为它单开一条分支。`layout-item:span` 不写 `item:layout-item:span`：两级前缀连写太长，`layout-item:` 已唯一指 LayoutItem。
 
@@ -168,7 +168,7 @@ dispatch(bag, …)          → 工厂壳只取 fl（那袋是 preset + tag 合�
 
 | 组件 | 裸名 | `layout:` | `layout-item:` | `item:` | `fl:` |
 |------|------|-----------|----------------|---------|-------|
-| FormView | ElForm | 页窗口 | — | —（透传） | ✓ |
+| FormView | ElForm | 页窗口 | —（透传） | —（透传） | ✓ |
 | FormField | control | 仅 wrap-embed 内层 | 本格 | 宿主 Item 壳 | ✓ |
 
 每格 `✓` 同时吃该通道的**监听形态**（`@layout:gutter` / `@item:validate`），`fl:` 也不例外。
@@ -669,7 +669,7 @@ quoted   := '"' keychar* '"' | "'" keychar* "'"   转义 '\'
 | `path-access.ts` / `path-parse.ts` | 不可变 get/set + 路径解析 |
 | `props-overlay.ts` | `resolveProps` / `overlayProps` / `HostProps` |
 | `dispatch.ts` | 通道表 `CHANNELS`（`fl` / `layout-item` / `layout` / `item`）；`channelPrefix` / `listenerPrefix`（前缀由通道名派生，不写字面量常量）；`dispatch`（一次分桶）：每通道一桶（props + 还原成 `onXxx` 的监听同袋）+ `default` 裸名残差；`onXxx` 命名还原（`on` + `upperFirst`）、读键（私有 `resolveKey(raw, owners)`：`ownerTable` 由本次认领的 `channels` 派生，返回 `{ type: 'prop' \| 'listener', channel, key }`，认领不到则 `undefined` 落 `default`） |
-| `use-form-attrs.ts` | 两个组件的通道认领：`useFormViewAttrs` / `useFormFieldAttrs`（每桶一个 `computed`）+ `useFormFieldSlots`（`item` 桶 → 宿主 Item 槽，`default` 桶 → control 槽；非响应式，随 render 读取） |
+| `use-form-attrs.ts` | 两个组件的通道认领：`useFormViewAttrs`（`fl` / `layout` / `default`，`layout-item:` / `item:` 都透传）/ `useFormFieldAttrs`（每桶一个 `computed`，`fl` / `layout` / `layout-item` / `item` / `default`）+ `FIELD_SLOT_CHANNELS`（随 render 交给 `dispatch(slots, …)`：`item` 桶 → 宿主 Item 槽，`default` 桶 → control 槽） |
 | `utils.ts` | 通用工具（按 lodash 命名，无 formless 语义）：`upperFirst` / `UpperFirst`、`omit` / `omitUndefined`、`toAttrBoolean`（Vue 布尔 attr 语义） |
 | `control-config.ts` | control 静态 `formless` 读取（`ControlFormless` + `ComponentCustomOptions` 增强） |
 | `fl-keys.ts` | schema extras、shell keys（`omitShellKeys` / `schemaExtras`） |
