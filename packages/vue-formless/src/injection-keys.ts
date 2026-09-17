@@ -16,7 +16,7 @@ export interface FormContext {
   item: boolean
   /** Same factory-bound LayoutView; wrap-embed creates an inner window with it. */
   LayoutView: Component
-  getModelBinding(model?: string): { value: any, update: (v: any) => void }
+  getModelBinding(prop?: string): { value: any, update: (v: any) => void }
 }
 
 export const FORM_VIEW_KEY: InjectionKey<FormContext | null> = Symbol(
