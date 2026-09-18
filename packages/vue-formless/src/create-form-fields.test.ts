@@ -3,7 +3,8 @@ import { createSSRApp, defineComponent, h, nextTick, type VNode } from 'vue'
 import { renderToString } from 'vue/server-renderer'
 import { createFormFields, type ComponentPublicProps } from './create-form-fields'
 import { createFormView } from './create-form-view'
-import { FormField } from './FormField'
+import { FormField, FormFieldCore } from './FormField'
+import type { ItemFl } from './field-schema'
 
 describe('createFormFields', () => {
   it('exposes PascalCase components for camelCase field keys', () => {
@@ -499,5 +500,51 @@ describe('createFormFields props overlay', () => {
     expect(spans).toContain('8')
     expect(spans.filter((s) => s === '24')).toHaveLength(2)
     expect(spans).not.toContain('12')
+  })
+
+  it('renders FormFieldCore from channel buckets, evaluating a control function', async () => {
+    const snapshots: ItemFl[] = []
+    const seen: Record<string, unknown>[] = []
+    const Probe = defineComponent({
+      inheritAttrs: false,
+      setup(_, { attrs }) {
+        seen.push({ ...attrs })
+        return () => h('input', { class: 'probe' })
+      },
+    })
+
+    const html = await render(
+      h(shellView(), { modelValue: { name: 'bob' } }, () =>
+        h(FormFieldCore, {
+          fl: { component: Probe, prop: 'name', model: 'modelValue', label: '姓名' },
+          layoutItem: {},
+          layout: {},
+          item: {},
+          control: (fl: ItemFl) => {
+            snapshots.push(fl)
+            // The binding the core lays over this must win on the same name (§5.2).
+            return { modelValue: 'nope', 'data-prop': fl.prop[0], 'data-label': fl.label }
+          },
+        }),
+      ),
+    )
+
+    // The control function sees the core's own snapshot, identity included.
+    expect(snapshots).toHaveLength(1)
+    expect(snapshots[0]).toMatchObject({
+      model: ['modelValue'],
+      prop: ['name'],
+      label: '姓名',
+    })
+    expect(snapshots[0]!.getValues()).toEqual(['bob'])
+
+    // Its return value lands on the control, under the v-model binding.
+    expect(html).toContain('class="probe"')
+    expect(seen[0]).toMatchObject({
+      modelValue: 'bob',
+      'data-prop': 'name',
+      'data-label': '姓名',
+    })
+    expect(seen[0]!['onUpdate:modelValue']).toBeTypeOf('function')
   })
 })

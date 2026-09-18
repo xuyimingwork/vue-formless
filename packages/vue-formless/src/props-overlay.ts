@@ -15,7 +15,7 @@ export function resolveProps<TFl>(
 }
 
 /** Later layers win. `undefined` does not override. Empty string is a value. */
-export function overlayProps(
+export function mergeAttrs(
   ...layers: Array<Record<string, unknown> | undefined>
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {}

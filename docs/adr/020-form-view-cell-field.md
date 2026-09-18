@@ -163,7 +163,8 @@ provide：`model` / `update`、宿主 `Item` + `itemProps`、本层 `item`、工
 
 - [`createFormView`](../../packages/vue-formless/src/create-form-view.ts)：根
 - [`FormCell`](../../packages/vue-formless/src/FormCell.tsx)：一格
-- [`FormField`](../../packages/vue-formless/src/FormField.tsx) + [`create-form-fields.ts`](../../packages/vue-formless/src/create-form-fields.ts)：薄工厂，每项挂一颗 Field
+- [`FormField.tsx`](../../packages/vue-formless/src/FormField.tsx)：内核装配件 `FormFieldCore`（收五个通道桶 `fl` / `layoutItem` / `layout` / `item` / `control`，内核私有、不进 `index.ts`）+ 公开标签 `FormField`（façade）
+- [`create-field-component.ts`](../../packages/vue-formless/src/create-field-component.tsx) + [`create-form-fields.ts`](../../packages/vue-formless/src/create-form-fields.ts)：薄工厂，每项挂一颗 Field
 - 纯函数保留：`control-model`（可改名 field-model）、`overlay-props`、`model-path`（`form-model-writer` 已并入 `use-form-view-model-value`）
 
 删除或收掉：`resolveControlShell` 的 `wrapCol` / `extraRow` / `'self'`、`wrap-control.ts`、`ControlFrame`、工厂里剥两遍 attrs 再塞 frame。前缀剥一次，变成 FormCell / Input / 内层 LayoutView 的真 props。

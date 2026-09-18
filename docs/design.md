@@ -159,11 +159,11 @@ dispatch(bag, channels, { prefix })   // 每通道一桶 + default 残差；pref
 useDispatch(attrs, VIEW_ATTR_CHANNELS)   → fl / layout / default
                             页：layout-item:* / item:* 都不是页通道，在 default 里透传
 useDispatch(attrs, FIELD_ATTR_CHANNELS)  → fl / layout / layoutItem / item / default
+                            公开 FormField 与工厂壳都走这里；工厂壳再把自己的预设层叠在 fl 桶上
 dispatch(slots, FIELD_SLOT_CHANNELS) → item 桶是宿主 Item 槽，default 桶是 control 槽
-dispatch(bag, …)          → 工厂壳只取 fl（那袋是 preset + tag 合并后的，不是组件的 attrs）
 ```
 
-`dispatch` 与 `useDispatch` 分工：前者是**平值原语**（slot 名、工厂壳的合并袋都走它，那里既不是组件的 attrs 也不在响应式上下文里）；后者是 **attrs 关口**（加响应式包装与桶名）。`dispatch(slots, …)` 拿不到响应式包裹，也不该被 camelize——Vue 不归一化槽名，`item:label-width` 归一成 `labelWidth` 就再也匹配不上。
+`dispatch` 与 `useDispatch` 分工：前者是**平值原语**（`dispatch(slots, …)` 是唯一调用点——槽名既不是组件的 attrs 也不在响应式上下文里）；后者是 **attrs 关口**（加响应式包装与桶名）。`dispatch(slots, …)` 拿不到响应式包裹，也不该被 camelize——Vue 不归一化槽名，`item:label-width` 归一成 `labelWidth` 就再也匹配不上。
 
 
 通道归谁：`layout:` 只给 LayoutView（FormField 仅 wrap-embed 内层），`layout-item:` 只给本格 LayoutItem，`item:` 只给宿主 Item 壳。**`FormView` 没有 LayoutItem**，故 `layout-item:` 不是页通道——和 `item:` 一样留在 `default` 里原样透传给宿主 Form。
@@ -205,7 +205,7 @@ dispatch(bag, …)          → 工厂壳只取 fl（那袋是 preset + tag 合�
 | `fl:layout` | `boolean` | 是否渲染 LayoutView（§9） |
 | `fl:form` | `'auto' \| boolean` | 是否渲染 ElForm（§9） |
 
-**`FieldSchema` 的每个核心键都有一个 `fl:` 孪生键**（`component` / `props` / `model` / `prop` / `item` / `field`，extras 是 `fl:label`…）。工厂壳因此只是「把 schema 译成一层 `fl:*` 预设 attrs」：作者写在标签上的键与工厂写下去的键是同一套（§16.3）。
+**`FieldSchema` 的核心键都有对应的 `fl:` 标签键**（`component` / `model` / `prop` / `item` / `field`，extras 是 `fl:label`…）；唯一例外是 `props`——它可能是快照函数，装不进 attrs，因此走 `control` 通道的第一层（§16.3）。工厂壳因此只是「拿 schema 的剩余键当一层预设」：作者写在标签上的键与工厂叠下去的键是同一套**桶键**（前缀已由 `dispatch` 剥掉，§16.3）。
 
 **内核没有「身份名」键**（ADR-011 §6 修订）。`createFormFields` 的域名表键只当 `fl:prop` 的缺省值（位置），不另发一个名字下行；宿主 `prop` 怎么编（点分路径 / 名字 / 不绑）是适配层的私事（§12.2）。
 
@@ -551,10 +551,10 @@ interface FieldSchema {
 FormView:   overlay(form.props(snapshot), hostAttrs（剥掉 v-model 端口）)
 FormField（绑定面）: 身份根 = fl:prop/fl:model 声明；切片 = 祖先身份层 + fl:model 选口（§16.2）
 FormField（宿主 Item 壳）: overlay(item.props(snapshot), itemAttrs)   // itemAttrs = item 桶：props 与监听同一袋；裸名不进 Item（§5.2）
-FormField（control）:      overlay(schema props（工厂已求值）, controlAttrs（剥掉 v-model 端口）)
+FormField（control）:      overlay(schema props（control 层第一项，按 snapshot 求值）, controlAttrs（剥掉 v-model 端口）)
 ```
 
-`FieldSchema.props` 可能是**快照函数**，attrs 只能装平值，所以工厂壳在渲染时用**同一套身份 / snapshot helper**（`field-identity.ts`）把它求值成平值，再当裸名 attrs 传下去——求值口径因此与 `item.props` 完全一致，不会各算一套。
+`FieldSchema.props` 可能是**快照函数**，attrs 只能装平值，所以它作为 `FormFieldCore` 的 `control` 层第一项带下去，由 core 用**同一套身份 / snapshot helper**（`field-identity.ts`）就着 core 自己那份 `ItemFl` 求值——求值口径因此与 `item.props` 完全一致，不会各算一套（§16.3）。
 
 ### 12.2 语义源 vs 机械覆盖
 
@@ -673,8 +673,8 @@ quoted   := '"' keychar* '"' | "'" keychar* "'"   转义 '\'
 |------|------|
 | `create-form-view.ts` | 根：v-model、可选 Form、页级 LayoutView、provide context |
 | `create-form-item.tsx` | 组装宿主 Item：`createFormItem({ component, props, fl })` → `FormItem`（收 FormField 的 `fl` / `item` 两个 prop；`setup` 里合并页级 `fl:item` 开关 + 投影 `props`） |
-| `FormField.tsx`（原 `FormCell.tsx`） | 一格 + 组装：LayoutItem + 组装 Item + control + `$bindings`；剥 attrs 一次、switch(fieldMode)、v-model 归集；`fl:component` 临场控件 |
-| `create-field-component.ts` | 单 Field 工厂壳：把 schema 译成一层 `fl:*` 预设 attrs，交给 `FormField`（无私有参数、不 provide） |
+| `FormField.tsx`（原 `FormCell.tsx`） | 内核装配件 `FormFieldCore` + 公开标签 `FormField`：前者收五个通道桶（`fl` / `layoutItem` / `layout` / `item` / `control`）做 LayoutItem + 组装 Item + control + `$bindings`、switch(fieldMode)、v-model 归集、无条件 provide；后者只是 `useDispatch` → 桶直传的 façade |
+| `create-field-component.ts` | 单 Field 工厂壳：把 schema 的剩余键当**预设层**（桶键，无需前缀），与标签桶在桶空间合并，交给 `FormFieldCore`（无私有参数、不 provide） |
 | `create-form-fields.ts` | 域表工厂，产出 PascalCase Field 标签 |
 | `injection-keys.ts` | `FORM_VIEW_KEY`、`FORM_FIELD_KEY` |
 | `context.ts` | `useFormViewContext()` |
@@ -685,9 +685,9 @@ quoted   := '"' keychar* '"' | "'" keychar* "'"   转义 '\'
 | `use-form-attrs.ts` | 通道认领的 attrs 关口：`useDispatch(attrs, channels, options?)` → 每桶一个 ref（`BucketRefs<C>`：桶名 = 通道名 camelCase，由 `Channel` 经 `utils.ToCamel` 派生；只给认领的通道建桶）+ 三个通道集：`VIEW_ATTR_CHANNELS`（`fl` / `layout`，`layout-item:` / `item:` 都透传，§5.3）/ `FIELD_ATTR_CHANNELS`（`fl` / `layout` / `layout-item` / `item`）/ `FIELD_SLOT_CHANNELS`（随 render 交给 `dispatch(slots, …)`：`item` 桶 → 宿主 Item 槽，`default` 桶 → control 槽） |
 | `utils.ts` | 通用工具（按 lodash 命名，无 formless 语义）：`upperFirst` / `UpperFirst`、`toCamel` / `ToCamel`（kebab → camel，通道名 / 桶名共用）、`omit` / `omitUndefined`、`toAttrBoolean`（Vue 布尔 attr 语义） |
 | `control-config.ts` | control 静态 `formless` 读取（`ControlFormless` + `ComponentCustomOptions` 增强） |
-| `fl-keys.ts` | schema extras、shell keys（`omitShellKeys` / `schemaExtras`） |
+| `fl-keys.ts` | shell keys：`omitShellKeys`（外层壳开关不下行内层格） |
 | `field-mode.ts` | `isFieldMode` / `resolveFieldMode` |
-| `field-identity.ts` | 身份与快照 helper：`resolveDeclaredBinding` / `fieldPropBinding` / `resolveFieldBinding` / `buildItemFl`（FormField 与工厂壳共用） |
+| `field-identity.ts` | 身份与快照 helper：`resolveDeclaredBinding` / `fieldPropBinding` / `resolveFieldBinding` / `buildItemFl`（`FormFieldCore` 一处使用） |
 | `field-schema.ts` | `FieldSchema` / `ItemFl` / tag props 类型 |
 | `use-form-view-model.ts` | 写口归集：`useFormViewModelValue` |
 | `model-writer.ts` | `createModelWriter`：同 tick 合并的不可变路径写入器 |
@@ -745,49 +745,56 @@ interface FormFieldContext {
 
 ### 16.3 FormField 的运行时装配
 
-**FormField 只有一层配置面：它自己的标签 attrs。** 没有内核私有参数、没有侧信道——所以组件外怎么写 `<FormField …>`，工厂壳内就怎么往下传。
+**一颗 Field 的装配只有一份实现：`FormFieldCore`。** 它没有内核私有参数、没有侧信道——只收**五个通道桶**（`fl` / `layoutItem` / `layout` / `item` / `control`）。两个调用方按同一个动作抵达它：各自 `dispatch` 自己的包，在**桶键空间**里把层叠好再递下去。桶键就是没有前缀的键，所以「层」从头到尾不需要拼回前缀。
 
 ```
+FormField（公开标签）：零预设，桶直传
+  { fl, layoutItem, layout, item, default: control } = useDispatch(attrs, FIELD_ATTR_CHANNELS)
+  h(FormFieldCore, { fl, layoutItem, layout, item, control }, slots)
+
 工厂壳 createFormFieldComponent(Object.assign({ name: key, prop: key }, schema)):
-  schemaToFieldAttrs(schema):                                   // 纯翻译（prop 缺省已由调用方补齐）
-      component → fl:component      model → fl:model
-      prop      → fl:prop（域表层已给缺省 = 域名表的键）   item → fl:item
-      field     → fl:field          extras(label…) → fl:<extra>
+  { component, props, ...preset } = schema        // 解构即「哪些键不进预设层」
+  Object.assign(preset, readControlFormless(component))   // 控件静态 bag 是预设层的中间层
+  delete preset.layout                            // 残留壳开关是行/页开关，不是预设键
   render:
-      fl, snapshot = 用 field-identity.ts 的 helper 现算（一套实现，不漂移）
-      controlProps = resolveProps(schema.props, snapshot)                      // 快照函数在此求值
-      h(FormField, overlay(preset, controlProps, tagAttrs), slots)             // 标签近的赢
-  仅三处「挡」：fl:model / fl:component 由 schema 锁死（身份已锁，§7.2）；
-                 非法 fl:field 落回 preset 值（§8 只认合法值整颗替换）
+      tag = useDispatch(attrs, FIELD_ATTR_CHANNELS)
+      fl = overlayProps(preset, tag.fl)           // 标签近的赢（preset 全是桶键）
+         非法 tag.fl:field 落回 preset.field（§8 只认合法值整颗替换）
+         fl.component / fl.model 末层直接赋值（§7.2 身份已锁，标签重述无效）
+      control = (itemFl) => overlayProps(resolveProps(props, itemFl), tag.default)
+      h(FormFieldCore, { fl, ...tag 其余四桶, control }, slots)
 ```
 
-`props` 是唯一必须在工厂壳里落地的东西：attrs 只能装平值，而 `props` 可能是快照函数。求值用的身份 / snapshot **不是另算一套**，而是共用 `field-identity.ts`（`resolveDeclaredBinding` / `fieldPropBinding` / `resolveFieldBinding` / `buildItemFl`），所以 `schema.props` 看到的是同一份 `ItemFl`（含标签 `:fl:prop` 搬家后的真实位置）。`item.props` 由组装件 FormItem 投影（当前传原始 fl 桶，快照归一化挂账）。工厂壳因此**仍不 provide**：身份层只有 FormField 提供。
-
-FormField 在 setup 里无条件 provide，只叠加 `getPropBinding`、其余透传——身份根 / 切片由 `getPropBinding` 的 self-or-inherited 逻辑隐式区分。
-
 ```
-setup:
-  { fl, layout, layoutItem, item, default: controlAttrsBag }
-      = useDispatch(attrs, FIELD_ATTR_CHANNELS)     // 一次分桶 + 每桶一个 ref（桶名 = 通道名 camelCase）
-  fieldContext = inject(FORM_FIELD_KEY, null)      // 祖先的 model 源 + 身份映射 + 壳资源
-  declared = resolveDeclaredBinding(fl.value)            // 临场格 / 身份根：标签即声明
-  getPropBinding = fieldPropBinding(() => declared.value, fieldContext)  // 自有 prop 自实现，否则父级
-  provide(FORM_FIELD_KEY, {                              // 无条件：叠加 getPropBinding、其余透传
-    getModelBinding: (p) => fieldContext?.getModelBinding(p),
-    getPropBinding,
-    FormItem: fieldContext?.FormItem,
-    LayoutView: fieldContext?.LayoutView,
-  })
-  binding = resolveFieldBinding(declared.value, getPropBinding)  // 自有 prop 即声明；否则按口解析祖先位置
-  bindings = modelBindings(binding.value, (p) => fieldContext?.getModelBinding(p))  // 口 + 现值 + 按口写
-render:
-  fieldMode = resolveFieldMode(fl.value.field)                        // 合法值整颗替换，否则 'wrap'
-  controlAttrs = { ...controlAttrsBag.value, ...bindings.value }      // 裸名只给 control；v-model 绑定覆盖同名裸名
-  control = h(fl:component, controlAttrs, controlSlots)  // control 或 slot 手写（$bindings = bindings）
-  switch (fieldMode): embed → control；否则 LayoutItem → (FormItem → control : control)
-    FormItem 只收两个参数：fl = 原始 fl 桶、item = item 通道整桶；页级 fl:item 合并 + item.props 投影都在其 setup 内
-    wrap-embed 时 fieldBody = LayoutView({ ...layout.value }) → control
+FormFieldCore（唯一装配点）：
+  setup:
+    { fl: rawFl, layoutItem, layout, item, control } = props      // 五个桶，无私有参数
+    fl = { ...rawFl, model: normalizeModel(rawFl.model)
+           || readControlFormless(rawFl.component).model || ['modelValue'] }
+    fieldContext = inject(FORM_FIELD_KEY, null)      // 祖先的 model 源 + 身份映射 + 壳资源
+    declared = resolveDeclaredBinding(fl)            // 临场格 / 身份根：桶即声明
+    getPropBinding = fieldPropBinding(() => declared, fieldContext)  // 自有 prop 自实现，否则父级
+    provide(FORM_FIELD_KEY, {                              // 无条件：叠加 getPropBinding、其余透传
+      getModelBinding: (p) => fieldContext?.getModelBinding(p),
+      getPropBinding,
+      FormItem: fieldContext?.FormItem,
+      LayoutView: fieldContext?.LayoutView,
+    })
+    binding = resolveFieldBinding(declared, getPropBinding)  // 自有 prop 即声明；否则按口解析祖先位置
+    bindings = modelBindings(binding, (p) => fieldContext?.getModelBinding(p))  // 口 + 现值 + 按口写
+    snapshot = buildItemFl(fl, binding, getValues)   // control 函数看到的就是这一份
+  render:
+    fieldMode = normalizeField(rawFl.field)                       // 合法值整颗替换，否则 'wrap'
+    controlAttrs = { ...resolveProps(control, snapshot), ...bindings }  // 裸名只给 control；v-model 绑定覆盖同名裸名
+    Control = h(rawFl.component, controlAttrs, controlSlots)  // 或 slot 手写（$bindings = bindings）
+    switch (fieldMode): embed → Control；否则 LayoutItem → (FormItem → Control : Control)
+      FormItem 只收两个参数：fl = 原始 fl 桶、item = item 通道整桶；页级 fl:item 合并 + item.props 投影都在其 setup 内
+      wrap-embed 时 fieldBody = LayoutView({ ...layout }) → Control
 ```
+
+三处「挡」现在只剩一处：**非法的 tag `fl:field` 落回 preset 值**。`fl:model` / `fl:component` 不是被删掉，而是换了写法——从「跳过标签键」改成**末层直接赋值**。这里不能用 `overlayProps`：它跳过 `undefined`，而 schema 可以不声明 `component` / `model`，那样标签的 `fl:component` / `fl:model` 就会漏进来，破 §7.2 的「身份已锁」。
+
+`props` 是唯一必须在工厂壳里带下去的东西：attrs 只能装平值，而 `props` 可能是快照函数，于是它作为 `control` 通道的**第一层**进 core（裸标签名仍盖过它，`bindings` 再盖过同名裸名）。求值用的身份 / snapshot 就在 core 里，`field-identity.ts`（`resolveDeclaredBinding` / `fieldPropBinding` / `resolveFieldBinding` / `buildItemFl`）只有一份实现，所以 `schema.props` 看到的是同一份 `ItemFl`（含标签 `:fl:prop` 搬家后的真实位置）。`item.props` 由组装件 FormItem 投影（当前传原始 fl 桶，快照归一化挂账）。工厂壳因此**仍不 provide**：身份层只有 `FormFieldCore` 提供，身份根 / 切片由 `getPropBinding` 的 self-or-inherited 逻辑隐式区分。
 
 `getPropBinding` / `binding` / `bindings` 都是懒读：`fl:prop` 可能被标签重述、嵌套 FormView 可能换 model 源，所以位置与 model 都不能在 setup 拍死——`fieldContext?.getModelBinding` 每次现取。
 
@@ -870,7 +877,7 @@ HostProps, LayoutItemSpan, LayoutItemPlace
 
 2c. **`useDispatch` 统一 + `keep` 投影**（已落地）：`useFormViewAttrs` / `useFormFieldAttrs` 两个 hook 合成 `useDispatch(attrs, channels, options?)`，桶名由 `Channel` 经 `ToCamel` 派生（`layout-item` → `layoutItem`），通道集改为导出的 `VIEW_ATTR_CHANNELS` / `FIELD_ATTR_CHANNELS`（`FIELD_SLOT_CHANNELS` 不变，`dispatch(slots, …)` 照旧）；`dispatch` 增可选 `{ prefix: 'keep' | 'drop' }`（默认 `'drop'`），`keep` 保留输入键形、可被同一张表再认领，供父组件把某通道原样交给子组件。行为不变，属重构 + 新投影。
 3. `FormCell.tsx` → 并入 `FormField.tsx`：绑定下沉、`$bindings` 输出、支持 `:component`、删 `useFormCell`。
-4. `injection-keys.ts`：`FORM_FIELD_KEY` 值改为 `FormFieldContext`（`getModelBinding` + `getPropBinding?` + 壳资源），`FormViewContext` 只余 `model` / `update`；`FormField.tsx` 只 inject `FORM_FIELD_KEY`、无条件 provide（叠加 `getPropBinding`、透传其余）；身份 / 快照 helper 抽到 `field-identity.ts`（`fieldPropBinding` / `resolveFieldBinding`，删 `FieldLayer` / `fieldBinding` / `createFieldLayer`）；工厂壳改为纯「schema → `fl:*` 预设 attrs」，经 `overlay(preset, controlProps, tagAttrs)` 传给 FormField（无私有参数，`props` 函数在壳里用同一套 helper 求值）。
+4. `injection-keys.ts`：`FORM_FIELD_KEY` 值改为 `FormFieldContext`（`getModelBinding` + `getPropBinding?` + 壳资源），`FormViewContext` 只余 `model` / `update`；`FormField.tsx` 只 inject `FORM_FIELD_KEY`、无条件 provide（叠加 `getPropBinding`、透传其余）；身份 / 快照 helper 抽到 `field-identity.ts`（`fieldPropBinding` / `resolveFieldBinding`，删 `FieldLayer` / `fieldBinding` / `createFieldLayer`）；工厂壳改为纯「schema → `fl:*` 预设 attrs」，经 `overlay(preset, controlProps, tagAttrs)` 传给 FormField（无私有参数，`props` 函数在壳里用同一套 helper 求值）。（后修订：装配件抽成 `FormFieldCore`，收五个通道桶；工厂壳不再预求值 `props`，改作 `control` 层交 core 就着同一份 `ItemFl` 求值——见 §16.3）
 5. **裸名口径对齐 §5.2**：FormField 的宿主 Item 不再吃裸名（`item:*` 才有），工厂求出的 control props 因此不会漏到 ElFormItem 上；`fl:label` 走快照 → 适配 Item `label`。
 6. `field-schema.ts`：`ItemFl` 拆平（去掉 `binding`，暴露 `model` / `prop`）；适配器 `props` 函数跟进（playground `toEpItemProps`）。（已落地）
 7. `create-form-view.ts`：`layout.column` → `layout.props`（函数形式）。

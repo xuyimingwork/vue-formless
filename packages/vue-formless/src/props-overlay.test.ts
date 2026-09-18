@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { overlayProps, resolveProps } from './props-overlay'
+import { mergeAttrs, resolveProps } from './props-overlay'
 
 describe('resolveProps', () => {
   it('returns {} when spec is omitted', () => {
@@ -19,19 +19,19 @@ describe('resolveProps', () => {
   })
 })
 
-describe('overlayProps', () => {
+describe('mergeAttrs', () => {
   it('lets later defined values win', () => {
-    expect(overlayProps({ a: 1, b: 2 }, { b: 3, c: 4 })).toEqual({ a: 1, b: 3, c: 4 })
+    expect(mergeAttrs({ a: 1, b: 2 }, { b: 3, c: 4 })).toEqual({ a: 1, b: 3, c: 4 })
   })
 
   it('does not let undefined override', () => {
-    expect(overlayProps({ placeholder: '请填写' }, { placeholder: undefined })).toEqual({
+    expect(mergeAttrs({ placeholder: '请填写' }, { placeholder: undefined })).toEqual({
       placeholder: '请填写',
     })
   })
 
   it('treats empty string as a value', () => {
-    expect(overlayProps({ placeholder: '请填写' }, { placeholder: '' })).toEqual({
+    expect(mergeAttrs({ placeholder: '请填写' }, { placeholder: '' })).toEqual({
       placeholder: '',
     })
   })

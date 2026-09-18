@@ -15,7 +15,7 @@ import { createFormItem } from './create-form-item'
 import { FORM_FIELD_KEY, FORM_VIEW_KEY, type FormFieldContext, type FormViewContext } from './injection-keys'
 import { useFormViewModelValue } from './use-form-view-model'
 import type { ItemFl } from './field-schema'
-import { overlayProps, resolveProps, type HostProps } from './props-overlay'
+import { mergeAttrs, resolveProps, type HostProps } from './props-overlay'
 import { omit, toAttrBoolean } from './utils'
 import { VIEW_ATTR_CHANNELS, useDispatch } from './use-form-attrs'
 import { getIn } from '@/path-access'
@@ -224,7 +224,7 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
         // `disabled` is kernel-owned: fl:layout flips polarity (design.md §10.1).
         const body = (
           <HostLayoutView
-            {...overlayProps(resolveProps(layoutPropsSpec, { layout }), viewLayoutAttrs.value)}
+            {...mergeAttrs(resolveProps(layoutPropsSpec, { layout }), viewLayoutAttrs.value)}
             disabled={!layout}
             v-slots={{ default: slots.default }}
           />
@@ -240,7 +240,7 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
         return (
           <HostForm
             ref={hostForm}
-            {...overlayProps(
+            {...mergeAttrs(
               formProps({ modelValue: model.value }) as any,
               omit(viewHostAttrs.value, V_MODEL_PORT_KEYS),
             )}

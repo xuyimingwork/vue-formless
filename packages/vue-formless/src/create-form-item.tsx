@@ -9,7 +9,7 @@ import {
   type VNodeChild,
 } from 'vue'
 import type { ItemFl } from './field-schema'
-import { overlayProps, resolveProps, type HostProps } from './props-overlay'
+import { mergeAttrs, resolveProps, type HostProps } from './props-overlay'
 import { toAttrBoolean } from './utils'
 
 /** `Component` is a union; JSX needs a constructable host. */
@@ -47,7 +47,7 @@ export function createFormItem(options: CreateFormItemOptions = {}): Component {
       /** Page < field layer merge + boolean normalization (§9 / §12.1). */
       const formlessOptions = computed(() => {
         const pageItem = pageFl ? toValue(pageFl).item : undefined
-        const fl = overlayProps({ item: pageItem }, props.fl)
+        const fl = mergeAttrs({ item: pageItem }, props.fl)
         return { ...fl, item: toAttrBoolean(fl.item, true) }
       })
 
@@ -58,7 +58,7 @@ export function createFormItem(options: CreateFormItemOptions = {}): Component {
           <HostItem
             // Snapshot normalization is deferred; the raw `fl` bucket stands in
             // for `ItemFl` until that lands (see plan "遗留问题").
-            {...overlayProps(resolveProps(propsSpec, formlessOptions.value as unknown as ItemFl), props.item)}
+            {...mergeAttrs(resolveProps(propsSpec, formlessOptions.value as unknown as ItemFl), props.item)}
             v-slots={slots}
           />
         )
