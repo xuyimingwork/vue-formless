@@ -694,7 +694,6 @@ quoted   := '"' keychar* '"' | "'" keychar* "'"   转义 '\'
 | `create-field-component.ts` | 单 Field 工厂壳：把 schema 的剩余键当**预设层**（桶键，无需前缀），与标签桶在桶空间合并，交给 `FormFieldCore`（无私有参数、不 provide） |
 | `create-form-fields.ts` | 域表工厂，产出 PascalCase Field 标签 |
 | `injection-keys.ts` | `FORM_VIEW_KEY`、`FORM_FIELD_KEY` |
-| `context.ts` | `useFormViewContext()` |
 | `control-binding.ts` | `resolveControlBinding` / `bindingForPort` / `modelBindings` / `stripPortBindings` / `ModelBinding`（转私有） |
 | `path-access.ts` / `path-parse.ts` | 不可变 get/set + 路径解析 |
 | `props-overlay.ts` | `resolveProps` / `overlayProps` / `HostProps` |
@@ -866,7 +865,7 @@ HostProps, LayoutItemSpan, LayoutItemPlace
 ```
 
 - `FormView` / `LayoutView` 是工厂**产物**，不作为独立值导出；`FormViewComponent` 仅为类型。
-- 私有（不导出，可随内核演进）：`useFormViewContext` / `FormViewContext` / `FormFieldContext`、`FORM_VIEW_KEY` / `FORM_FIELD_KEY`、`getIn` / `setIn` / `parsePath`、`overlayProps` / `resolveProps`、`resolveControlBinding` / `bindingForPort` / `modelBindings` / `stripPortBindings` / `toBindingList` / `ResolvedControlBinding` / `ModelBinding`、`fieldPropBinding` / `resolveFieldBinding`、`createModelWriter`、`upperFirst`。
+- 私有（不导出，可随内核演进）：`FormViewContext` / `FormFieldContext`、`FORM_VIEW_KEY` / `FORM_FIELD_KEY`、`getIn` / `setIn` / `parsePath`、`overlayProps` / `resolveProps`、`resolveControlBinding` / `bindingForPort` / `modelBindings` / `stripPortBindings` / `toBindingList` / `ResolvedControlBinding` / `ModelBinding`、`fieldPropBinding` / `resolveFieldBinding`、`createModelWriter`、`upperFirst`。
 - 定制路径只有三条：`$bindings` slot（§7.3）、`:component` 临场格（§7.4）、module augmentation（§18）——都不需要够到内核。
 
 ---

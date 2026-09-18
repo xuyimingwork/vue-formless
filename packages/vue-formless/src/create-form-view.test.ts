@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createSSRApp, defineComponent, h, nextTick, type PropType, type VNode } from 'vue'
+import { createSSRApp, defineComponent, h, inject, nextTick, type PropType, type VNode } from 'vue'
 import { renderToString } from 'vue/server-renderer'
 import { createFormView } from './create-form-view'
 import { FormField } from './FormField'
-import { useFormViewContext } from './context'
+import { FORM_VIEW_KEY } from './injection-keys'
 
 const Row = defineComponent({
   name: 'DummyRow',
@@ -57,7 +57,7 @@ function View(onForm?: (props: { model?: unknown; fl?: unknown }) => void) {
 function Writer(prop = 'name', value: unknown = 'Bob') {
   return defineComponent({
     setup() {
-      useFormViewContext().update(prop, value)
+      inject(FORM_VIEW_KEY)!.update(prop, value)
       return () => null
     },
   })
