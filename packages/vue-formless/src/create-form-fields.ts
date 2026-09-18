@@ -2,17 +2,13 @@ import { markRaw } from 'vue'
 import { upperFirst, type UpperFirst } from './utils'
 import {
   createFormFieldComponent,
-  type CreateFormFieldOptions,
   type FieldSchemaInput,
 } from './create-field-component'
 import type { FormFieldComponent } from './FormField'
 import type { FieldSchema } from './field-schema'
 import type { ControlTagProps } from './control-props'
 
-export type {
-  CreateFormFieldOptions,
-  FieldSchemaInput,
-} from './create-field-component'
+export type { FieldSchemaInput } from './create-field-component'
 export type { FormFieldComponent } from './FormField'
 export type { FieldMode, FieldSchema, FormFieldTagProps, ItemFl } from './field-schema'
 export type { ControlProp, ControlVModel } from './control-binding'
@@ -22,8 +18,6 @@ export type {
   LockedVModelKeys,
   ControlTagProps,
 } from './control-props'
-
-export type CreateFormFieldsOptions = CreateFormFieldOptions
 
 /** Loose schema bag. Prefer inferring `S` from an object literal via `createFormFields`. */
 export type FormFieldsSchema = Record<string, FieldSchema>
@@ -43,7 +37,6 @@ export type NamespacedFields<S> = {
  */
 export function createFormFields<const S extends { [K in keyof S]: FieldSchemaInput }>(
   schema: S,
-  options?: CreateFormFieldsOptions,
 ): NamespacedFields<S> {
   const normalized = normalizeSchema(schema)
   const result = {} as NamespacedFields<S>
@@ -56,7 +49,6 @@ export function createFormFields<const S extends { [K in keyof S]: FieldSchemaIn
     result[pascalKey] = createFormFieldComponent(
       schemaKey,
       field,
-      options,
     ) as NamespacedFields<S>[typeof pascalKey]
   }
 

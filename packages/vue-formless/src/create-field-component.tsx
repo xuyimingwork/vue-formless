@@ -10,15 +10,10 @@ import { FORM_FIELD_KEY } from './injection-keys'
 import { isFieldMode } from './field-mode'
 import { readControlFormless } from './control-config'
 import { schemaExtras } from './fl-keys'
-import type { FieldSchema, ItemFl } from './field-schema'
-import { overlayProps, resolveProps, type HostProps } from './props-overlay'
+import type { FieldSchema } from './field-schema'
+import { overlayProps, resolveProps } from './props-overlay'
 import { dispatch } from './dispatch'
 import { upperFirst } from './utils'
-
-export interface CreateFormFieldOptions {
-  /** Defaults for every field in this cluster (static or from the field snapshot). */
-  props?: HostProps<ItemFl>
-}
 
 /**
  * Constraint for factories only. `component` stays `unknown` so object
@@ -73,7 +68,6 @@ function schemaToFieldAttrs(
 export function createFormFieldComponent(
   schemaKey: string,
   schema: FieldSchemaInput,
-  cluster?: CreateFormFieldOptions,
 ): FormFieldComponent {
   const preset = schemaToFieldAttrs(schemaKey, schema)
 
@@ -109,12 +103,9 @@ export function createFormFieldComponent(
           binding,
           getValues,
         )
-        const controlProps = overlayProps(
-          resolveProps(cluster?.props, snapshot),
-          resolveProps(schema.props, snapshot),
-        )
+        const controlProps = resolveProps(schema.props, snapshot)
 
-        // preset (fl:* layer) < schema/cluster control props < tag attrs.
+        // preset (fl:* layer) < schema control props < tag attrs.
         return <FormField {...overlayProps(preset, controlProps, tagAttrs)} v-slots={slots} />
       }
     },

@@ -487,7 +487,7 @@ FormView 同时 provide **两个键**：`FORM_VIEW_KEY`（只给嵌套 FormView 
 
 ## 11. `createFormFields`：页级域表
 
-`createFormFields(schema, options?)` 声明**语义输入簇**（不是表单 schema），产出 PascalCase 的 Field 组件表。
+`createFormFields(schema)` 声明**语义输入簇**（不是表单 schema），产出 PascalCase 的 Field 组件表。
 
 ```ts
 const User = createFormFields({
@@ -551,7 +551,7 @@ interface FieldSchema {
 FormView:   overlay(form.props(snapshot), hostAttrs（剥掉 v-model 端口）)
 FormField（绑定面）: 身份根 = fl:prop/fl:model 声明；切片 = 祖先身份层 + fl:model 选口（§16.2）
 FormField（宿主 Item 壳）: overlay(item.props(snapshot), itemAttrs)   // itemAttrs = item 桶：props 与监听同一袋；裸名不进 Item（§5.2）
-FormField（control）:      overlay(schema/cluster props（工厂已求值）, controlAttrs（剥掉 v-model 端口）)
+FormField（control）:      overlay(schema props（工厂已求值）, controlAttrs（剥掉 v-model 端口）)
 ```
 
 `FieldSchema.props` 可能是**快照函数**，attrs 只能装平值，所以工厂壳在渲染时用**同一套身份 / snapshot helper**（`field-identity.ts`）把它求值成平值，再当裸名 attrs 传下去——求值口径因此与 `item.props` 完全一致，不会各算一套。
@@ -755,13 +755,13 @@ interface FormFieldContext {
       field     → fl:field          extras(label…) → fl:<extra>
   render:
       fl, snapshot = 用 field-identity.ts 的 helper 现算（一套实现，不漂移）
-      controlProps = overlay(cluster.props(snapshot), schema.props(snapshot))   // 快照函数在此求值
+      controlProps = resolveProps(schema.props, snapshot)                      // 快照函数在此求值
       h(FormField, overlay(preset, controlProps, tagAttrs), slots)             // 标签近的赢
   仅三处「挡」：fl:model / fl:component 由 schema 锁死（身份已锁，§7.2）；
                  非法 fl:field 落回 preset 值（§8 只认合法值整颗替换）
 ```
 
-`props` 是唯一必须在工厂壳里落地的东西：attrs 只能装平值，而 `props` 可能是快照函数。求值用的身份 / snapshot **不是另算一套**，而是共用 `field-identity.ts`（`resolveDeclaredBinding` / `fieldPropBinding` / `resolveFieldBinding` / `buildItemFl`），所以 `cluster.props`、`schema.props` 看到的是同一份 `ItemFl`（含标签 `:fl:prop` 搬家后的真实位置）。`item.props` 由组装件 FormItem 投影（当前传原始 fl 桶，快照归一化挂账）。工厂壳因此**仍不 provide**：身份层只有 FormField 提供。
+`props` 是唯一必须在工厂壳里落地的东西：attrs 只能装平值，而 `props` 可能是快照函数。求值用的身份 / snapshot **不是另算一套**，而是共用 `field-identity.ts`（`resolveDeclaredBinding` / `fieldPropBinding` / `resolveFieldBinding` / `buildItemFl`），所以 `schema.props` 看到的是同一份 `ItemFl`（含标签 `:fl:prop` 搬家后的真实位置）。`item.props` 由组装件 FormItem 投影（当前传原始 fl 桶，快照归一化挂账）。工厂壳因此**仍不 provide**：身份层只有 FormField 提供。
 
 FormField 在 setup 里无条件 provide，只叠加 `getPropBinding`、其余透传——身份根 / 切片由 `getPropBinding` 的 self-or-inherited 逻辑隐式区分。
 
@@ -829,7 +829,7 @@ declare module 'vue-formless' {
 ```ts
 // 值（仅此 5 个）
 createFormView(options) → FormView                     // 工厂：绑宿主 Form/Item/Row/Col
-createFormFields(schema, options?) → NamespacedFields  // 工厂：页级域表
+createFormFields(schema) → NamespacedFields             // 工厂：页级域表
 FormField                                              // 临场格 / slot 模式
 createLayoutView({ Row, Col, column? }) → LayoutView   // @vue-formless/layout 转出口
 LayoutItem                                             // @vue-formless/layout 转出口

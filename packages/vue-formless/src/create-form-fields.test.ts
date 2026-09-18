@@ -125,7 +125,7 @@ describe('createFormFields props overlay', () => {
     })
   }
 
-  it('merges cluster, field, then tag; functions see label', async () => {
+  it('merges field then tag; functions see label', async () => {
     const seen: Record<string, unknown>[] = []
     const Control = defineComponent({
       inheritAttrs: false,
@@ -134,23 +134,20 @@ describe('createFormFields props overlay', () => {
         return () => h('input')
       },
     })
-    const User = createFormFields(
-      {
-        name: {
-          label: '姓名',
-          component: Control,
-          props: (fl) => ({
-            placeholder: typeof fl.label === 'string' ? `请填写${fl.label}` : undefined,
-          }),
-        },
-        mobile: {
-          label: '手机',
-          component: Control,
-          props: { placeholder: '11 位手机号' },
-        },
+    const User = createFormFields({
+      name: {
+        label: '姓名',
+        component: Control,
+        props: (fl) => ({
+          placeholder: typeof fl.label === 'string' ? `请填写${fl.label}` : undefined,
+        }),
       },
-      { props: { clearable: true } },
-    )
+      mobile: {
+        label: '手机',
+        component: Control,
+        props: { placeholder: '11 位手机号' },
+      },
+    })
     const View = createFormView({
       layout: { Row: Dummy, Col: Dummy },
       item: { component: Passthrough },
@@ -163,9 +160,9 @@ describe('createFormFields props overlay', () => {
       ]),
     )
     expect(seen).toHaveLength(3)
-    expect(seen[0]).toMatchObject({ placeholder: '请填写姓名', clearable: true })
-    expect(seen[1]).toMatchObject({ placeholder: '11 位手机号', clearable: true })
-    expect(seen[2]).toMatchObject({ placeholder: '姓名', clearable: true })
+    expect(seen[0]).toMatchObject({ placeholder: '请填写姓名' })
+    expect(seen[1]).toMatchObject({ placeholder: '11 位手机号' })
+    expect(seen[2]).toMatchObject({ placeholder: '姓名' })
   })
 
   it('does not wrap an embed control in an outer Item', async () => {
@@ -331,20 +328,17 @@ describe('createFormFields props overlay', () => {
         return () => h('input')
       },
     })
-    const Fields = createFormFields(
-      {
-        name: {
-          label: '姓名',
-          component: Control,
-          props: (fl) => ({
-            placeholder: `请填写${String(fl.label)}`,
-            // The tag's :fl:prop relocation must reach the props snapshot.
-            located: fl.prop[0],
-          }),
-        },
+    const Fields = createFormFields({
+      name: {
+        label: '姓名',
+        component: Control,
+        props: (fl) => ({
+          placeholder: `请填写${String(fl.label)}`,
+          // The tag's :fl:prop relocation must reach the props snapshot.
+          located: fl.prop[0],
+        }),
       },
-      { props: { clearable: true } },
-    )
+    })
     await render(
       h(shellView(), { modelValue: { buyers: [{ name: '' }] } }, () => [
         h(Fields.Name),
@@ -353,7 +347,6 @@ describe('createFormFields props overlay', () => {
     )
     expect(seen[0]).toMatchObject({
       placeholder: '请填写姓名',
-      clearable: true,
       located: 'name',
     })
     expect(seen[1]).toMatchObject({ located: 'buyers[0].name' })

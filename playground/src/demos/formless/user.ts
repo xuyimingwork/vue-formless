@@ -8,46 +8,40 @@ const genderOptions = [
 ]
 
 /** Shared User cluster for formless demos (ADR-009 opt-in). */
-export const User = createFormFields(
-  {
-    name: {
-      label: '姓名',
-      component: ElInput,
-    },
-    gender: {
-      label: '性别',
-      component: ElSelect,
-      props: { options: genderOptions },
-    },
-    mobile: {
-      label: '手机',
-      component: ElInput,
-      props: { placeholder: '11 位手机号' },
-    },
-    email: {
-      label: '邮箱',
-      component: ElInput,
-      props: { placeholder: 'name@example.com' },
-    },
-    idCard: {
-      label: '证件号',
-      component: ElInput,
-      props: { placeholder: '身份证号' },
-    },
-    address: {
-      label: '地址',
-      component: ElInput,
-      props: { placeholder: '详细地址' },
-    },
-    remark: {
-      label: '备注',
-      component: ElInput,
-      props: { type: 'textarea', rows: 3, placeholder: '可选' },
-    },
+export const User = createFormFields({
+  name: {
+    label: '姓名',
+    component: ElInput,
+    props: { placeholder: '请填写姓名' },
   },
-  {
-    props: (fl) => ({
-      placeholder: fl.label ? `请填写${fl.label}` : undefined,
-    }),
+  gender: {
+    label: '性别',
+    component: ElSelect,
+    props: { options: genderOptions, placeholder: '请填写性别' },
   },
-)
+  mobile: {
+    label: '手机',
+    component: ElInput,
+    props: { placeholder: '11 位手机号' },
+  },
+  email: {
+    label: '邮箱',
+    component: ElInput,
+    props: { placeholder: 'name@example.com' },
+  },
+  idCard: {
+    label: '证件号',
+    component: ElInput,
+    props: { placeholder: '身份证号' },
+  },
+  address: {
+    label: '地址',
+    component: ElInput,
+    props: { placeholder: '详细地址' },
+  },
+  remark: {
+    label: '备注',
+    component: ElInput,
+    props: { type: 'textarea', rows: 3, placeholder: '可选' },
+  },
+})
