@@ -8,6 +8,7 @@
   - 2026-09-09 — 工厂更名 `createFormFields`；见 [ADR-020](./020-form-view-cell-field.md)。
   - 2026-08-27 — 取消独立 `path`；位置只写 `prop`。见 [ADR-011](./011-model-and-path.md)。
   - 2026-08-18 — `component` 只接输入；label / Item props 进适配层 `toItemProps`。见 [ADR-012](./012-input-item-and-rule-compile.md)。
+  - 2026-09-18 — 工厂不再复制 schema、不再 `markRaw` `component`：域表原样遍历，`component` 只作 attr 透传给 FormField（schema 请用普通对象，别包 `reactive`）。
 - **来源**：动态表单架构设计推演
 
 ## 背景
@@ -50,7 +51,7 @@ export const User = createFormFields({
 要点：
 
 - Schema / model 键为**小驼峰**；暴露给模板的组件名为**大驼峰**（`name` → `Name`，`idCard` → `IdCard`），由工厂自动转换
-- `createFormFields` 建立域 → **输入** `component` / 默认 props / 默认 label / `model`（v-model 口）/ `prop`（位置）/ `validation`；`markRaw` 在工厂内处理。联动、本场策略、布局不进这张表（[ADR-010](./010-controls-as-semantic-cluster.md)）
+- `createFormFields` 建立域 → **输入** `component` / 默认 props / 默认 label / `model`（v-model 口）/ `prop`（位置）/ `validation`。schema 原样读，工厂不复制、也不 `markRaw`（2026-09-18 修订）。联动、本场策略、布局不进这张表（[ADR-010](./010-controls-as-semantic-cluster.md)）
 - `component` 不含 FormItem；label 与校验投影进适配层 Item，见 [ADR-012](./012-input-item-and-rule-compile.md)
 - `model` / `prop` 见 [ADR-011](./011-model-and-path.md)；省略则 `modelValue` ↔ 控件键
 - 渲染期用 `:fl:prop` 覆盖位置，及 extras / `span`；**不可**覆盖 `component` / `model`；不把规则体写进模板

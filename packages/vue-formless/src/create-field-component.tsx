@@ -23,6 +23,17 @@ export type FieldSchemaInput = Omit<FieldSchema, 'component'> & {
   component?: unknown
 }
 
+/**
+ * `createFormFieldComponent` input: one field schema plus its `name`. The name
+ * only labels the debug component — the `fl:prop` default is the caller's job
+ * (`createFormFields` passes the schema key as both), so a schema that always
+ * declares `prop` may omit `name`.
+ */
+export type FieldFactoryInput = FieldSchemaInput & {
+  /** Debug-only component name; omit when the schema always declares `prop`. */
+  name?: string
+}
+
 /** Keys the factory owns; the tag must not restate them (identity is locked, design.md §7.2). */
 const LOCKED_TAG_KEYS = new Set(['fl:model', 'fl:component'])
 
@@ -32,10 +43,7 @@ const LOCKED_TAG_KEYS = new Set(['fl:model', 'fl:component'])
  * and extras become `fl:label`… The schema is therefore just a preset attr
  * layer under the author's tag — nothing here is FormField-private.
  */
-function schemaToFieldAttrs(
-  schemaKey: string,
-  schema: FieldSchemaInput,
-): Record<string, unknown> {
+function schemaToFieldAttrs(schema: FieldSchemaInput): Record<string, unknown> {
   const controlFormless = readControlFormless(schema.component)
   const attrs: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(
@@ -46,8 +54,8 @@ function schemaToFieldAttrs(
   return {
     ...attrs,
     'fl:model': controlFormless.model ?? schema.model,
-    // Location default = the schema key (a tag :fl:prop still wins).
-    'fl:prop': controlFormless.prop ?? schema.prop ?? schemaKey,
+    // The caller supplies the schema-key default (a tag :fl:prop still wins).
+    'fl:prop': controlFormless.prop ?? schema.prop,
     'fl:item': controlFormless.item !== undefined ? controlFormless.item : schema.item,
     'fl:field': controlFormless.field ?? schema.field,
     'fl:component': schema.component,
@@ -66,13 +74,13 @@ function schemaToFieldAttrs(
  * bare attrs, i.e. as if the author had written them.
  */
 export function createFormFieldComponent(
-  schemaKey: string,
-  schema: FieldSchemaInput,
+  input: FieldFactoryInput,
 ): FormFieldComponent {
-  const preset = schemaToFieldAttrs(schemaKey, schema)
+  const { name: fieldKey, ...schema } = input
+  const preset = schemaToFieldAttrs(schema)
 
   return defineComponent({
-    name: `Field_${upperFirst(schemaKey)}`,
+    name: fieldKey ? `FormField${upperFirst(fieldKey)}` : 'FormFieldNamed',
     inheritAttrs: false,
     setup(_, { attrs, slots }) {
       const formFieldContext = inject(FORM_FIELD_KEY, null)

@@ -748,10 +748,10 @@ interface FormFieldContext {
 **FormField 只有一层配置面：它自己的标签 attrs。** 没有内核私有参数、没有侧信道——所以组件外怎么写 `<FormField …>`，工厂壳内就怎么往下传。
 
 ```
-工厂壳 createFormFieldComponent:
-  schemaToFieldAttrs(闭包 f(fieldKey, schema)):                 // 纯翻译
+工厂壳 createFormFieldComponent(Object.assign({ name: key, prop: key }, schema)):
+  schemaToFieldAttrs(schema):                                   // 纯翻译（prop 缺省已由调用方补齐）
       component → fl:component      model → fl:model
-      prop      → fl:prop（缺省 = 域名表的键）   item → fl:item
+      prop      → fl:prop（域表层已给缺省 = 域名表的键）   item → fl:item
       field     → fl:field          extras(label…) → fl:<extra>
   render:
       fl, snapshot = 用 field-identity.ts 的 helper 现算（一套实现，不漂移）

@@ -1,4 +1,3 @@
-import { markRaw } from 'vue'
 import { upperFirst, type UpperFirst } from './utils'
 import {
   createFormFieldComponent,
@@ -38,36 +37,17 @@ export type NamespacedFields<S> = {
 export function createFormFields<const S extends { [K in keyof S]: FieldSchemaInput }>(
   schema: S,
 ): NamespacedFields<S> {
-  const normalized = normalizeSchema(schema)
   const result = {} as NamespacedFields<S>
 
-  for (const schemaKey of Object.keys(normalized) as (keyof S & string)[]) {
-    const field = normalized[schemaKey]
+  for (const schemaKey of Object.keys(schema) as (keyof S & string)[]) {
+    const field = schema[schemaKey]
     if (!field) continue
     const pascalKey = upperFirst(schemaKey) as UpperFirst<typeof schemaKey> &
       keyof NamespacedFields<S>
     result[pascalKey] = createFormFieldComponent(
-      schemaKey,
-      field,
+      Object.assign({ name: schemaKey, prop: schemaKey }, field),
     ) as NamespacedFields<S>[typeof pascalKey]
   }
 
   return result
-}
-
-function normalizeSchema<S extends { [K in keyof S]: FieldSchemaInput }>(schema: S): S {
-  const out: Record<string, FieldSchemaInput> = {
-    ...(schema as Record<string, FieldSchemaInput>),
-  }
-  for (const key of Object.keys(out)) {
-    const field = out[key]
-    if (!field) continue
-    out[key] = {
-      ...field,
-      component: field.component && typeof field.component === 'object'
-        ? markRaw(field.component)
-        : field.component,
-    }
-  }
-  return out as S
 }
