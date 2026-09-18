@@ -13,7 +13,7 @@ import { resolveFieldMode } from './field-mode'
 import { FORM_FIELD_KEY } from './injection-keys'
 import type { FormFieldTagProps, ItemFl } from './field-schema'
 import { FIELD_SLOT_CHANNELS, FIELD_ATTR_CHANNELS, useDispatch } from './use-form-attrs'
-import { dispatch } from '@/dispatch'
+import { dispatch } from './dispatch'
 import { modelBindings } from './control-binding'
 import {
   buildItemFl,
