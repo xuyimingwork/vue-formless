@@ -14,7 +14,7 @@ describe('FieldSchema extras', () => {
       'fl:prop'?: string | string[]
       'fl:model'?: string | string[]
       'fl:item'?: boolean
-      'fl:field'?: 'wrap' | 'embed' | 'wrap-embed'
+      'fl:field'?: 'auto' | 'wrap' | 'embed' | 'wrap-embed'
       'fl:component'?: Component
       'layout-item:span'?: string | number
       'layout-item:place'?: 'auto' | 'start' | 'end'

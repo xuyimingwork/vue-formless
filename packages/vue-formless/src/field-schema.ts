@@ -2,8 +2,11 @@ import type { Component } from 'vue'
 import type { ControlProp, ControlVModel } from './control-binding'
 import type { HostProps } from './props-overlay'
 
-/** `field` assembly modes (design.md §8). Omit = `'wrap'`. */
-export type FieldMode = 'wrap' | 'embed' | 'wrap-embed'
+/**
+ * `field` assembly placement (design.md §8) — the four **writable** values.
+ * Omit = `'auto'`: defer to the control's static `formless.field`.
+ */
+export type FieldMode = 'auto' | 'wrap' | 'embed' | 'wrap-embed'
 
 /** Kernel-owned FieldSchema keys. Not extras; tags already have matching `fl:*` where allowed. */
 export type FieldSchemaKernelKey =
@@ -43,8 +46,9 @@ export interface FieldSchema {
    */
   item?: boolean
   /**
-   * Assembly tree (design.md §8). Omit = `'wrap'`.
-   * Whole value replaced by nearer source (tag > control > schema); no wrap∪embed merge.
+   * Assembly placement (design.md §8). Omit = `'auto'`.
+   * Schema and tag merge by nearest-wins; the control is **not** a merge layer —
+   * its static `formless.field` is read at render and folded in (`auto`).
    */
   field?: FieldMode
 }

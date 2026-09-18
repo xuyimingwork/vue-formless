@@ -1,7 +1,6 @@
 import { computed, defineComponent } from 'vue'
 import { FormFieldCore, type FormFieldComponent } from './FormField'
 import { isFieldMode } from './field-mode'
-import { readControlFormless } from './control-config'
 import type { FieldSchema, ItemFl } from './field-schema'
 import { mergeAttrs, resolveProps } from './props-overlay'
 import { FIELD_ATTR_CHANNELS, useDispatch } from './use-form-attrs'
@@ -32,8 +31,11 @@ export function createFormFieldComponent(
       const tag = useDispatch(attrs as Record<string, unknown>, FIELD_ATTR_CHANNELS)
 
       const fl = computed(() => {
-        const { component, ...fl } = tag.fl.value
-        return Object.assign({}, preset, fl)
+        const { component, ...tagFl } = tag.fl.value
+        const merged = Object.assign({}, preset, tagFl)
+        // §8：只有合法的 fl:field 才整颗替换；非法值落回 schema 预设，而不是抹掉它。
+        merged.field = isFieldMode(tagFl.field) ? tagFl.field : preset.field
+        return merged
       })
 
       const control = (fl: ItemFl) => {

@@ -184,6 +184,25 @@ describe('createFormFields props overlay', () => {
     expect(html).toContain('class="e"')
   })
 
+  it('gives a composite control its inner window when the tag asks for wrap', async () => {
+    const Fields = createFormFields({
+      range: { label: '签证', component: Two, prop: ['fromTime', 'toTime'] },
+    })
+    const html = await render(
+      h(
+        shellView(),
+        { modelValue: { fromTime: '', toTime: '' }, 'fl:layout': true },
+        () => h(Fields.Range, { 'fl:field': 'wrap' }),
+      ),
+    )
+    // Outer Item(签证) + the two inner items.
+    expect(html.match(/class="item"/g)?.length).toBe(3)
+    expect(html).toContain('data-label="签证"')
+    // The inner window adds a Col per slice, on top of the outer cell's Col.
+    expect(html.match(/class="col"/g)?.length).toBe(3)
+    expect(html.match(/class="row"/g)?.length).toBe(2)
+  })
+
   it('wraps wrap-embed in Col-Item-Row', async () => {
     const Fields = createFormFields({
       range: { label: '签证', component: Two, prop: ['fromTime', 'toTime'] },

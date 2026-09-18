@@ -8,7 +8,8 @@ import {
   type VNodeChild,
 } from 'vue'
 import { LayoutItem } from '@vue-formless/layout'
-import { normalizeField as normalizeField } from './field-mode'
+import { readControlFormless } from './control-config'
+import { resolveFieldMode } from './field-mode'
 import { FORM_FIELD_KEY } from './injection-keys'
 import type { FormFieldTagProps, ItemFl } from './field-schema'
 import { FIELD_SLOT_CHANNELS, FIELD_ATTR_CHANNELS, useDispatch } from './use-form-attrs'
@@ -20,7 +21,6 @@ import {
   resolveDeclaredBinding,
   resolveFieldBinding,
 } from './field-identity'
-import { readControlFormless } from './control-config'
 import { resolveProps, type HostProps } from './props-overlay'
 
 /** `Component` is a union; JSX needs a constructable host. */
@@ -81,12 +81,15 @@ export const FormFieldCore = defineComponent({
     // FormField 唯一消费的上行上下文：model 源 + 身份映射 + 壳资源都在这里。
     const fieldContext = inject(FORM_FIELD_KEY, null)
 
+    // 控件的静态 bag 只读一次：model 当兜底口列表，field 当组合体标记（§8）。
+    const controlFormless = computed(() => readControlFormless(props.fl.component))
+
     // ad-hoc 控件：补 component.formless.model（工厂壳已在 fl 桶烙进 model）。
     const fl = computed(() => ({
       ...props.fl,
       model:
         normalizeModel(props.fl.model)
-        || normalizeModel(readControlFormless(props.fl.component).model)
+        || normalizeModel(controlFormless.value.model)
         || ['modelValue'],
     }))
 
@@ -123,7 +126,11 @@ export const FormFieldCore = defineComponent({
 
     return (): VNodeChild => {
       const { item: itemSlots, default: controlSlots } = dispatch(slots, FIELD_SLOT_CHANNELS)
-      const fieldMode = normalizeField(props.fl.field)
+      // 组装树 = 位置（schema/tag 的 fl:field）× 体（控件的 formless.field），§8。
+      const tree = resolveFieldMode(
+        props.fl.field,
+        controlFormless.value.field === 'embed',
+      )
 
       const Control = props.fl.component as unknown as JsxHost | undefined
 
@@ -131,11 +138,11 @@ export const FormFieldCore = defineComponent({
         ? <Control {...controlAttrs.value} v-slots={controlSlots} />
         : slots.default?.({ $bindings: bindings.value }) ?? null
 
-      if (fieldMode === 'embed') return inner
+      if (tree === 'embed') return inner
 
       const HostLayoutView = fieldContext?.LayoutView as JsxHost
       const fieldBody =
-        fieldMode === 'wrap-embed' && HostLayoutView
+        tree === 'wrap-embed' && HostLayoutView
           ? <HostLayoutView {...props.layout} v-slots={{ default: () => inner }} />
           : inner
 
