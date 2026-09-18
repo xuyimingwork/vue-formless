@@ -57,7 +57,7 @@ function View(onForm?: (props: { model?: unknown; fl?: unknown }) => void) {
 function Writer(prop = 'name', value: unknown = 'Bob') {
   return defineComponent({
     setup() {
-      inject(FORM_VIEW_KEY)!.update(prop, value)
+      inject(FORM_VIEW_KEY)!.setIn(prop, value)
       return () => null
     },
   })

@@ -3,8 +3,8 @@ import {
   inject,
   markRaw,
   provide,
-  reactive,
   ref,
+  toValue,
   type Component,
   type DefineComponent,
   type PropType,
@@ -12,13 +12,12 @@ import {
 } from 'vue'
 import { createLayoutView } from '@vue-formless/layout'
 import { createFormItem } from './create-form-item'
-import { FORM_FIELD_KEY, FORM_VIEW_KEY, type FormFieldContext, type FormViewContext } from './injection-keys'
+import { FORM_FIELD_KEY, FORM_VIEW_KEY, type FormFieldContext } from './injection-keys'
 import { useFormViewModelValue } from './use-form-view-model'
 import type { ItemFl } from './field-schema'
 import { mergeAttrs, resolveProps, type HostProps } from './props-overlay'
 import { omit, toAttrBoolean } from './utils'
 import { VIEW_ATTR_CHANNELS, useDispatch } from './use-form-attrs'
-import { getIn } from '@/path-access'
 
 /** `Component` is a union; JSX needs a constructable host. */
 type JsxHost = new () => { $props: Record<string, unknown> }
@@ -115,42 +114,6 @@ function proxyExpose(host: { value: object | null }): object {
   )
 }
 
-function provideFormViewContext(options: {
-  getModel: () => unknown
-  update: FormViewContext['update']
-  FormItem: Component
-  LayoutView: Component
-}): void {
-  provide(
-    FORM_VIEW_KEY,
-    reactive({
-      get model() {
-        return options.getModel()
-      },
-      update: options.update,
-    }) as FormViewContext,
-  )
-
-  // FormField 只读 FORM_FIELD_KEY。FormView 在这里换成本层的 model 源、下放壳资源，
-  // 并缺省 getPropBinding 以无条件截断外层身份——内层 FormField 因此成为新的身份根、
-  // 自声明 fl:prop（子表单 / 嵌套分区都由此成立）。
-  provide(FORM_FIELD_KEY, {
-    getModelBinding(prop: string) {
-      if (!prop) return undefined
-      return {
-        get value() {
-          return getIn(options.getModel(), prop)
-        },
-        update: (value: unknown) => {
-          options.update(prop, value)
-        },
-      }
-    },
-    FormItem: markRaw(options.FormItem),
-    LayoutView: markRaw(options.LayoutView),
-  } as FormFieldContext)
-}
-
 /**
  * Bind host layout / form / item once; returns a FormView (design.md §10).
  *
@@ -186,7 +149,10 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
       const hostForm = ref<object | null>(null)
       expose(proxyExpose(hostForm))
 
-      const nested = inject(FORM_VIEW_KEY, null) != null
+      // Inject once: the ancestor source is both the nested test and this layer's
+      // inheritance source.
+      const parent = inject(FORM_VIEW_KEY, null)
+      const nested = parent != null
       /**
        * Page channels (design.md §5.3): `fl` is the kernel semantic source and
        * `layout` the page window's props. `layout-item:*` and `item:*` are not
@@ -198,24 +164,44 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
         default: viewHostAttrs,
       } = useDispatch(attrs as Record<string, unknown>, VIEW_ATTR_CHANNELS)
 
-      /** v-model write port: fallthrough listener (camel or DOM-case tag). */
-      const { model, update } = useFormViewModelValue(
-        () => props.modelValue,
-        () => {
-          const raw = attrs['onUpdate:modelValue'] || attrs['onUpdate:model-value']
-          return typeof raw === 'function' ? (raw as (next: unknown) => void) : undefined
+      /**
+       * This layer's model source (design.md §14.2): its own v-model port when
+       * present (listener read from fallthrough attrs, camel or DOM-case tag),
+       * else the ancestor source. `setIn` is the subtree's only write channel and
+       * always terminates at the owning layer.
+       */
+      const source = useFormViewModelValue(
+        {
+          value: () => props.modelValue,
+          update: () => {
+            const raw = attrs['onUpdate:modelValue'] || attrs['onUpdate:model-value']
+            return typeof raw === 'function' ? (raw as (next: unknown) => void) : undefined
+          },
         },
+        parent,
       )
 
       // Page `fl` is per-instance: assemble here so the page default tracks this layer's attrs.
       const FormItem = createFormItem({ ...options.item, fl: viewFormlessOptions })
 
-      provideFormViewContext({
-        getModel: () => model.value,
-        update,
-        FormItem,
-        LayoutView,
-      })
+      // 嵌套 FormView 从 FORM_VIEW_KEY 继承整值读 + 写通道。
+      // FormField 只读 FORM_FIELD_KEY。FormView 在这里换成本层的 model 源、下放壳资源，
+      // 并缺省 getPropBinding 以无条件截断外层身份——内层 FormField 因此成为新的身份根、
+      // 自声明 fl:prop（子表单 / 嵌套分区都由此成立）。
+      provide(FORM_VIEW_KEY, source)
+      provide(FORM_FIELD_KEY, {
+        getModelBinding(prop: string) {
+          if (!prop) return undefined
+          return {
+            get value() {
+              return source.getIn(prop)
+            },
+            update: (value: unknown) => source.setIn(prop, value),
+          }
+        },
+        FormItem: markRaw(FormItem),
+        LayoutView: markRaw(LayoutView),
+      } as FormFieldContext)
 
       return (): VNodeChild => {
         const HostLayoutView = LayoutView as JsxHost
@@ -241,7 +227,7 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
           <HostForm
             ref={hostForm}
             {...mergeAttrs(
-              formProps({ modelValue: model.value }) as any,
+              formProps({ modelValue: toValue(source.value) }) as any,
               omit(viewHostAttrs.value, V_MODEL_PORT_KEYS),
             )}
             v-slots={{ default: () => body }}

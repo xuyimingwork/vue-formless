@@ -487,12 +487,13 @@ interface FormViewProps {
 
 FormView 同时 provide **两个键**：`FORM_VIEW_KEY`（只给嵌套 FormView 继承）与 `FORM_FIELD_KEY`（给 FormField 消费，见 §16.2）。
 
-**`FORM_VIEW_KEY`**：只装本层运行时，随 FormView 实例变化；嵌套 FormView 继承 `model` / `update`：
+**`FORM_VIEW_KEY`**：只装本层运行时，随 FormView 实例变化；嵌套 FormView 继承三件套（同源：都绑在这一层或祖先的 v-model 上）：
 
 | 字段 | 含义 | 消费方 |
 |------|------|--------|
-| `model` | 当前 FormView 的 `modelValue`（父快照，勿改） | 嵌套 FormView（继承读源） |
-| `update(prop, value)` | 上报字段写入 | 嵌套 FormView（转发到祖先 writer） |
+| `value: ComputedRef<unknown>` | 当前 FormView 的 `modelValue`（父快照，勿改） | 嵌套 FormView（继承读源 / 拼 `fl.modelValue`） |
+| `getIn(path)` | 相对本源的位置读 | 嵌套 FormView |
+| `setIn(path, value)` | 相对本源的位置写（唯一写通道，终点在 owner 层） | 嵌套 FormView（转发到祖先 `setIn`） |
 
 `FORM_VIEW_KEY` 只有一个消费者：**嵌套 FormView**（读/写源 + 判嵌套）。FormField 不再 inject 它。
 
@@ -639,17 +640,26 @@ FormView.modelValue
 ```
 control 触发 update:port(value)
   → onUpdate:port → getModelBinding(prop).update(value)：位置在 binding 内已对齐
-  → FormView.update(prop, value)
-      → createModelWriter：pending 累积，nextTick 合并
-      → setIn(model, prop, value)  // 不可变写：克隆沿途层级
-      → emit(更新后的整对象) → onUpdate:modelValue
+      → source.setIn(prop, value)：本源已绑死，不再另传 value
+  → 非 owner 层：直接转发祖先 setIn（不建自己的 flush 路径）
+  → owner 层：bindPathAccess(bound) 的本层 setIn
+      → pending 累积，nextTick 合并
+      → path-access 纯函数 setIn(source, prop, value)  // 不可变写：克隆沿途层级
+      → 写回 bound → onUpdate:modelValue
 ```
+
+owner 层的 `bound` 是本层 port（`VModelPort` 的 `value` + `update:modelValue`）折成的
+一个 get/set computed：`get` 解出绑定值、`set` 把重建后的整对象交给 listener。
+`bindPathAccess(bound)` 把 `path-access` 的 `getIn` / `setIn` 绑在这条缝上（返回 `PathAccess`），
+maybe-ref/getter 的解包、以及对 `update:modelValue` 是「ref / getter 里装函数」这件事的
+处理都收敛在 `useFormViewModelValue` 里。
 
 关键性质：
 
 - **不可变**：`setIn` 永不 mutate 源对象，克隆沿途每一层（数组 `[...arr]`、对象 `{...base}`）。
 - **同 tick 合并**：多个字段同 tick 写入合并成一次 emit。
-- **嵌套继承**：嵌套 FormView 无 v-model 时继承祖先的 `model`/`update`，写直接转发到祖先 writer（所有层同 tick 合并到根）。
+- **单一写通道**：`FormViewContext.setIn` 是整棵子树唯一的写入口，一路转发到 owner 层的 `setIn` 写入通道；只有 owner 层 emit（否则多层各自从自己的 props 快照重建整值、互相覆盖）。
+- **嵌套继承**：嵌套 FormView 无 v-model 时整个源从祖先继承（`value` / `getIn` / `setIn` 都转发），路径始终相对同一个根，所有层同 tick 合并到根。
 - **model 源与身份解耦**：`getModelBinding` 永远由最近的 FormView 回答，`getPropBinding` 永远由最近的身份根回答；二者经 `FORM_FIELD_KEY` 下行，FormField 不闭包 model。
 
 ### 14.3 多口
@@ -660,9 +670,20 @@ control 触发 update:port(value)
 
 ## 15. model path：getIn / setIn / parsePath
 
+`path-access.ts` 分两半：**纯核**（root 每次传入）与**绑定 façade**（root 绑死一次）。
+
+纯核（`path-access.ts`）：
+
 - `getIn(root, path)`：不可变读，缺中间节点读作 `undefined`，不 throw。
 - `setIn(root, path, value)`：不可变写，克隆沿途；非法/空 path 原样返回 `root`。
 - `parsePath(path)`：路径语法解析。
+
+绑定 façade：
+
+- `bindPathAccess(source)`：把上面这对绑到一个可写源（`WritableSource`：get/set `value`，
+  writable computed 或 ref），返回 `PathAccess`（`getIn(path)` / `setIn(path, value)`，
+  root 隐式）。`getIn` 读源的当前值；`setIn` 同 tick 合并、nextTick 单次写回源
+  （`source.value = next`），是不可变写。FormView owner 层用它（§14.2）。
 
 path 语法：
 
@@ -695,7 +716,7 @@ quoted   := '"' keychar* '"' | "'" keychar* "'"   转义 '\'
 | `create-form-fields.ts` | 域表工厂，产出 PascalCase Field 标签 |
 | `injection-keys.ts` | `FORM_VIEW_KEY`、`FORM_FIELD_KEY` |
 | `control-binding.ts` | `resolveControlBinding` / `bindingForPort` / `modelBindings` / `stripPortBindings` / `ModelBinding`（转私有） |
-| `path-access.ts` / `path-parse.ts` | 不可变 get/set + 路径解析 |
+| `path-access.ts` / `path-parse.ts` | 不可变 get/set + 路径解析；`bindPathAccess(source)` 把 get/set 绑到可写源上（`PathAccess` / `WritableSource`，§15） |
 | `props-overlay.ts` | `resolveProps` / `overlayProps` / `HostProps` |
 | `dispatch.ts` | 通道表 `CHANNELS`（`fl` / `layout-item` / `layout` / `item`）；前缀由通道名派生（不写字面量常量），kebab → camel 归 `utils.toCamel`；`dispatch(bag, channels, { prefix })`（一次分桶）：每通道一桶 + `default` 裸名残差；`prefix: 'drop'`（默认）= props + 还原成 `onXxx` 的监听同袋，`prefix: 'keep'` = 输入键形原样（可被同一张表再认领，供转发；`default` 两模式一致）；`onXxx` 命名还原（`on` + `upperFirst`）、读键（私有 `resolveKey(raw, channels)`：前缀表全局、按本次认领的 `channels` 过滤，返回 `{ type: 'prop' \| 'listener', channel, key }`，认领不到则 `undefined` 落 `default`） |
 | `use-form-attrs.ts` | 通道认领的 attrs 关口：`useDispatch(attrs, channels, options?)` → 每桶一个 ref（`BucketRefs<C>`：桶名 = 通道名 camelCase，由 `Channel` 经 `utils.ToCamel` 派生；只给认领的通道建桶）+ 三个通道集：`VIEW_ATTR_CHANNELS`（`fl` / `layout`，`layout-item:` / `item:` 都透传，§5.3）/ `FIELD_ATTR_CHANNELS`（`fl` / `layout` / `layout-item` / `item`）/ `FIELD_SLOT_CHANNELS`（随 render 交给 `dispatch(slots, …)`：`item` 桶 → 宿主 Item 槽，`default` 桶 → control 槽） |
@@ -705,8 +726,7 @@ quoted   := '"' keychar* '"' | "'" keychar* "'"   转义 '\'
 | `field-mode.ts` | `isFieldMode` / `resolveFieldMode` |
 | `field-identity.ts` | 身份与快照 helper：`resolveDeclaredBinding` / `fieldPropBinding` / `resolveFieldBinding` / `buildItemFl`（`FormFieldCore` 一处使用） |
 | `field-schema.ts` | `FieldSchema` / `ItemFl` / tag props 类型 |
-| `use-form-view-model.ts` | 写口归集：`useFormViewModelValue` |
-| `model-writer.ts` | `createModelWriter`：同 tick 合并的不可变路径写入器 |
+| `use-form-view-model.ts` | 源解析：`useFormViewModelValue(port, parent)`（本层 v-model 口 + 祖先源 → `value` / `getIn` / `setIn`）、`VModelPort`、把 port 折成 get/set computed 的 `bound`（`bindPathAccess` 的唯一读写缝） |
 | `control-props.ts` | control 公开 props 推断（v-model 口剥离） |
 | `index.ts` | 公开导出 |
 
@@ -716,7 +736,7 @@ vue-formless 内两根注入键，各是一个**作用域**（layout 包另有 `
 
 | 键 | 提供者 | 装什么 | 消费者 |
 |----|--------|--------|--------|
-| `FORM_VIEW_KEY` | FormView | 本层运行时 `model` / `update` | 嵌套 FormView |
+| `FORM_VIEW_KEY` | FormView | 本层运行时 `value` / `getIn` / `setIn` | 嵌套 FormView |
 | `FORM_FIELD_KEY` | FormView + 身份根 FormField（接力） | model 源 accessor + 身份映射 accessor + 壳资源 | FormField |
 
 FormField **只消费 `FORM_FIELD_KEY`**，不再 inject `FORM_VIEW_KEY`。`FORM_FIELD_KEY` 的内容由上层 FormView 与 FormField 身份根**共同提供**：
@@ -729,10 +749,11 @@ FormField **只消费 `FORM_FIELD_KEY`**，不再 inject `FORM_VIEW_KEY`。`FORM
 `model[i] ↔ prop[i]` 下标对齐，由身份根**定死一次**；内层切片只按口取位置、不重算。内核**不发身份名**（ADR-011 §6 修订）：工厂域名表的键只当 `fl:prop` 的缺省位置；宿主 `prop` 怎么编、要不要编，是适配层的私事（§10.2）。多口一格时一个宿主 `prop` 装不下，适配层就不绑（`prop: undefined`，ElFormItem 不注册）——该格因此**不参与宿主校验 / 重置**，要宿主校验就把口拆成格（`fl:field="wrap-embed"`）。`FORM_CELL_PORT_KEY` 已删（口切片改由 `fl:model` 承担）。
 
 ```ts
-/** 嵌套 FormView 继承的读/写源。 */
+/** 嵌套 FormView 继承的读/写源：三个成员同源，都绑在这一层或祖先的 v-model 上。 */
 interface FormViewContext {
-  model: unknown
-  update: (prop: string, value: unknown) => void
+  value: ComputedRef<unknown>                  // 本源整值（父快照，勿改）
+  getIn(path: string): unknown                 // 相对本源的位置读
+  setIn(path: string, value: unknown): void    // 相对本源的位置写（唯一写通道，终点在 owner 层）
 }
 
 /** FormField 唯一消费的上行上下文（FormView 与 FormField 身份根共同提供）。 */
@@ -865,7 +886,7 @@ HostProps, LayoutItemSpan, LayoutItemPlace
 ```
 
 - `FormView` / `LayoutView` 是工厂**产物**，不作为独立值导出；`FormViewComponent` 仅为类型。
-- 私有（不导出，可随内核演进）：`FormViewContext` / `FormFieldContext`、`FORM_VIEW_KEY` / `FORM_FIELD_KEY`、`getIn` / `setIn` / `parsePath`、`overlayProps` / `resolveProps`、`resolveControlBinding` / `bindingForPort` / `modelBindings` / `stripPortBindings` / `toBindingList` / `ResolvedControlBinding` / `ModelBinding`、`fieldPropBinding` / `resolveFieldBinding`、`createModelWriter`、`upperFirst`。
+- 私有（不导出，可随内核演进）：`FormViewContext` / `FormFieldContext`、`FORM_VIEW_KEY` / `FORM_FIELD_KEY`、`VModelPort` / `useFormViewModelValue`、`getIn` / `setIn` / `parsePath`、`overlayProps` / `resolveProps`、`resolveControlBinding` / `bindingForPort` / `modelBindings` / `stripPortBindings` / `toBindingList` / `ResolvedControlBinding` / `ModelBinding`、`fieldPropBinding` / `resolveFieldBinding`、`bindPathAccess` / `WritableSource` / `PathAccess`、`upperFirst`。
 - 定制路径只有三条：`$bindings` slot（§7.3）、`:component` 临场格（§7.4）、module augmentation（§18）——都不需要够到内核。
 
 ---
@@ -879,7 +900,7 @@ HostProps, LayoutItemSpan, LayoutItemPlace
 5. **页面 `<FormField>` 临场格**可写 `fl:item` / `fl:prop` / `fl:model` / `:component`；格上宽用 `layout-item:*`。
 6. **不公开** `FormView.Layout` / `FormView.Item`；**不开放**自定义 merge / 自定义前缀；**没有** `form:` 前缀（当前无需从字段够到宿主 Form）。
 7. **组合体只写体**：`formless: { field: 'embed', model: [...] }`（体，不是位置）；分组壳写 `'wrap'`，组合体标记会把它升成 `'wrap-embed'`；control 漏报时用 `'wrap-embed'` 逃生（§8）。
-8. **两层作用域各只装自己那点东西**：`FORM_VIEW_KEY` = 嵌套 FormView 的读/写源（`model` / `update`）；`FORM_FIELD_KEY` = FormField 的上行上下文（`getModelBinding` / `getPropBinding` / 壳资源），由 FormView 与 FormField 身份根接力提供。身份层不上行任何其它 key（§16.2）。
+8. **两层作用域各只装自己那点东西**：`FORM_VIEW_KEY` = 嵌套 FormView 的读/写源（`value` / `getIn` / `setIn`）；`FORM_FIELD_KEY` = FormField 的上行上下文（`getModelBinding` / `getPropBinding` / 壳资源），由 FormView 与 FormField 身份根接力提供。身份层不上行任何其它 key（§16.2）。
 9. **内核不发身份名**（ADR-011 §6 修订，v1 范围）：snapshot 只给归一化数组 `model` / `prop`（下标对齐，§10.1）与 `getValues()`。宿主 Item 的 `prop` 是**纯适配编码** —— 单口 → 位置；多口一格 / 位置编不出来 → **不绑**（`undefined`，宿主不注册该格，也不校验 / 不重置）。要宿主校验就把口拆成格（`fl:field="wrap-embed"`）。
 
 ---

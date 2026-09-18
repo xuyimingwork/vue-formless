@@ -1,5 +1,11 @@
+import { nextTick, ref } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
-import { getIn, setIn } from './path-access'
+import {
+  bindPathAccess,
+  getIn,
+  setIn,
+  type WritableSource,
+} from './path-access'
 
 describe('getIn', () => {
   describe('returns the value when the prop resolves', () => {
@@ -265,5 +271,174 @@ describe('shape mismatch on write (merge when the shape matches, overwrite when 
     } finally {
       spy.mockRestore()
     }
+  })
+})
+
+describe('bindPathAccess', () => {
+  /**
+   * A writable source standing in for the FormView v-model port: reads the
+   * backing value and records every write (the `update:modelValue` report).
+   */
+  function writableSource(initial: unknown): {
+    source: WritableSource
+    emitted: unknown[]
+  } {
+    let current = initial
+    const emitted: unknown[] = []
+    const source: WritableSource = {
+      get value(): unknown {
+        return current
+      },
+      set value(next: unknown) {
+        current = next
+        emitted.push(next)
+      },
+    }
+    return { source, emitted }
+  }
+
+  it('reads a path relative to the bound source', () => {
+    const { source } = writableSource({ buyers: [{ name: 'Ada' }] })
+    const { getIn: getInBound } = bindPathAccess(source)
+
+    expect(getInBound('buyers[0].name')).toBe('Ada')
+    expect(getInBound('missing')).toBeUndefined()
+  })
+
+  it('does not mutate the source object', async () => {
+    const root: Record<string, unknown> = { name: 'Ada' }
+    const { source, emitted } = writableSource(root)
+    const { setIn: setInBound } = bindPathAccess(source)
+
+    setInBound('name', 'Bob')
+    await nextTick()
+
+    expect(root).toEqual({ name: 'Ada' })
+    expect(emitted).toHaveLength(1)
+    expect(emitted[0]).toEqual({ name: 'Bob' })
+    expect(emitted[0]).not.toBe(root)
+  })
+
+  it('merges same-tick root writes into one write', async () => {
+    const { source, emitted } = writableSource({})
+    const { setIn: setInBound } = bindPathAccess(source)
+
+    setInBound('start', 1)
+    setInBound('end', 2)
+    await nextTick()
+
+    expect(emitted).toHaveLength(1)
+    expect(emitted[0]).toEqual({ start: 1, end: 2 })
+  })
+
+  it('merges same-tick nested path writes into one write', async () => {
+    const order = { buyers: [{ name: 'Ada', gender: 'f' }] }
+    const { source, emitted } = writableSource(order)
+    const { setIn: setInBound } = bindPathAccess(source)
+
+    setInBound('buyers[0].name', 'Bob')
+    setInBound('buyers[0].gender', 'm')
+    await nextTick()
+
+    expect(emitted).toHaveLength(1)
+    expect(emitted[0]).toEqual({ buyers: [{ name: 'Bob', gender: 'm' }] })
+    expect(order.buyers[0]).toEqual({ name: 'Ada', gender: 'f' })
+  })
+
+  it('writes separately across ticks', async () => {
+    const { source, emitted } = writableSource({ a: 0 })
+    const { setIn: setInBound } = bindPathAccess(source)
+
+    setInBound('a', 1)
+    await nextTick()
+    setInBound('a', 2)
+    await nextTick()
+
+    expect(emitted).toHaveLength(2)
+    expect(emitted[0]).toEqual({ a: 1 })
+    expect(emitted[1]).toEqual({ a: 2 })
+  })
+
+  it('writes back into a plain ref source', async () => {
+    const model = ref<unknown>({ name: 'Ada' })
+    const { setIn: setInBound } = bindPathAccess(model)
+
+    setInBound('name', 'Bob')
+    await nextTick()
+
+    expect(model.value).toEqual({ name: 'Bob' })
+  })
+
+  it('recovers after a flush throws instead of wedging `setIn`', async () => {
+    const emitted: unknown[] = []
+    let current: unknown = { name: 'Ada' }
+    let failNextFlush = true
+    const source: WritableSource = {
+      get value(): unknown {
+        if (failNextFlush) {
+          failNextFlush = false
+          throw new Error('boom while resolving the source')
+        }
+        return current
+      },
+      set value(next: unknown) {
+        current = next
+        emitted.push(next)
+      },
+    }
+    const { setIn: setInBound } = bindPathAccess(source)
+
+    // The flush error is no longer swallowed: it rejects the nextTick promise.
+    // Capture it so the runner does not report it as an unhandled rejection.
+    const rejections: unknown[] = []
+    const onRejection = (reason: unknown) => rejections.push(reason)
+    process.on('unhandledRejection', onRejection)
+
+    try {
+      // The first flush fails while resolving the source.
+      setInBound('name', 'Bob')
+      await nextTick()
+      await new Promise((resolve) => setImmediate(resolve))
+
+      expect(emitted).toHaveLength(0)
+      expect(rejections).toHaveLength(1)
+      expect(rejections[0]).toBeInstanceOf(Error)
+
+      // The failed flush must not wedge `setIn`: a later write still
+      // schedules a fresh flush and emits.
+      setInBound('name', 'Bob')
+      await nextTick()
+
+      expect(emitted).toHaveLength(1)
+      expect(emitted[0]).toEqual({ name: 'Bob' })
+    } finally {
+      process.off('unhandledRejection', onRejection)
+    }
+  })
+
+  it('keeps a write made synchronously from the flush', async () => {
+    const emitted: Record<string, unknown>[] = []
+    let current: Record<string, unknown> = { a: 0 }
+    const source: WritableSource = {
+      get value(): unknown {
+        return current
+      },
+      set value(next: unknown) {
+        current = next as Record<string, unknown>
+        emitted.push(current)
+        // Re-enter `setIn` while this flush is still on the stack: the write
+        // must land in a fresh batch, not the one this flush is about to drop.
+        if (current.a === 1 && current.b === undefined) setInBound('b', 2)
+      },
+    }
+    const { setIn: setInBound } = bindPathAccess(source)
+
+    setInBound('a', 1)
+    await nextTick()
+    await nextTick()
+
+    expect(emitted).toHaveLength(2)
+    expect(emitted[0]).toEqual({ a: 1 })
+    expect(emitted[1]).toEqual({ a: 1, b: 2 })
   })
 })

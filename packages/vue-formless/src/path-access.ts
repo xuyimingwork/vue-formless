@@ -1,7 +1,15 @@
 /**
  * Immutable get/set over model paths (design.md §15). Path strings such as
  * `buyers[0].name` are parsed into segments by `./path-parse`.
+ *
+ * Two halves:
+ * - the **pure core** `getIn(root, path)` / `setIn(root, path, value)`: root is
+ *   passed on every call, nothing is retained between calls;
+ * - the **bound façade** `bindPathAccess(source)`: the same pair with the source
+ *   (a writable `computed` / `ref`) captured once, so callers read and write a
+ *   fixed location by path only — the FormView layer's channel (design.md §14.2).
  */
+import { nextTick } from 'vue'
 import { parsePath, type PathSegment } from './path-parse'
 
 /**
@@ -119,4 +127,75 @@ function writeSegment(root: unknown, segment: PathSegment, value: unknown): unkn
     return arr
   }
   return root
+}
+
+/**
+ * Anything a bound access can write a whole value back into: a writable
+ * `computed` (the FormView v-model port) or a plain `ref`. It only needs `value`
+ * to be get/set; it carries no notion of "model".
+ */
+export interface WritableSource {
+  value: unknown
+}
+
+/**
+ * The pure pair below with the source root bound once: reads and writes stay
+ * relative to that root, so callers pass only `path` (and `value`).
+ */
+export interface PathAccess {
+  getIn(path: string): unknown
+  setIn(path: string, value: unknown): void
+}
+
+/** One same-tick path write held until the next flush. */
+interface PendingWrite {
+  path: string
+  value: unknown
+}
+
+/**
+ * Bind `getIn` / `setIn` to one writable `source`, returning this layer's own
+ * path access (design.md §14.2). Generic — no notion of FormView layers or the
+ * parent chain; owning layers call it, inherited layers forward to an ancestor.
+ *
+ * `getIn` reads the source as it is right now. `setIn` never mutates the source
+ * *object*: same-tick writes merge into one write on nextTick, cloning from the
+ * *latest* source value (`setIn` above; nested paths clone arrays on write), and
+ * the single write (`source.value = next`) is the layer's `update:modelValue`:
+ * a writable computed whose setter reports the rebuilt whole value.
+ */
+export function bindPathAccess(source: WritableSource): PathAccess {
+  let pending: PendingWrite[] | null = null
+
+  function getInBound(path: string): unknown {
+    return getIn(source.value, path)
+  }
+
+  function setInBound(path: string, value: unknown): void {
+    if (!pending) {
+      pending = []
+      nextTick(() => {
+        // Detach the batch before flushing: a throwing read / write must not
+        // wedge `setIn`, since `pending` is already null and the next write
+        // schedules a fresh flush. It also keeps a re-entrant write (fired
+        // synchronously from the write) out of this batch instead of appending
+        // it to an array this flush is about to drop.
+        const batch = pending
+        pending = null
+
+        // Invariant: non-empty while a flush is scheduled; the guard just
+        // keeps a (hypothetical) empty batch from writing an unchanged source.
+        if (!batch?.length) return
+
+        let next = source.value
+        for (const item of batch) {
+          next = setIn(next, item.path, item.value)
+        }
+        source.value = next
+      })
+    }
+    pending.push({ path, value })
+  }
+
+  return { getIn: getInBound, setIn: setInBound }
 }
