@@ -32,50 +32,44 @@ export function useFormViewValue(): FormViewContext {
   })
 
   // inject 只在 setup 时读取，此处不是响应式的
-  const parent = inject(FORM_VIEW_KEY)
+  const context = inject(FORM_VIEW_KEY)
 
-  // 判定数据提供方
-  const owns = computed<'parent' | 'self' | 'self-local'>(() => {
-    if (key.value) return 'self'
-    if (parent) return 'parent'
-    return 'self-local'
+  // 数据源
+  const source = computed<'context' | 'props' | 'local'>(() => {
+    if (key.value) return 'props'
+    if (context) return 'context'
+    return 'local'
   })
 
   // 本地变量
   const local = ref()
 
-  // self/self-local 时变量
-  const self = computed(() => {
-    if (owns.value === 'parent') return
-    if (owns.value === 'self') return attrs[key.value!]
-    return local.value
+  // 非 context 的完整读写
+  const bound = computed({
+    get: () => {
+      return source.value === 'props' ? attrs[key.value!] : local.value
+    },
+    set: (v: unknown) => {
+      // props 场景下该步骤跳过，local 场景下，内部数据更新早于通知外部
+      if (source.value === 'local') local.value = v
+      if (eventKey.value) (attrs[eventKey.value] as any)(v)
+    }
   })
-
-  // self/self-local 时更新
-  const update = (v: any) => {
-    if (owns.value === 'parent') return
-    // self 场景下该步骤跳过，self-local 场景下，内部数据更新早于通知外部
-    if (owns.value === 'self-local') local.value = v
-    // self/self-local 均告知外部值发生变化
-    if (eventKey.value) (attrs[eventKey.value] as any)(v)
-  }
   
-  const own = bindPathAccess(computed({
-    get: () => self.value,
-    set: update
-  }))
+  // 完整读写拆分为按属性读写
+  const access = bindPathAccess(bound)
 
   const value = computed(() => {
-    if (owns.value === 'parent') return parent!.value
-    return self.value
+    if (source.value === 'context') return context!.value.value
+    return bound.value
   })
   function getIn(path: string) {
-    if (owns.value === 'parent') return parent!.getIn(path)
-    return own.getIn(path)
+    if (source.value === 'context') return context!.getIn(path)
+    return access.getIn(path)
   }
   function setIn(path: string, v: unknown) {
-    if (owns.value === 'parent') return parent!.setIn(path, v)
-      return own.setIn(path, v)
+    if (source.value === 'context') return context!.setIn(path, v)
+      return access.setIn(path, v)
   }
 
   // 由于 FormView 仅有值方面的上下文信息，因此上下文在值中一起处理
