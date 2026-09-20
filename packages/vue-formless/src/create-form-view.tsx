@@ -13,7 +13,7 @@ import {
 import { createLayoutView } from '@vue-formless/layout'
 import { createFormItem } from './create-form-item'
 import { FORM_FIELD_KEY, FORM_VIEW_KEY, type FormFieldContext } from './injection-keys'
-import { useFormViewModelValue } from './use-form-view-model'
+import { useFormViewValue } from './use-form-view-value'
 import type { ItemFl } from './field-schema'
 import { mergeAttrs, resolveProps, type HostProps } from './props-overlay'
 import { omit, toAttrBoolean } from './utils'
@@ -130,24 +130,21 @@ function proxyExpose(host: { value: object | null }): object {
  */
 export function createFormView(options: CreateFormViewOptions = {}): FormViewComponent {
   const { Row, Col } = options.layout ?? {}
-  const layoutPropsSpec = options.layout?.props
-  const Form = options.form?.component ? markRaw(options.form.component) : undefined
-  const formProps = typeof options.form?.props === 'function' ? options.form?.props : () => options.form?.props
-  /** Page LayoutView only; factory `layout.props` never reach Context / wrap-embed. */
+  // 布局组件
   const LayoutView = createLayoutView({ Row, Col })
+  // 表单组件
+  const Form = options.form?.component ? markRaw(options.form.component) : undefined
+
+  const layoutPropsSpec = options.layout?.props
+  
+  const formProps = typeof options.form?.props === 'function' ? options.form?.props : () => options.form?.props  
 
   return defineComponent({
     name: 'FormView',
     inheritAttrs: false,
-    props: {
-      modelValue: {
-        type: [Object, Array] as PropType<unknown>,
-        default: undefined,
-      },
-    },
-    setup(props, { slots, attrs, expose }) {
-      const hostForm = ref<object | null>(null)
-      expose(proxyExpose(hostForm))
+    setup(_, { slots, attrs, expose }) {
+      const formRef = ref<object | null>(null)
+      expose(proxyExpose(formRef))
 
       // Inject once: the ancestor source is both the nested test and this layer's
       // inheritance source.
@@ -161,42 +158,23 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
       const {
         fl: viewFormlessOptions,
         layout: viewLayoutAttrs,
-        default: viewHostAttrs,
+        default: viewFormAttrs,
       } = useDispatch(attrs as Record<string, unknown>, VIEW_ATTR_CHANNELS)
 
-      /**
-       * This layer's model source (design.md §14.2): its own v-model port when
-       * present (listener read from fallthrough attrs, camel or DOM-case tag),
-       * else the ancestor source. `setIn` is the subtree's only write channel and
-       * always terminates at the owning layer.
-       */
-      const source = useFormViewModelValue(
-        {
-          value: () => props.modelValue,
-          update: () => {
-            const raw = attrs['onUpdate:modelValue'] || attrs['onUpdate:model-value']
-            return typeof raw === 'function' ? (raw as (next: unknown) => void) : undefined
-          },
-        },
-        parent,
-      )
+      // 处理 FormView 的值
+      const { value, getIn, setIn } = useFormViewValue()
 
       // Page `fl` is per-instance: assemble here so the page default tracks this layer's attrs.
       const FormItem = createFormItem({ ...options.item, fl: viewFormlessOptions })
-
-      // 嵌套 FormView 从 FORM_VIEW_KEY 继承整值读 + 写通道。
-      // FormField 只读 FORM_FIELD_KEY。FormView 在这里换成本层的 model 源、下放壳资源，
-      // 并缺省 getPropBinding 以无条件截断外层身份——内层 FormField 因此成为新的身份根、
-      // 自声明 fl:prop（子表单 / 嵌套分区都由此成立）。
-      provide(FORM_VIEW_KEY, source)
+      
       provide(FORM_FIELD_KEY, {
         getModelBinding(prop: string) {
           if (!prop) return undefined
           return {
             get value() {
-              return source.getIn(prop)
+              return getIn(prop)
             },
-            update: (value: unknown) => source.setIn(prop, value),
+            update: (value: unknown) => setIn(prop, value),
           }
         },
         FormItem: markRaw(FormItem),
@@ -225,10 +203,10 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
         // is owned by useFormViewModelValue — neither lands on the host Form.
         return (
           <HostForm
-            ref={hostForm}
+            ref={formRef}
             {...mergeAttrs(
-              formProps({ modelValue: toValue(source.value) }) as any,
-              omit(viewHostAttrs.value, V_MODEL_PORT_KEYS),
+              formProps({ modelValue: toValue(value) }) as any,
+              omit(viewFormAttrs.value, V_MODEL_PORT_KEYS),
             )}
             v-slots={{ default: () => body }}
           />

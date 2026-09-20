@@ -68,17 +68,6 @@ async function render(vnode: VNode): Promise<string> {
 }
 
 describe('createFormView', () => {
-  it('warns but still renders at the root when v-model is omitted', async () => {
-    const FormView = View()
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
-    await expect(render(h(FormView))).resolves.toContain('<form')
-    expect(warn).toHaveBeenCalledTimes(1)
-    expect(warn.mock.calls[0]![0]).toContain('Root FormView has no v-model')
-    warn.mockRestore()
-    error.mockRestore()
-  })
-
   it('emits a new object from root v-model', async () => {
     const FormView = View()
     const source = { name: 'Ada' }
