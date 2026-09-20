@@ -7,22 +7,188 @@ import {
   inject,
   nextTick,
   provide,
+  reactive,
   ref,
   type Component,
 } from 'vue'
 import { renderToString } from 'vue/server-renderer'
 import { FORM_VIEW_KEY, type FormViewContext } from './injection-keys'
-import { useFormViewValue } from './use-form-view-value'
+import { useFormViewValue, useValueMeta } from './use-form-view-value'
 
 /**
- * `useFormViewValue` only runs inside a component setup (`useAttrs` / `inject` /
- * `provide`) and the vitest environment is `node`, so every case mounts through
- * SSR — the same harness `create-form-view.test.ts` uses. Path coalescing and
- * cloning themselves are covered by `path-access.test.ts`; this file pins down
- * the layer policy: which source a layer owns, and who ends up emitting.
+ * A layer's value policy has two halves, and they are pinned differently:
+ *
+ * - `useValueMeta(attrs, hasContext)` — port probing and source judgement. It
+ *   only builds `computed`s, so it carries no component dependency and its cases
+ *   run without mounting.
+ * - `useFormViewValue()` — the setup-only wiring around it (`useAttrs` /
+ *   `inject` / `provide`). The vitest environment is `node`, so every case mounts
+ *   through SSR — the same harness `create-form-view.test.ts` uses. Its cases are
+ *   grouped by source (`controlled` / `inherit` / `local`, decision.md) rather
+ *   than by API, because each of `value` / `getIn` / `setIn` resolves the same
+ *   three-way branch and the policy — not the branch — is what this file pins down.
+ *
+ * Path coalescing and cloning themselves are covered by `path-access.test.ts`.
  */
 
 type Attrs = Record<string, unknown>
+
+// ---------------------------------------------------------------------------
+// useValueMeta — port probing and source judgement (no mounting)
+// ---------------------------------------------------------------------------
+
+describe('useValueMeta', () => {
+  describe('the key port', () => {
+    it.each(['modelValue', 'model-value'] as const)(
+      'should bind %s when attrs carry that spelling',
+      (name) => {
+        const meta = useValueMeta({ [name]: { name: 'Ada' } }, false)
+
+        expect(meta.key.value).toBe(name)
+      },
+    )
+
+    it('should count the port as bound when attrs carry modelValue: undefined', () => {
+      const meta = useValueMeta({ modelValue: undefined }, false)
+
+      expect(meta.key.value).toBe('modelValue')
+    })
+
+    it('should prefer modelValue when both spellings are present', () => {
+      const meta = useValueMeta({ modelValue: 'camel', 'model-value': 'hyphen' }, false)
+
+      expect(meta.key.value).toBe('modelValue')
+    })
+
+    it('should report no port when the key is not in attrs', () => {
+      const meta = useValueMeta({}, false)
+
+      expect(meta.key.value).toBeUndefined()
+    })
+
+    it('should drop the port when the key disappears from attrs', () => {
+      const attrs = reactive<Attrs>({})
+      const meta = useValueMeta(attrs, false)
+
+      attrs.modelValue = { name: 'Ada' }
+      expect(meta.key.value).toBe('modelValue')
+
+      delete attrs.modelValue
+      expect(meta.key.value).toBeUndefined()
+    })
+  })
+
+  describe('the event port', () => {
+    it.each(['onUpdate:modelValue', 'onUpdate:model-value'] as const)(
+      'should bind %s when attrs carry it as a function',
+      (name) => {
+        const meta = useValueMeta({ [name]: () => {} }, false)
+
+        expect(meta.event.value).toBe(name)
+      },
+    )
+
+    it('should report no listener when the key is not in attrs', () => {
+      const meta = useValueMeta({}, false)
+
+      expect(meta.event.value).toBeUndefined()
+    })
+
+    it('should ignore the listener when it is not a function', () => {
+      const meta = useValueMeta(
+        { modelValue: { name: 'Ada' }, 'onUpdate:modelValue': 'not-a-listener' },
+        false,
+      )
+
+      expect(meta.event.value).toBeUndefined()
+    })
+
+    it('should prefer onUpdate:modelValue when both spellings are functions', () => {
+      const meta = useValueMeta(
+        { 'onUpdate:modelValue': () => {}, 'onUpdate:model-value': () => {} },
+        false,
+      )
+
+      expect(meta.event.value).toBe('onUpdate:modelValue')
+    })
+
+    it('should pick the listener up when it appears in attrs', () => {
+      const attrs = reactive<Attrs>({})
+      const meta = useValueMeta(attrs, false)
+
+      expect(meta.event.value).toBeUndefined()
+
+      attrs['onUpdate:modelValue'] = () => {}
+      expect(meta.event.value).toBe('onUpdate:modelValue')
+    })
+  })
+
+  describe('the source', () => {
+    it('should stay local when neither a port nor an ancestor is present', () => {
+      const meta = useValueMeta({}, false)
+
+      expect(meta.source.value).toBe('local')
+    })
+
+    it('should inherit when only an ancestor is present', () => {
+      const meta = useValueMeta({}, true)
+
+      expect(meta.source.value).toBe('inherit')
+    })
+
+    it('should be controlled when only a port is present', () => {
+      const meta = useValueMeta({ modelValue: { name: 'Ada' } }, false)
+
+      expect(meta.source.value).toBe('controlled')
+    })
+
+    it('should stay controlled when a port and an ancestor are both present', () => {
+      const meta = useValueMeta({ modelValue: { name: 'Ada' } }, true)
+
+      expect(meta.source.value).toBe('controlled')
+    })
+
+    it('should stay local when only a listener is present', () => {
+      // A listener says what happened in this layer; it never transfers control
+      // (decision.md: listening is not a control change).
+      const meta = useValueMeta({ 'onUpdate:modelValue': () => {} }, false)
+
+      expect(meta.source.value).toBe('local')
+    })
+
+    it('should move to controlled when the port appears and back to local when it disappears', () => {
+      const attrs = reactive<Attrs>({})
+      const meta = useValueMeta(attrs, false)
+
+      expect(meta.source.value).toBe('local')
+
+      attrs.modelValue = { name: 'Ada' }
+      expect(meta.source.value).toBe('controlled')
+
+      delete attrs.modelValue
+      expect(meta.source.value).toBe('local')
+    })
+
+    it('should fall back to inherit when the port disappears and an ancestor is present', () => {
+      // `hasContext` is a snapshot taken at call time, so it keeps answering
+      // after the port is gone.
+      const attrs = reactive<Attrs>({})
+      const meta = useValueMeta(attrs, true)
+
+      expect(meta.source.value).toBe('inherit')
+
+      attrs.modelValue = { name: 'Ada' }
+      expect(meta.source.value).toBe('controlled')
+
+      delete attrs.modelValue
+      expect(meta.source.value).toBe('inherit')
+    })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// useFormViewValue — the setup-only wiring (SSR mount)
+// ---------------------------------------------------------------------------
 
 /** What one `useFormViewValue()` call produced, captured during render. */
 interface ValueNode {
@@ -74,7 +240,7 @@ function buildValueTree(spec: ValueSpec): { component: Component; nodes: ValueNo
 /** Render a value tree (optionally below a provided ancestor) and return its nodes. */
 async function mountValueTree(
   spec: ValueSpec,
-  parentContext?: FormViewContext,
+  ancestorContext?: FormViewContext,
 ): Promise<ValueNode[]> {
   const { component, nodes } = buildValueTree(spec)
 
@@ -82,7 +248,7 @@ async function mountValueTree(
   // and, when given, supplies the ancestor context the root layer injects.
   const Root = defineComponent({
     setup() {
-      if (parentContext != null) provide(FORM_VIEW_KEY, parentContext)
+      if (ancestorContext != null) provide(FORM_VIEW_KEY, ancestorContext)
       return () => h(component, spec.attrs ?? {})
     },
   })
@@ -94,9 +260,9 @@ async function mountValueTree(
 /** Mount a single layer and return the context it returned and provided. */
 async function mountValue(
   attrs: Attrs = {},
-  options: { parent?: FormViewContext } = {},
+  options: { ancestor?: FormViewContext } = {},
 ): Promise<ValueNode> {
-  const nodes = await mountValueTree({ attrs }, options.parent)
+  const nodes = await mountValueTree({ attrs }, options.ancestor)
   return nodes[0]!
 }
 
@@ -104,7 +270,7 @@ async function mountValue(
  * A stand-in ancestor context: a real writable `value` plus spies for the two
  * path entries, so a child layer's forwarding is directly observable.
  */
-function fakeParent(initial: unknown) {
+function fakeAncestor(initial: unknown) {
   const model = ref<unknown>(initial)
   const getIn = vi.fn((path: string) => {
     const root = model.value
@@ -117,354 +283,271 @@ function fakeParent(initial: unknown) {
   return { ctx, model, getIn, setIn }
 }
 
-describe('owns：数据提供方判定（self / parent / self-local）', () => {
-  it('attrs 带 modelValue → self：读自己的值，不向祖先转发', async () => {
-    const parent = fakeParent({ name: 'parent' })
-    const { ctx } = await mountValue({ modelValue: { name: 'Ada' } }, { parent: parent.ctx })
+describe('useFormViewValue', () => {
+  describe('a controlled value', () => {
+    it.each(['modelValue', 'model-value'] as const)(
+      'should read its own value when %s is bound, without asking the ancestor',
+      async (name) => {
+        const ancestor = fakeAncestor({ name: 'ancestor' })
+        const { ctx } = await mountValue({ [name]: { name: 'Ada' } }, { ancestor: ancestor.ctx })
 
-    expect(ctx.getIn('name')).toBe('Ada')
-    expect(parent.getIn).not.toHaveBeenCalled()
-  })
+        expect(ctx.value.value).toEqual({ name: 'Ada' })
+        expect(ctx.getIn('name')).toBe('Ada')
+        expect(ancestor.getIn).not.toHaveBeenCalled()
+      },
+    )
 
-  it('attrs 带 model-value → self（连字符拼写同样成立）', async () => {
-    const parent = fakeParent({ name: 'parent' })
-    const { ctx } = await mountValue({ 'model-value': { name: 'Ada' } }, { parent: parent.ctx })
+    it('should treat modelValue: undefined as its own when the key is present', async () => {
+      const ancestor = fakeAncestor({ name: 'ancestor' })
+      const { ctx } = await mountValue({ modelValue: undefined }, { ancestor: ancestor.ctx })
 
-    expect(ctx.getIn('name')).toBe('Ada')
-    expect(parent.getIn).not.toHaveBeenCalled()
-  })
-
-  it('modelValue: undefined 仍算 self（判定 key 是否存在，而非值）', async () => {
-    const parent = fakeParent({ name: 'parent' })
-    const { ctx } = await mountValue({ modelValue: undefined }, { parent: parent.ctx })
-
-    // A `parent` layer would resolve 'parent' here; a self layer reads its own
-    // (undefined) source.
-    expect(ctx.getIn('name')).toBeUndefined()
-    expect(parent.getIn).not.toHaveBeenCalled()
-  })
-
-  it('camel 与连字符同时存在时 camel 优先', async () => {
-    const { ctx } = await mountValue({
-      modelValue: { name: 'camel' },
-      'model-value': { name: 'hyphen' },
+      // An inherit source would resolve 'ancestor' here; a controlled source
+      // reads its own (undefined) value.
+      expect(ctx.getIn('name')).toBeUndefined()
+      expect(ancestor.getIn).not.toHaveBeenCalled()
     })
 
-    expect(ctx.getIn('name')).toBe('camel')
-  })
+    it('should read a nested path when the bound value holds it', async () => {
+      const { ctx } = await mountValue({ modelValue: { buyers: [{ name: 'Ada' }] } })
 
-  it('无 key 但有祖先 → parent：读写都转发到祖先', async () => {
-    const parent = fakeParent({ name: 'Ada' })
-    const { ctx } = await mountValue({}, { parent: parent.ctx })
-
-    expect(ctx.getIn('name')).toBe('Ada')
-    expect(parent.getIn).toHaveBeenCalledWith('name')
-
-    ctx.setIn('name', 'Bob')
-    await nextTick()
-    expect(parent.setIn).toHaveBeenCalledWith('name', 'Bob')
-  })
-
-  it('无 key 且无祖先 → self-local：写入落在内部变量', async () => {
-    const { ctx } = await mountValue()
-
-    expect(ctx.value.value).toBeUndefined()
-    ctx.setIn('name', 'Bob')
-    await nextTick()
-    expect(ctx.value.value).toEqual({ name: 'Bob' })
-  })
-
-  it('只有监听（无 key、无祖先）也走 self-local，并对外 emit', async () => {
-    const emit = vi.fn()
-    const { ctx } = await mountValue({ 'onUpdate:modelValue': emit })
-
-    ctx.setIn('name', 'Bob')
-    await nextTick()
-
-    expect(ctx.value.value).toEqual({ name: 'Bob' })
-    expect(emit).toHaveBeenCalledTimes(1)
-  })
-})
-
-describe('value：读整值', () => {
-  it('self：镜像 attrs 里的整值', async () => {
-    const { ctx } = await mountValue({ modelValue: { name: 'Ada' } })
-    expect(ctx.value.value).toEqual({ name: 'Ada' })
-  })
-
-  it('self：连字符拼写同样镜像', async () => {
-    const { ctx } = await mountValue({ 'model-value': { name: 'Ada' } })
-    expect(ctx.value.value).toEqual({ name: 'Ada' })
-  })
-
-  it('self-local：初始为 undefined，写入后反映本地值', async () => {
-    const { ctx } = await mountValue()
-    expect(ctx.value.value).toBeUndefined()
-
-    ctx.setIn('name', 'Bob')
-    await nextTick()
-    expect(ctx.value.value).toEqual({ name: 'Bob' })
-  })
-
-  it('parent：等于祖先解析出的整值', async () => {
-    const parent = fakeParent({ name: 'Ada' })
-    const { ctx } = await mountValue({}, { parent: parent.ctx })
-
-    expect(ctx.value.value).toEqual({ name: 'Ada' })
-  })
-
-  it('parent：随祖先的值变化而更新', async () => {
-    const parent = fakeParent({ name: 'Ada' })
-    const { ctx } = await mountValue({}, { parent: parent.ctx })
-
-    parent.model.value = { name: 'Zed' }
-
-    expect(ctx.value.value).toEqual({ name: 'Zed' })
-  })
-})
-
-describe('getIn：位置读', () => {
-  it('self：按 path 从 attrs 整值读，缺失/非法 path 读作 undefined', async () => {
-    const { ctx } = await mountValue({ modelValue: { buyers: [{ name: 'Ada' }] } })
-
-    expect(ctx.getIn('buyers[0].name')).toBe('Ada')
-    expect(ctx.getIn('buyers[0].missing')).toBeUndefined()
-    expect(ctx.getIn('a..b')).toBeUndefined()
-  })
-
-  it('parent：把 path 原样转发给祖先，并取祖先结果', async () => {
-    const parent = fakeParent({ name: 'Ada' })
-    const { ctx } = await mountValue({}, { parent: parent.ctx })
-
-    expect(ctx.getIn('name')).toBe('Ada')
-    expect(parent.getIn).toHaveBeenCalledTimes(1)
-    expect(parent.getIn).toHaveBeenCalledWith('name')
-  })
-
-  it('self-local：写入后按 path 读回本地值', async () => {
-    const { ctx } = await mountValue()
-    expect(ctx.getIn('name')).toBeUndefined()
-
-    ctx.setIn('name', 'Bob')
-    await nextTick()
-    expect(ctx.getIn('name')).toBe('Bob')
-  })
-})
-
-describe('setIn：位置写与 emit 策略', () => {
-  it('self + 监听：同 tick 多次写合并为一次 emit，发出克隆后的整值', async () => {
-    const emit = vi.fn()
-    const source = { buyers: [{ name: 'Ada', gender: 'f' }] }
-    const { ctx } = await mountValue({
-      modelValue: source,
-      'onUpdate:modelValue': emit,
+      expect(ctx.getIn('buyers[0].name')).toBe('Ada')
+      expect(ctx.getIn('buyers[0].missing')).toBeUndefined()
     })
 
-    ctx.setIn('buyers[0].name', 'Bob')
-    ctx.setIn('buyers[0].gender', 'm')
-    await nextTick()
+    it('should merge same-tick writes into one emit when a listener is bound', async () => {
+      const emit = vi.fn()
+      const source = { buyers: [{ name: 'Ada', gender: 'f' }] }
+      const { ctx } = await mountValue({
+        modelValue: source,
+        'onUpdate:modelValue': emit,
+      })
 
-    expect(emit).toHaveBeenCalledTimes(1)
-    expect(emit.mock.calls[0]![0]).toEqual({ buyers: [{ name: 'Bob', gender: 'm' }] })
-    expect(emit.mock.calls[0]![0]).not.toBe(source)
-    expect(source).toEqual({ buyers: [{ name: 'Ada', gender: 'f' }] })
-  })
+      ctx.setIn('buyers[0].name', 'Bob')
+      ctx.setIn('buyers[0].gender', 'm')
+      await nextTick()
 
-  it('self + 连字符监听 onUpdate:model-value 同样生效', async () => {
-    const emit = vi.fn()
-    const { ctx } = await mountValue({
-      modelValue: { name: 'Ada' },
-      'onUpdate:model-value': emit,
+      expect(emit).toHaveBeenCalledTimes(1)
+      expect(emit.mock.calls[0]![0]).toEqual({ buyers: [{ name: 'Bob', gender: 'm' }] })
+      expect(emit.mock.calls[0]![0]).not.toBe(source)
+      expect(source).toEqual({ buyers: [{ name: 'Ada', gender: 'f' }] })
     })
 
-    ctx.setIn('name', 'Bob')
-    await nextTick()
+    // Both spellings: which one wins is `useValueMeta`'s business, so here only
+    // the bound one being called is pinned down.
+    it.each(['onUpdate:modelValue', 'onUpdate:model-value'] as const)(
+      'should call %s when it is the bound listener',
+      async (listener) => {
+        const emit = vi.fn()
+        const { ctx } = await mountValue({ modelValue: { name: 'Ada' }, [listener]: emit })
 
-    expect(emit).toHaveBeenCalledTimes(1)
-    expect(emit.mock.calls[0]![0]).toEqual({ name: 'Bob' })
-  })
+        ctx.setIn('name', 'Bob')
+        await nextTick()
 
-  it('self + 无监听：写入被静默丢弃（不抛错，整值与源都不变）', async () => {
-    const source = { name: 'Ada' }
-    const { ctx } = await mountValue({ modelValue: source })
+        expect(emit).toHaveBeenCalledTimes(1)
+        expect(emit.mock.calls[0]![0]).toEqual({ name: 'Bob' })
+      },
+    )
 
-    expect(() => ctx.setIn('name', 'Bob')).not.toThrow()
-    await nextTick()
+    it('should call only modelValue when both listeners are bound', async () => {
+      const camel = vi.fn()
+      const hyphen = vi.fn()
+      const { ctx } = await mountValue({
+        modelValue: { name: 'Ada' },
+        'onUpdate:modelValue': camel,
+        'onUpdate:model-value': hyphen,
+      })
 
-    expect(ctx.value.value).toEqual({ name: 'Ada' })
-    expect(source).toEqual({ name: 'Ada' })
-  })
+      ctx.setIn('name', 'Bob')
+      await nextTick()
 
-  it('self + 非函数监听：按无监听处理，不抛错', async () => {
-    const { ctx } = await mountValue({
-      modelValue: { name: 'Ada' },
-      'onUpdate:modelValue': 'not-a-listener',
+      expect(camel).toHaveBeenCalledTimes(1)
+      expect(hyphen).not.toHaveBeenCalled()
     })
 
-    expect(() => ctx.setIn('name', 'Bob')).not.toThrow()
-    await nextTick()
+    it('should drop the write when no listener is bound', async () => {
+      const source = { name: 'Ada' }
+      const { ctx } = await mountValue({ modelValue: source })
 
-    expect(ctx.value.value).toEqual({ name: 'Ada' })
-  })
+      expect(() => ctx.setIn('name', 'Bob')).not.toThrow()
+      await nextTick()
 
-  it('self：数组根写入发出克隆数组，源数组不变', async () => {
-    const emit = vi.fn()
-    const source = [{ name: 'Ada' }]
-    const { ctx } = await mountValue({
-      modelValue: source,
-      'onUpdate:modelValue': emit,
+      expect(ctx.value.value).toEqual({ name: 'Ada' })
+      expect(source).toEqual({ name: 'Ada' })
     })
 
-    ctx.setIn('[0].name', 'Bob')
-    await nextTick()
+    it('should drop the write when the bound listener is not a function', async () => {
+      const { ctx } = await mountValue({
+        modelValue: { name: 'Ada' },
+        'onUpdate:modelValue': 'not-a-listener',
+      })
 
-    expect(emit).toHaveBeenCalledTimes(1)
-    expect(emit.mock.calls[0]![0]).toEqual([{ name: 'Bob' }])
-    expect(emit.mock.calls[0]![0]).not.toBe(source)
-    expect(source[0]).toEqual({ name: 'Ada' })
-  })
+      expect(() => ctx.setIn('name', 'Bob')).not.toThrow()
+      await nextTick()
 
-  it('self-local + 监听：先更新本地再 emit，一次整值', async () => {
-    const emit = vi.fn()
-    const { ctx } = await mountValue({ 'onUpdate:modelValue': emit })
-
-    ctx.setIn('name', 'Bob')
-    await nextTick()
-
-    expect(ctx.value.value).toEqual({ name: 'Bob' })
-    expect(emit).toHaveBeenCalledTimes(1)
-    expect(emit.mock.calls[0]![0]).toEqual({ name: 'Bob' })
-  })
-
-  it('self-local + 无监听：本地更新但零 emit（内部事件不外发）', async () => {
-    const { ctx } = await mountValue()
-
-    ctx.setIn('name', 'Bob')
-    await nextTick()
-
-    expect(ctx.value.value).toEqual({ name: 'Bob' })
-  })
-
-  it('self-local：跨 tick 的写分别 emit', async () => {
-    const emit = vi.fn()
-    const { ctx } = await mountValue({ 'onUpdate:modelValue': emit })
-
-    ctx.setIn('a', 1)
-    await nextTick()
-    ctx.setIn('b', 2)
-    await nextTick()
-
-    expect(emit).toHaveBeenCalledTimes(2)
-    expect(emit.mock.calls[0]![0]).toEqual({ a: 1 })
-    expect(emit.mock.calls[1]![0]).toEqual({ a: 1, b: 2 })
-  })
-
-  it('parent：写入转发给祖先，本层监听不被触发', async () => {
-    const parent = fakeParent({ name: 'Ada' })
-    const emit = vi.fn()
-    const { ctx } = await mountValue({ 'onUpdate:modelValue': emit }, { parent: parent.ctx })
-
-    ctx.setIn('name', 'Bob')
-    await nextTick()
-
-    expect(parent.setIn).toHaveBeenCalledTimes(1)
-    expect(parent.setIn).toHaveBeenCalledWith('name', 'Bob')
-    expect(emit).not.toHaveBeenCalled()
-  })
-})
-
-describe('事件通道检测', () => {
-  it('只有 camel 监听时调用 camel', async () => {
-    const camel = vi.fn()
-    const { ctx } = await mountValue({
-      modelValue: { name: 'Ada' },
-      'onUpdate:modelValue': camel,
+      expect(ctx.value.value).toEqual({ name: 'Ada' })
     })
 
-    ctx.setIn('name', 'Bob')
-    await nextTick()
+    it('should emit a cloned array when the bound value is an array', async () => {
+      const emit = vi.fn()
+      const source = [{ name: 'Ada' }]
+      const { ctx } = await mountValue({
+        modelValue: source,
+        'onUpdate:modelValue': emit,
+      })
 
-    expect(camel).toHaveBeenCalledTimes(1)
-    expect(camel).toHaveBeenCalledWith({ name: 'Bob' })
+      ctx.setIn('[0].name', 'Bob')
+      await nextTick()
+
+      expect(emit).toHaveBeenCalledTimes(1)
+      expect(emit.mock.calls[0]![0]).toEqual([{ name: 'Bob' }])
+      expect(emit.mock.calls[0]![0]).not.toBe(source)
+      expect(source[0]).toEqual({ name: 'Ada' })
+    })
   })
 
-  it('只有连字符监听时调用连字符', async () => {
-    const hyphen = vi.fn()
-    const { ctx } = await mountValue({
-      modelValue: { name: 'Ada' },
-      'onUpdate:model-value': hyphen,
+  describe('an inherited value', () => {
+    it('should mirror the ancestor value when no port is bound', async () => {
+      const ancestor = fakeAncestor({ name: 'Ada' })
+      const { ctx } = await mountValue({}, { ancestor: ancestor.ctx })
+
+      expect(ctx.value.value).toEqual({ name: 'Ada' })
     })
 
-    ctx.setIn('name', 'Bob')
-    await nextTick()
+    it('should follow the ancestor value when it changes', async () => {
+      const ancestor = fakeAncestor({ name: 'Ada' })
+      const { ctx } = await mountValue({}, { ancestor: ancestor.ctx })
 
-    expect(hyphen).toHaveBeenCalledTimes(1)
-    expect(hyphen).toHaveBeenCalledWith({ name: 'Bob' })
-  })
+      ancestor.model.value = { name: 'Zed' }
 
-  it('两者都在时 camel 优先，连字符不触发', async () => {
-    const camel = vi.fn()
-    const hyphen = vi.fn()
-    const { ctx } = await mountValue({
-      modelValue: { name: 'Ada' },
-      'onUpdate:modelValue': camel,
-      'onUpdate:model-value': hyphen,
+      expect(ctx.value.value).toEqual({ name: 'Zed' })
     })
 
-    ctx.setIn('name', 'Bob')
-    await nextTick()
+    it('should hand the path over to the ancestor when reading', async () => {
+      const ancestor = fakeAncestor({ name: 'Ada' })
+      const { ctx } = await mountValue({}, { ancestor: ancestor.ctx })
 
-    expect(camel).toHaveBeenCalledTimes(1)
-    expect(hyphen).not.toHaveBeenCalled()
-  })
-})
-
-describe('嵌套继承（provide + inject）', () => {
-  it('provide 出去的上下文与返回值同源', async () => {
-    const { ctx, provided } = await mountValue({ modelValue: { name: 'Ada' } })
-
-    expect(provided).not.toBeNull()
-    expect(provided!.value).toBe(ctx.value)
-    expect(provided!.getIn).toBe(ctx.getIn)
-    expect(provided!.setIn).toBe(ctx.setIn)
-  })
-
-  it('子层按路径读到祖先的值', async () => {
-    const [root, child] = await mountValueTree({
-      attrs: { modelValue: { name: 'Ada' } },
-      child: { attrs: {} },
+      expect(ctx.getIn('name')).toBe('Ada')
+      expect(ancestor.getIn).toHaveBeenCalledTimes(1)
+      expect(ancestor.getIn).toHaveBeenCalledWith('name')
     })
 
-    expect(root!.ctx.getIn('name')).toBe('Ada')
-    expect(child!.ctx.getIn('name')).toBe('Ada')
+    it('should forward the write to the ancestor and leave its own listener alone', async () => {
+      const ancestor = fakeAncestor({ name: 'Ada' })
+      const emit = vi.fn()
+      const { ctx } = await mountValue({ 'onUpdate:modelValue': emit }, { ancestor: ancestor.ctx })
+
+      ctx.setIn('name', 'Bob')
+      await nextTick()
+
+      expect(ancestor.setIn).toHaveBeenCalledTimes(1)
+      expect(ancestor.setIn).toHaveBeenCalledWith('name', 'Bob')
+      expect(emit).not.toHaveBeenCalled()
+    })
   })
 
-  it('子层写入终止在 owner：只在 owner emit 一次', async () => {
-    const emit = vi.fn()
-    const [, child] = await mountValueTree({
-      attrs: { modelValue: { name: 'Ada' }, 'onUpdate:modelValue': emit },
-      child: { attrs: {} },
+  describe('a local value', () => {
+    it('should start undefined when neither a port nor an ancestor is present', async () => {
+      const { ctx } = await mountValue()
+
+      expect(ctx.value.value).toBeUndefined()
+      expect(ctx.getIn('name')).toBeUndefined()
     })
 
-    child!.ctx.setIn('name', 'Bob')
-    await nextTick()
+    it('should land the write in its own value when no ancestor is present', async () => {
+      const { ctx } = await mountValue()
 
-    expect(emit).toHaveBeenCalledTimes(1)
-    expect(emit.mock.calls[0]![0]).toEqual({ name: 'Bob' })
+      ctx.setIn('name', 'Bob')
+      await nextTick()
+
+      expect(ctx.value.value).toEqual({ name: 'Bob' })
+      expect(ctx.getIn('name')).toBe('Bob')
+    })
+
+    it('should write locally first and emit once when a listener is bound', async () => {
+      const emit = vi.fn()
+      const { ctx } = await mountValue({ 'onUpdate:modelValue': emit })
+
+      ctx.setIn('name', 'Bob')
+      await nextTick()
+
+      // The local value is already updated when the listener runs: internal data
+      // is written before the outside is told.
+      expect(ctx.value.value).toEqual({ name: 'Bob' })
+      expect(emit).toHaveBeenCalledTimes(1)
+      expect(emit.mock.calls[0]![0]).toEqual({ name: 'Bob' })
+    })
+
+    it('should keep the write local and emit nothing when no listener is bound', async () => {
+      const { ctx } = await mountValue()
+
+      ctx.setIn('name', 'Bob')
+      await nextTick()
+
+      expect(ctx.value.value).toEqual({ name: 'Bob' })
+    })
+
+    it('should emit once per tick when writes are split across ticks', async () => {
+      const emit = vi.fn()
+      const { ctx } = await mountValue({ 'onUpdate:modelValue': emit })
+
+      ctx.setIn('a', 1)
+      await nextTick()
+      ctx.setIn('b', 2)
+      await nextTick()
+
+      expect(emit).toHaveBeenCalledTimes(2)
+      expect(emit.mock.calls[0]![0]).toEqual({ a: 1 })
+      expect(emit.mock.calls[1]![0]).toEqual({ a: 1, b: 2 })
+    })
   })
 
-  it('owner 为 self-local 时，子层写入更新 owner 本地值并 emit', async () => {
-    const emit = vi.fn()
-    const [root, child] = await mountValueTree({
-      attrs: { 'onUpdate:modelValue': emit },
-      child: { attrs: {} },
+  describe('provide and nested inheritance', () => {
+    it('should provide the same context it returns', async () => {
+      const { ctx, provided } = await mountValue({ modelValue: { name: 'Ada' } })
+
+      expect(provided).not.toBeNull()
+      expect(provided!.value).toBe(ctx.value)
+      expect(provided!.getIn).toBe(ctx.getIn)
+      expect(provided!.setIn).toBe(ctx.setIn)
     })
 
-    child!.ctx.setIn('name', 'Bob')
-    await nextTick()
+    it('should let a child read the ancestor value when the child binds nothing', async () => {
+      const [root, child] = await mountValueTree({
+        attrs: { modelValue: { name: 'Ada' } },
+        child: { attrs: {} },
+      })
 
-    expect(root!.ctx.value.value).toEqual({ name: 'Bob' })
-    expect(emit).toHaveBeenCalledTimes(1)
-    expect(emit.mock.calls[0]![0]).toEqual({ name: 'Bob' })
+      expect(root!.ctx.getIn('name')).toBe('Ada')
+      expect(child!.ctx.getIn('name')).toBe('Ada')
+    })
+
+    it('should end a child write at the owner when the owner is controlled', async () => {
+      const emit = vi.fn()
+      const [, child] = await mountValueTree({
+        attrs: { modelValue: { name: 'Ada' }, 'onUpdate:modelValue': emit },
+        child: { attrs: {} },
+      })
+
+      child!.ctx.setIn('name', 'Bob')
+      await nextTick()
+
+      expect(emit).toHaveBeenCalledTimes(1)
+      expect(emit.mock.calls[0]![0]).toEqual({ name: 'Bob' })
+    })
+
+    it('should update the owner local value and emit when the owner is local', async () => {
+      const emit = vi.fn()
+      const [root, child] = await mountValueTree({
+        attrs: { 'onUpdate:modelValue': emit },
+        child: { attrs: {} },
+      })
+
+      child!.ctx.setIn('name', 'Bob')
+      await nextTick()
+
+      expect(root!.ctx.value.value).toEqual({ name: 'Bob' })
+      expect(emit).toHaveBeenCalledTimes(1)
+      expect(emit.mock.calls[0]![0]).toEqual({ name: 'Bob' })
+    })
   })
 })
