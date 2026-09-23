@@ -3,7 +3,7 @@ import {
   createFormFieldComponent,
   type FieldSchemaInput,
 } from './create-field-component'
-import type { FormFieldComponent } from './FormField'
+import { createFormField, type FormFieldComponent } from './FormField'
 import type { FieldSchema } from './field-schema'
 import type { ControlTagProps } from './control-props'
 
@@ -44,7 +44,7 @@ export function createFormFields<const S extends { [K in keyof S]: FieldSchemaIn
     if (!field) continue
     const pascalKey = upperFirst(schemaKey) as UpperFirst<typeof schemaKey> &
       keyof NamespacedFields<S>
-    result[pascalKey] = createFormFieldComponent(
+    result[pascalKey] = createFormField(
       Object.assign({ name: schemaKey, prop: schemaKey }, field),
     ) as NamespacedFields<S>[typeof pascalKey]
   }

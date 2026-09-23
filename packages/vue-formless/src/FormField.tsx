@@ -14,7 +14,7 @@ import type { FormFieldTagProps, ItemFl } from './field-schema'
 import { FIELD_SLOT_CHANNELS, FIELD_ATTR_CHANNELS, useDispatch } from './use-form-attrs'
 import { dispatch } from './dispatch'
 import { type HostProps } from './props-overlay'
-import { toCamel } from '@/utils'
+import { toCamel, upperFirst } from '@/utils'
 
 /** `Component` is a union; JSX needs a constructable host. */
 type JsxHost = new () => { $props: Record<string, unknown> }
@@ -79,6 +79,12 @@ export const FormFieldCore = defineComponent({
   name: 'FormFieldCore',
   inheritAttrs: false,
   props: {
+    preset: {
+      type: Object as PropType<{
+        fl: Record<string, unknown>
+        props: HostProps<ItemFl>
+      }>
+    },
     fl: { type: Object as PropType<Record<string, unknown>>, required: true },
     layoutItem: { type: Object as PropType<Record<string, unknown>>, required: true },
     layout: { type: Object as PropType<Record<string, unknown>>, required: true },
@@ -89,18 +95,22 @@ export const FormFieldCore = defineComponent({
     // FormField 唯一消费的上行上下文：model 源 + 身份映射 + 壳资源都在这里。
     const context = inject(FORM_FIELD_KEY, null)
 
-    const formless = computed(() => (props.fl?.component as any)?.formless)
+    const controlFormless = computed(() => (props.fl?.component as any)?.formless)
+    const propFormless = computed(() => ({
+      ...props.preset?.fl,
+      ...props.fl,
+    }))
 
     // 模型名
     const model = computed(() => {
-      return normalizeModel(props.fl?.model)
-        || normalizeModel(formless.value?.model)
+      return normalizeModel(propFormless.value?.model)
+        || normalizeModel(controlFormless.value?.model)
         || ['modelValue']
     })
 
     // 属性名
     const prop = computed(() => {
-      return normalizeProp(props.fl?.prop)
+      return normalizeProp(propFormless.value?.prop)
         || context?.getProp?.(model.value)
     })
 
@@ -133,10 +143,10 @@ export const FormFieldCore = defineComponent({
 
     // FormField 的渲染方式
     const field = computed<"wrap" | "embed" | "wrap-embed">(() => {
-      const inner = formless.value?.field === 'embed' ? 'embed' : 'auto'
-      const outer = props.fl.field === 'embed' 
+      const inner = controlFormless.value?.field === 'embed' ? 'embed' : 'auto'
+      const outer = propFormless.value?.field === 'embed' 
         ? 'embed'
-        : props.fl.field === 'wrap-embed'
+        : propFormless.value?.field === 'wrap-embed'
           ? 'wrap-embed'
           : 'auto'
       // inner 是 auto，外层是 wrap embed wrap-embed 三种情况
@@ -145,7 +155,17 @@ export const FormFieldCore = defineComponent({
       return outer === 'auto' ? 'embed' : outer
     })
 
-    const item = computed(() => props.fl?.item !== false)
+    const item = computed(() => propFormless.value?.item !== false)
+
+    const formless = computed(() => {
+      return {
+        ...propFormless.value,
+        model: model.value,
+        prop: prop.value,
+        field: field.value,
+        item: item.value,
+      }
+    })
 
     const controlAttrs = computed(() => {
       /**
@@ -153,7 +173,9 @@ export const FormFieldCore = defineComponent({
        * 1. createFromControl 里的 prop 函数转换需要在此处处理
        * 2. bind 提供的数据有更高的优先级，需要覆盖；提供的事件需要和传入事件做融合
        */
+      const preset = typeof props.preset?.props === 'function' ? props.preset?.props(formless.value as any) : props.preset?.props
       return {
+        ...preset,
         ...props.control,
         ...bind.value,
       }
@@ -178,13 +200,7 @@ export const FormFieldCore = defineComponent({
       const FormItem = context?.FormItem as JsxHost | undefined
       // TODO: 这里需要处理 item props 函数回调的问题
       const body = FormItem && item.value ? <FormItem 
-        fl={{
-          ...props.fl,
-          model: model.value,
-          prop: prop.value,
-          field: field.value,
-          item: item.value,
-        }}
+        fl={formless.value}
         item={props.item} v-slots={{ 
         ...itemSlots,
         default: () => control,
@@ -200,27 +216,7 @@ export const FormFieldCore = defineComponent({
  * tag's `fl:component` / `fl:model` are its own declaration (design.md §7.2);
  * locking those to a schema is the factory shell's job, not this one's.
  */
-export const FormField = defineComponent({
-  name: 'FormField',
-  inheritAttrs: false,
-  setup(_, { attrs, slots }) {
-    const { fl, layoutItem, layout, item, default: control } = useDispatch(
-      attrs as Record<string, unknown>,
-      FIELD_ATTR_CHANNELS,
-    )
 
-    return () => (
-      <FormFieldCore
-        fl={fl.value}
-        layoutItem={layoutItem.value}
-        layout={layout.value}
-        item={item.value}
-        control={control.value}
-        v-slots={slots}
-      />
-    )
-  },
-}) as FormFieldComponent
 
 type FormFieldFormless = {
   component: Component
@@ -238,8 +234,41 @@ type FormFieldFormless = {
   field?: 'auto' | 'embed' | 'wrap-embed'
 }
 
-export function createFormField({
+type CreateFormFieldOptions = {
 
-}) {
-  return 
 }
+
+export function createFormField(options: CreateFormFieldOptions = {}) {
+  const { name, component, props, ...preset } = options as any
+
+  return defineComponent({
+    name: name ? `FormField${upperFirst(name)}` : 'FormField',
+    inheritAttrs: false,
+    setup(_, { attrs, slots }) {
+      const { fl, layoutItem, layout, item, default: control } = useDispatch(
+        attrs as Record<string, unknown>,
+        FIELD_ATTR_CHANNELS,
+      )
+  
+      return () => (
+        <FormFieldCore
+          preset={{
+            fl: preset,
+            props
+          }}
+          fl={{
+            ...fl.value,
+            component: component ?? fl.value.component,
+          }}
+          layoutItem={layoutItem.value}
+          layout={layout.value}
+          item={item.value}
+          control={control.value}
+          v-slots={slots}
+        />
+      )
+    },
+  }) as FormFieldComponent
+}
+
+export const FormField = createFormField()
