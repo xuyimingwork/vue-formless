@@ -9,6 +9,8 @@ import {
   type DefineComponent,
   type PropType,
   type VNodeChild,
+  type MaybeRefOrGetter,
+  computed,
 } from 'vue'
 import { createLayoutView } from '@vue-formless/layout'
 import { createFormItem } from './create-form-item'
@@ -175,6 +177,12 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
               return getIn(prop)
             },
             update: (value: unknown) => setIn(prop, value),
+          }
+        },
+        access(prop: MaybeRefOrGetter<string>) {
+          return {
+            value: computed(() => getIn(toValue(prop))),
+            update: (v: string) => setIn(toValue(prop), v)
           }
         },
         FormItem: markRaw(FormItem),

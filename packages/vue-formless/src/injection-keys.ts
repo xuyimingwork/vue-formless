@@ -1,4 +1,4 @@
-import type { Component, ComputedRef, InjectionKey } from 'vue'
+import type { Component, ComputedRef, InjectionKey, MaybeRefOrGetter } from 'vue'
 import type { ModelBinding } from './control-binding'
 
 /**
@@ -26,10 +26,16 @@ export interface FormViewContext {
  * - `getPropBinding`（口 → 位置对应）来自 FormField 身份根，缺失即「截断」。
  */
 export interface FormFieldContext {
-  /** 位置 → 现值 + 写回（model 源，由 FormView 提供）。 */
-  getModelBinding(prop: string): ModelBinding | undefined
-  /** 口 → 对应关系（身份映射，由 FormField 身份根提供）。缺省 = 无外层身份。 */
-  getPropBinding?(model: string): { model: string; prop: string } | undefined
+  /**
+   * 
+   * @param model 自身绑定名，如：['modelValue']
+   */
+  getProp?(model: (string | undefined)[]): string[]
+  /**
+   * FormView 提供，FormField 原样转发的数据更新工具
+   * @param prop 路径
+   */
+  access(prop?: MaybeRefOrGetter<string>): { value: ComputedRef, update: (v: unknown) => void }
   /** 组装好的宿主 Item（由 FormView 提供，FormField 身份根透传）。 */
   FormItem?: Component
   /** 工厂绑定的 LayoutView（wrap-embed 内层窗口；由 FormView 提供，透传）。 */
