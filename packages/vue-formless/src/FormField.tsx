@@ -177,7 +177,15 @@ export const FormFieldCore = defineComponent({
       
       const FormItem = context?.FormItem as JsxHost | undefined
       // TODO: 这里需要处理 item props 函数回调的问题
-      const body = FormItem && item.value ? <FormItem {...props.item} v-slots={{ 
+      const body = FormItem && item.value ? <FormItem 
+        fl={{
+          ...props.fl,
+          model: model.value,
+          prop: prop.value,
+          field: field.value,
+          item: item.value,
+        }}
+        item={props.item} v-slots={{ 
         ...itemSlots,
         default: () => control,
       }} /> : control
