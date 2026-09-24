@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { omit, omitUndefined, toAttrBoolean, upperFirst } from './utils'
+import { omit, omitUndefined, getAttrBoolean, upperFirst } from './utils'
 
 describe('upperFirst', () => {
   it('converts camelCase field keys to PascalCase tags', () => {
@@ -27,16 +27,15 @@ describe('omitUndefined', () => {
   })
 })
 
-describe('toAttrBoolean', () => {
+describe('getAttrBoolean', () => {
   it('maps Vue boolean-attr shapes and falls back when missing', () => {
-    expect(toAttrBoolean(undefined)).toBe(false)
-    expect(toAttrBoolean(undefined, true)).toBe(true)
-    expect(toAttrBoolean(null, true)).toBe(true)
-    expect(toAttrBoolean(true)).toBe(true)
-    expect(toAttrBoolean('')).toBe(true)
-    expect(toAttrBoolean('true')).toBe(true)
-    expect(toAttrBoolean(false)).toBe(false)
-    expect(toAttrBoolean('false')).toBe(false)
-    expect(toAttrBoolean('nope', true)).toBe(true)
+    expect(getAttrBoolean(undefined)).toBe(undefined)
+    expect(getAttrBoolean('')).toBe(true)
+    expect(getAttrBoolean(true)).toBe(true)
+    expect(getAttrBoolean(null)).toBe(false)
+    expect(getAttrBoolean('true')).toBe(true)
+    expect(getAttrBoolean(false)).toBe(false)
+    expect(getAttrBoolean('false')).toBe(true)
+    expect(getAttrBoolean('nope')).toBe(true)
   })
 })

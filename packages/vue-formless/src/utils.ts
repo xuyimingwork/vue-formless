@@ -15,12 +15,15 @@ export function upperFirst(s: string): string {
  * Vue attr / boolean-attr → boolean.
  * `true` / `''` (bare attr) → true; `false` / `'false'` → false; missing → `defaultValue`.
  */
-export function toAttrBoolean(value: unknown, defaultValue = false): boolean {
-  if (value === undefined || value === null) return defaultValue
-  if (value === true || value === '') return true
-  if (value === false || value === 'false') return false
-  if (value === 'true') return true
-  return defaultValue
+export function getAttrBoolean(...values: unknown[]): boolean | undefined {
+  const resolve = (value: unknown) => {
+    if (value === undefined) return
+    if (value === '') return true
+    return !!value
+  }
+  return values.reduce((result, v) => {
+    return typeof resolve(v) === 'boolean' ? resolve(v) : result
+  }, undefined) as boolean | undefined
 }
 
 /** Type-level `upperFirst`: `'name'` → `'Name'` (design.md §11). */

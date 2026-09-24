@@ -18,7 +18,7 @@ import { FORM_FIELD_KEY, FORM_VIEW_KEY, type FormFieldContext } from './injectio
 import { useFormViewValue } from './use-form-view-value'
 import type { ItemFl } from './field-schema'
 import { mergeAttrs, resolveProps, type HostProps } from './props-overlay'
-import { omit, toAttrBoolean } from './utils'
+import { omit, getAttrBoolean } from './utils'
 import { VIEW_ATTR_CHANNELS, useDispatch } from './use-form-attrs'
 
 /** `Component` is a union; JSX needs a constructable host. */
@@ -179,7 +179,7 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
           ...props,
           fl: {
             ...props.fl,
-            item: typeof props.fl?.item === 'boolean' ? props.fl.item : viewFormlessOptions.value.item !== false,
+            item: getAttrBoolean(true, viewFormlessOptions.value.item, props.fl?.item)
           }
           
         }} v-slots={slots} />),
@@ -188,19 +188,19 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
 
       return (): VNodeChild => {
         const HostLayoutView = LayoutView as JsxHost
-        const layout = toAttrBoolean(viewFormlessOptions.value.layout, false)
+        const layout = getAttrBoolean(false, viewFormlessOptions.value.layout)
         // Factory layout.props(fl) sets LayoutView defaults; tag :layout:* overlays (near wins).
         // `disabled` is kernel-owned: fl:layout flips polarity (design.md §10.1).
         const body = (
           <HostLayoutView
-            {...mergeAttrs(resolveProps(layoutPropsSpec, { layout }), viewLayoutAttrs.value)}
+            {...mergeAttrs(resolveProps(layoutPropsSpec, { layout: !!layout }), viewLayoutAttrs.value)}
             disabled={!layout}
             v-slots={{ default: slots.default }}
           />
         )
 
         if (!Form) return body
-        if (!toAttrBoolean(viewFormlessOptions.value.form, !nested)) return body
+        if (!getAttrBoolean(!nested, viewFormlessOptions.value.form)) return body
 
         const HostForm = Form as JsxHost
         // Factory form.props(fl) sets host defaults; tag host attrs overlay (near wins).

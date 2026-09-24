@@ -1,16 +1,13 @@
 import {
-  computed,
   defineComponent,
   markRaw,
-  toValue,
   type Component,
   type MaybeRefOrGetter,
   type PropType,
   type VNodeChild,
 } from 'vue'
 import type { ItemFl } from './field-schema'
-import { mergeAttrs, resolveProps, type HostProps } from './props-overlay'
-import { toAttrBoolean } from './utils'
+import { type HostProps } from './props-overlay'
 
 /** `Component` is a union; JSX needs a constructable host. */
 type JsxHost = new () => { $props: Record<string, unknown> }
