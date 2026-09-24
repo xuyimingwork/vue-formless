@@ -13,6 +13,7 @@
   - 2026-08-18 — 整表 `disabled` / `readonly` 不进 FormContext；宿主表单或输入 attrs 各自管。
   - 2026-08-19 — 校验宿主改为可选适配 `Form`（slot），不由 `createFormControls` 生成，也不再默认外层手写 `el-form`。公开 `FormLayout` 再次否决。实例 `form` / `item` 开关见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。
   - 2026-08-26 — 嵌套 FormView：`fl:form` 默认 auto、未绑 v-model 则 inherit。实现层可拆内部 Layout；仍不公开。见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。
+  - 2026-09-24 — **最终收束**：`createFormControls` → `createFormFields`（本文正文中的 `createFormControls` 均为历史名）；`wrap` 壳函数**未落地**（壳资源经 `FORM_FIELD_KEY` 的 `FormItem` / `LayoutView`）；读写真值 = `access(prop).value` / `access(prop).update(value)`（`FORM_VIEW_KEY` 只服务嵌套 FormView）；`:formless.span` → `layout-item:span`；`fl:form` 是 boolean / `'auto'`，`:form="false"` 写法为 `:fl:form="false"`；页面通道为 `fl:` / `layout-item:` / `layout:` / `item:`。
 - **来源**：动态表单架构设计推演
 
 ## 背景
@@ -36,7 +37,7 @@ FormView + User.Xxx  ≈  （可选）行容器 + 列格子 + 表单项 + 控件
 
 职责划分：
 
-1. **`createFormControls(schema)`**  
+1. **`createFormFields(schema)`**  
    纯静态、无数据；产出命名空间控件。默认在页面声明；跨页单例为 opt-in（ADR-009）。每项的 `component` 是输入；`model` 只声明组件 v-model 口名，叶子键是 `prop`（ADR-011）。**不**接收、**不**绑定具体布局 / FormItem 组件库。
 
 2. **`FormView`（原推演名 FormLayout）**  
@@ -45,12 +46,12 @@ FormView + User.Xxx  ≈  （可选）行容器 + 列格子 + 表单项 + 控件
    - 适配层可挂 **Form** / **Item**（组件 + slot），见 ADR-008 / ADR-012；栅格仍是 FormView 的 `:layout`，不拆公开 `FormLayout`
 
 3. **`User.Xxx`**  
-   - 从 FormContext 取得运行时数据，输入 vnode 交给 `wrap`  
-   - 读 `getIn(model, prop)`，写 `update(prop, value)`，由 FormView emit  
-   - 负责字段级绑定；无前缀插槽透传给输入；列宽以 `:formless.span` 覆盖页级缺省
+   - 从 FormContext（`FORM_FIELD_KEY`）取得运行时数据，输入 vnode 交给宿主壳
+   - 读 `access(prop).value`，写 `access(prop).update(value)`，由 FormView emit  
+   - 负责字段级绑定；无前缀插槽透传给输入；列宽以 `layout-item:span` 覆盖页级缺省
 
 4. **校验 / 表单宿主**  
-   可选适配 `Form` 由 `createFormView` 挂上，**不是** `createFormControls` 生成，也 **不是** 页面外层手写 `el-form`（主路径）。工厂有 `Form` 且实例 `form` 未关才 `h(Form)`；表格等 `:form="false"`。`validate()` expose 在 FormView（转到内层 Form）。整表禁用落到 `Form` 的 attrs；单格 `disabled` / `readonly` 是输入 attrs。单格 Item 由适配 Item 自己转 snapshot，见 ADR-012。当初否决「Hook 返回 Form + Fields」仍成立：Form 是可选壳，与控件表分离。
+   可选适配 `Form` 由 `createFormView` 挂上，**不是** `createFormFields` 生成，也 **不是** 页面外层手写 `el-form`（主路径）。工厂有 `Form` 且实例 `fl:form` 未关才 `h(Form)`；表格等 `:fl:form="false"`。`validate()` expose 在 FormView（转到内层 Form）。整表禁用落到 `Form` 的 attrs；单格 `disabled` / `readonly` 是输入 attrs。单格 Item 由适配 Item 自己转 snapshot，见 ADR-012。当初否决「Hook 返回 Form + Fields」仍成立：Form 是可选壳，与控件表分离。
 
 ## 备选方案
 

@@ -5,6 +5,7 @@
 - **修订**：
   - 2026-09-10 — 通道前缀重写：原提案的 `take` 挂在 `cell:`（LayoutCell），不再是 `col:take`；窗口键 `column` 挂 `layout:`。见 [ADR-021](./021-channel-prefix-and-form-item.md)。
   - 2026-09-15 — **否决**：不实现 `take`（连通道键一起）。「这一格吃多少行内占用」保持 `place` 单轴。§提案 保留为历史记录。
+  - 2026-09-24 — **通道名最终为 `layout-item:take`**（原 `cell:`）；结论不变：`LayoutItemProps` 仍只有 `span` / `place`，无 `take`。
 - **来源**：相对 [ADR-007](./007-layout-adapter-and-span-priority.md) / [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。下文 §提案 是 2026-09-04 的原始设计，**已否**，只为留证。
 
 ## 决策：不实现 `take`

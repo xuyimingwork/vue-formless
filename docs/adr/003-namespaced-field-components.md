@@ -9,6 +9,7 @@
   - 2026-08-27 — 取消独立 `path`；位置只写 `prop`。见 [ADR-011](./011-model-and-path.md)。
   - 2026-08-18 — `component` 只接输入；label / Item props 进适配层 `toItemProps`。见 [ADR-012](./012-input-item-and-rule-compile.md)。
   - 2026-09-18 — 工厂不再复制 schema、不再 `markRaw` `component`：域表原样遍历，`component` 只作 attr 透传给 FormField（schema 请用普通对象，别包 `reactive`）。
+  - 2026-09-24 — **最终收束**：`:formless="{ … }"` 袋 → `fl:*` 逐键平铺；`span` → `layout-item:span`；底层格名 `FormCell` / 内核 `FormItem` → `FormField`；**标签可覆盖的只剩 `component`**——`model` / `prop` / `item` / `field` 均由标签覆盖 schema（§11.2）。下文「不可覆盖 `model`」按代码作废。
 - **来源**：动态表单架构设计推演
 
 ## 背景
@@ -42,8 +43,8 @@ export const User = createFormFields({
 ```
 
 ```vue
-<User.Name :formless="{ validate: 'required' }" />
-<User.IdCard :formless="{ span: 24 }">
+<User.Name fl:validate="'required'" />
+<User.IdCard layout-item:span="24">
   <template #append>...</template>
 </User.IdCard>
 ```
@@ -54,7 +55,7 @@ export const User = createFormFields({
 - `createFormFields` 建立域 → **输入** `component` / 默认 props / 默认 label / `model`（v-model 口）/ `prop`（位置）/ `validation`。schema 原样读，工厂不复制、也不 `markRaw`（2026-09-18 修订）。联动、本场策略、布局不进这张表（[ADR-010](./010-controls-as-semantic-cluster.md)）
 - `component` 不含 FormItem；label 与校验投影进适配层 Item，见 [ADR-012](./012-input-item-and-rule-compile.md)
 - `model` / `prop` 见 [ADR-011](./011-model-and-path.md)；省略则 `modelValue` ↔ 控件键
-- 渲染期用 `:fl:prop` 覆盖位置，及 extras / `span`；**不可**覆盖 `component` / `model`；不把规则体写进模板
+- 渲染期用 `:fl:prop` 覆盖位置、`:fl:model` 覆盖口，及 extras / `layout-item:span`；**只有 `component` 不可被标签覆盖**（工厂壳 `schema.component ?? fl:component`，`design.md` §11.2）；不把规则体写进模板
 - 顶层 attrs / 事件 / 无前缀插槽给 `component`；Item 用 `:item:xxx` / `@item:xxx` / `` #[`item:xxx`] ``（ADR-012）
 - 按需 `defineComponent`（创建簇时生成 PascalCase 属性）；泛型把 schema 键映射为 PascalCase 组件类型
 

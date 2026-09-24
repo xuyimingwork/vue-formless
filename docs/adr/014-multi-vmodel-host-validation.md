@@ -7,6 +7,7 @@
   - 2026-08-19 — 宿主 `prop` 由适配 Item / Form 编码，内核不预计算、不强制控件键。snapshot 给 `binding` + `getValues()`。
   - 2026-08-26 — 编码落在 `item.props`（及将来的 Form 投影），不再经 `props.fl`。见 [ADR-016](./016-fl-project-and-overlay.md)。
   - 2026-09-14 — **v1 范围收窄**：「一格控件键 + Form 投影」整条路暂不实现（`fieldKey` 已废，见 ADR-011 修订）。多口一格的 `item.props` 写出 `prop: undefined` —— 宿主不注册该格、不校验、不重置（宿主 `prop` 是纯适配编码）。需要宿主校验的多口控件请用 `fl:field="wrap-embed"` 一壳一格（ADR-013），每一格各有一个口，位置即宿主 `prop`。§「决策」里关于控件键 / 投影 / `resetFields(控件键)` 的论证保留为将来恢复该路径时的依据。
+  - 2026-09-24 — **最终收束**：`FormCell` / 内核 `FormItem` → `FormField`；`cell: 'embed'` → `formless.field: 'embed'`；`useFormCell('start')` → `<FormField fl:model="start">`；`:formless.prop` / `:formless.validate` → `fl:prop` / `fl:validate`；`binding` → `ItemFl.model` / `ItemFl.prop`。
 - **来源**：相对 [ADR-011](./011-model-and-path.md) / [ADR-012](./012-input-item-and-rule-compile.md)。011 允许 `model` / `prop` 数组只解决了接线；一格 Item 时宿主 Form 的 `value`、红字、`resetFields` 没着落。[ADR-013](./013-one-control-multiple-items.md) 管壳的次数，不管「几个 v-model 口时 rules 吃什么」。
 
 ## 背景
@@ -39,14 +40,14 @@ timeRange: {
 
 ### 1. 接线仍是 011；本篇只谈宿主校验
 
-`model` / `prop` 数组语义、前缀接线（`prop` 短于 `model`）、`:formless.prop` / `path` 覆盖，一律以 011 为准。未绑定的口（如 Agency 的 `option`）**不进入**本文的口值列表。
+`model` / `prop` 数组语义、前缀接线（`prop` 短于 `model`）、`:fl:prop` / `:fl:model` 覆盖，一律以 011 为准。未绑定的口（如 Agency 的 `option`）**不进入**本文的口值列表。
 
 ### 2. 适配层不认叶子名
 
 适配 Item 内部编规则（如 `toEpRules`）只吃：
 
 - 该 control 的 `validation`
-- 这场 `:formless.validate`
+- 这场 `:fl:validate`
 - **已经取好的值**：单口是标量；多口是与已绑定 `prop` 对齐的列表（下称口值）
 
 叶子名、`getIn(form, prop)` 只活在内核：按 binding `getIn(model, prop[i])`。口值随 DTO 现取（投影 getter 或 `() => values`），不能在 Item 首次渲染时拍死。
@@ -57,7 +58,7 @@ timeRange: {
 
 DateRangeOneInput（默认 wrap 一次）一格挂不住两个叶子。Element 适配通常把宿主 Item `prop` 编成 **控件键**，不是两个叶子，也不是 `'$startTime,endTime'`。这是 **适配内部约定**，不是内核 snapshot 字段；Naive 等可以换成别的挂载点。
 
-内核只给 `binding` + `getValues()`（`fieldKey` 已于 2026-09-14 作废，见 [ADR-011](./011-model-and-path.md) 修订）。`item.props` 写出 `prop`；Form 投影键须用 **同一套编码**（真实叶子 + 该键 → 现取口值，如 `timeRange → [start, end]`）。ElFormItem 的 `fieldValue` 才能对上、watch 才能随改随消红字。投影的 setter（`resetFields`）必须拆回叶子再走 `update` / `emit`，禁止就地改 DTO。
+内核只给归一化的 `model` / `prop` + `getValues()`（`fieldKey` 已于 2026-09-14 作废，见 [ADR-011](./011-model-and-path.md) 修订）。`item.props` 写出 `prop`；Form 投影键须用 **同一套编码**（真实叶子 + 该键 → 现取口值，如 `timeRange → [start, end]`）。ElFormItem 的 `fieldValue` 才能对上、watch 才能随改随消红字。投影的 setter（`resetFields`）必须拆回叶子再走 `update` / `emit`，禁止就地改 DTO。
 
 DTO（`FormView` 的 `v-model`）**没有** `timeRange`。有适配 `Form` 时，投影发生在 Form 适配里，不是内核替 ElForm 选键。
 
@@ -66,8 +67,8 @@ DTO（`FormView` 的 `v-model`）**没有** `timeRange`。有适配 `Form` 时�
 有 `Form` 时用户 **不**写 `el-form`（[ADR-008](./008-form-view-vmodel-and-grid-gcd.md) / [ADR-012](./012-input-item-and-rule-compile.md)）：
 
 ```vue
-<FormView ref="formRef" v-model="form" label-width="96px" :layout="{ column: 2 }">
-  <User.DateRange :formless="{ validate: 'required' }" />
+<FormView ref="formRef" v-model="form" label-width="96px" fl:layout layout:column="2">
+  <User.DateRange fl:validate="'required'" />
 </FormView>
 ```
 
@@ -83,10 +84,10 @@ await formRef.value?.validate()
 
 | | OneInput（一格） | TwoInput（两格） |
 |--|------------------|------------------|
-| 壳 | 013：工厂外包 FormCell 一次 | 020：`cell: 'embed'` + `useFormCell('start'/'end')`；分组 `:fl:cell="'wrap-embed'"` |
+| 壳 | 013：工厂包 FormField 一次 | 020 最终：组合体只写体 `formless.field: 'embed'`；内层格写 `<FormField fl:model="start"/"end">`；分组 `fl:field="'wrap-embed'"` |
 | 宿主 Item `prop` | 适配编码（Element 常用控件键） | 适配按口叶子路径（`fieldValue` 是真值） |
-| `empty` / required | 本文：对 **整份口值** 判空 | 该格 ElForm `value`（单叶子）；策略仍是标签上那一份 `:formless.validate` |
-| 区间 `format` | 本文：对整份口值 | 仍是该 control 的 `validation`；用同一套口值（闭包 `getValues()`），不要在 `toEpRules` 里写另一端叶子名 |
+| `empty` / required | 本文：对 **整份口值** 判空 | 该格 ElForm `value`（单叶子）；策略仍是标签上那一份 `:fl:validate` |
+| 区间 `format` | 本文：对整份口值 | 仍是该 control 的 `validation`；用同一套口值（`getValues()`，当前未实现），不要在 `toEpRules` 里写另一端叶子名 |
 
 两格时单格 empty 可以信 ElForm 的 `value`；跨口约束仍走本文的口值列表。身份始终一份 `validation`。
 

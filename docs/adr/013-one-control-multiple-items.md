@@ -9,7 +9,23 @@
   - 2026-09-01 — 关 Col 不再写 schema / 标签 `layout`；组合体 `'self'` 外层不包 Col，密度只在 FormView。见 [ADR-017](./017-composite-item-self.md)。
   - 2026-08-31 — 组合体关壳改为控件 `formless.item: 'self'`（一次去掉外层 Item+Col）；与业务 `item: false`（不要表单项、可留 Col）分开。见 [ADR-017](./017-composite-item-self.md)。
   - 2026-09-09 — 基数仍是 1 Field : N Cell；默认外包 FormCell；组合体改 `cell` 三态，见 [ADR-020](./020-form-view-cell-field.md)。`FormCell` / `useFormCell`。
+  - 2026-09-24 — **最终收束**：`FormCell` → `FormField`；组合体关壳不再用 `item: 'self'`（已废，见 [017](./017-composite-item-self.md)），改「只写体」`formless.field: 'embed'`；内层取壳的 `useFormItem('start')` **未落地**，改 `<FormField fl:model="start">`；`FormView.Item` 与临场格统一为公开 `<FormField>`；`:formless` 袋 → `fl:`；宽度 `:col:span` → `layout-item:span`。见下「最终状态」。
 - **来源**：相对 [ADR-012](./012-input-item-and-rule-compile.md) / [ADR-011](./011-model-and-path.md) / [ADR-010](./010-controls-as-semantic-cluster.md)。日期范围要两套 `col-item-picker` 时，012 的「一颗 control 只 wrap 一次」把身份和壳焊死了。
+
+## 最终状态（2026-09 收束）
+
+**基数结论照旧成立**：身份（control）与壳（item）不是 1:1，仍是一颗 Field : N 格。
+
+| 本文 | 最终 |
+|------|------|
+| `FormCell`（一格表单 UI） | `FormField`（`LayoutItem` + 可选宿主 `FormItem`） |
+| `FormView.Item` / 临场 `FormView.Item` | 公开 `<FormField>`（配 `fl:component` 或 slot） |
+| `useFormItem('start')` 取内层壳 | `<FormField fl:model="start">`（hook 未落地；选口即选格） |
+| `item: 'self'`（关外层壳） | 已废（[017](./017-composite-item-self.md)）；组合体只写体 `formless.field: 'embed'` |
+| `:formless="{ … }"` 袋 | `fl:*` 逐键平铺 |
+| `:col:span` / `:col:place` | `layout-item:span` / `layout-item:place` |
+
+组装表达（`design.md` §8）：`'auto'`（叶子 → wrap；组合体 → embed）、`'embed'`（只渲 control，登记进页 LayoutView）、`'wrap-embed'`（外层格 + 内层 LayoutView）。`$bindings` 由 FormField 产出，供 slot 手写；多口一格时宿主 Item `prop` 由适配层编码，编不出就不绑。
 
 ## 背景
 
@@ -138,9 +154,9 @@ const EndItem = useFormItem('end')
 
 ### 4. 校验与 span
 
-`:formless.validate` 仍写在 **一颗** `<User.DateRange />` 上。一格多口时 ElForm 的 `value`、口值 getter、红字挂载点见 [ADR-014](./014-multi-vmodel-host-validation.md)。两格时该口叶子 `prop` 的 `fieldValue` 是真值；跨口区间仍用 014 的整份口值，不要在适配层写另一端叶子名。
+`fl:validate` 仍写在 **一颗** `<User.DateRange />` 上。一格多口时 ElForm 的 `value`、口值 getter、红字挂载点见 [ADR-014](./014-multi-vmodel-host-validation.md)。两格时该口叶子 `prop` 的 `fieldValue` 是真值；跨口区间仍用 014 的整份口值，不要在适配层写另一端叶子名。
 
-`:formless.span` 仍是 **一颗 control 标签一个数**。Two 每格宽度由该格 Item 的 `span` 写（或 FormView `defaultSpan`）；不要把标签上的 `span` 解释成两格总宽。以后若要 `span: [12, 12]` 另议，不堵在本文。
+`layout-item:span` 仍是 **一颗 control 标签一个数**。Two 每格宽度由该格 Item 的 `layout-item:span` 写（或页级密度 `layout.props`）；不要把标签上的 `span` 解释成两格总宽。以后若要 `span: [12, 12]` 另议，不堵在本文。
 
 ### 5. 实现边界
 

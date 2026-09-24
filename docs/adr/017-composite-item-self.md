@@ -10,6 +10,13 @@
   - 2026-09-03 — 公开 `LayoutItem`；仍不公开 `FormView.Layout`。
 - **来源**：[ADR-012](./012-input-item-and-rule-compile.md) / [ADR-013](./013-one-control-multiple-items.md) / [ADR-015](./015-formless-config-groups.md)。013 的「一颗 control、N 格 Item」仍成立；关壳与合并顺序以本文为准。
 
+> **最终状态（2026-09 收束）**：本篇整体被 [ADR-020](./020-form-view-cell-field.md) 废止，其后词表又被 [`design.md`](../design.md) 收束。历史推演保留；当前代码里的对应关系：
+> - `item: 'self'` **已废**——组合体只写**体** `formless.field: 'embed'`；要外格 + 内层窗口写 `fl:field="'wrap-embed'"`。
+> - 四档壳表 → 组装模式二轴：`fl:item`（只关宿主 ElFormItem）+ `fl:field`（`'auto'` / `'embed'` / `'wrap-embed'`）。
+> - `resolveControlShell` / `ControlFrame` / `useFormItem` / `wrap` / `extraRow` / `innerRow` **均未落地或已退场**；装配只剩 `FormFieldCore`（provide 身份）+ `createFormItem`（宿主 Item 壳）。
+> - `:col:*` → `layout-item:*`；`:row:*` → `layout:*`。
+
+
 ## 背景
 
 工厂默认把 `component` 当成 **input**，wrap 一次：`Col? → Item? → input`。

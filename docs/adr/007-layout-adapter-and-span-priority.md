@@ -6,6 +6,7 @@
   - 2026-08-13 — 适配最小面、`gutter` 透传与空白 Col 占位策略见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)；文中「Layout」对应 `FormView` 的托管模式 / 页级默认。
   - 2026-09-04 — 「独占落地行」用 `:col:take="'rest'"`，见 [ADR-018](./018-col-take-rest.md)。筛选条可视行数是 Layout 的 `row`，见 [ADR-019](./019-layout-row-window.md)。
   - 2026-09-15 — `take` 已否（[ADR-018](./018-col-take-rest.md)）：独占落地行改用下一格 `place="start"` / 本格 `place="end"`；§3 该句已改写。
+  - 2026-09-24 — **最终通道名**：格子的 `span` / `place` 走 `layout-item:span` / `layout-item:place`（原 `col:`）；窗口键（`column` / `gutter` / `row`）走 `layout:*`（原 `row:`）。ADR-019 的 `row` 窗口 / `show` **未落地**。
 - **来源**：动态表单架构设计推演之后续澄清（相对 ADR-004 初版修正）
 
 ## 背景

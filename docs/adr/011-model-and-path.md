@@ -16,6 +16,7 @@
   - 2026-09-10 — **读写沉默化 + 写侧覆盖**：`parsePath` 对非法 / 空 `path` 返回 `undefined`，不再 throw / warn（调用方自己排查 `path`）；`getIn` 读侧错配一律读作 `undefined`、不再 warn；`setIn` 由「错配 throw」改为「形状匹配即合并 / 不匹配即覆盖」，覆盖时不提示（与读侧一致，内核读写全程不 warn、不 throw）。内核读写对称化为 `readSegments` / `readSegment` 与 `writeSegments` / `writeSegment`。
   - 2026-09-10 — **读侧只看自有属性**：`getIn` 的键段经 `hasOwnProperty.call` 读**自有属性**，不穿透原型链——`constructor` / `toString` / `hasOwnProperty` / `__proto__` 等文法合法但并非数据的段读作 `undefined`，与 `setIn` 只写自有键互逆（`{ ...base, [key]: value }` 即自有属性）。`Object.create({ default })` 这类原型默认值不再可读：模型应是纯数据。`Object.prototype.hasOwnProperty` 用 `call` 调用，因 `hasOwnProperty` 本身也是可达键。
   - 2026-09-10 — **通道前缀收敛**：`FormCell` → `FormItem`；`prop` 三义收敛为 `fl:prop`（绑定输入）与 `item:prop`（机械覆盖宿主 Item）；Field 内按口切片改 `fl:model`（**选口，非覆盖身份**）。见 [ADR-021](./021-channel-prefix-and-form-item.md)。
+  - 2026-09-24 — **最终收束**（以代码 + [`design.md`](../design.md) 为准）：① `FormItem`（内核格）→ `FormField`；② **标签可写 `fl:model`**：在身份根上它是**声明**，与 `fl:prop` 一样覆盖 schema（工厂壳只锁 `component`）——本文「`model` 锁在 component、标签覆盖=否」按代码作废；在内层切片上它仍是**选口**（在已声明口里选一个）。③ snapshot 即 `ItemFl`：`model` / `prop`（下标对齐）+ `getValues()`（未实现）+ extras，无 `binding` / 身份名。④ 写通道是 `FORM_FIELD_KEY.access(prop)` 给的 `{ value, update }`，不再是 `ctx.update(prop, value)`。
 - **来源**：相对 [ADR-009](./009-controls-as-protagonist.md) §6 的修订
 
 ## 背景
@@ -26,10 +27,10 @@
 
 ### 1. 两项分工
 
-| 字段 | 类型 | 含义 | 跟谁走 | 标签覆盖 |
+| 字段 | 类型 | 含义 | 跟谁走 | 标签覆盖（最终） |
 |------|------|------|--------|----------|
-| **`model`** | `string \| string[]` | 组件 v-model 口 | 控件身份 | **否** |
-| **`prop`** | `string \| string[]` | 从 FormView 根到叶子的**位置** | 数据接线 | **可以** |
+| **`model`** | `string \| string[]` | 组件 v-model 口 | 控件身份（可被控件静态 `formless.model` 兜底） | **可以**（`fl:model`；身份根上作声明，内层切片上作选口） |
+| **`prop`** | `string \| string[]` | 从 FormView 根到叶子的**位置** | 数据接线 | **可以**（`fl:prop`） |
 
 ```ts
 name: { component: ElInput }
@@ -85,12 +86,12 @@ keyed-map **行编辑 UI**（遍历键 / 增删键）不属于内核：`getIn` /
 <User.TimeRange :fl:prop="[`buyers[${$index}].startTime`, `buyers[${$index}].endTime`]" />
 ```
 
-- 可覆盖 `prop`，不可覆盖 `model`。有值才盖；**`prop` 禁止空串**——指**整个 `prop` 为空**、不指向任何位置。指向空字符串键的 `prop: '[""]'` 是非空字符串，合法（能否落到宿主由适配层决定，见 §6）。
+- **`model` 与 `prop` 都可被标签覆盖**（2026-09-24 修订）：工厂壳只锁 `component`（`schema.component ?? fl:component`），其余 `fl:*` 键标签近的赢（`design.md` §11.2）。身份根上 `fl:model` 是声明口径，内层切片上它是在已声明口里选一个。有值才盖；**`prop` 禁止空串**——指**整个 `prop` 为空**、不指向任何位置。指向空字符串键的 `prop: '[""]'` 是非空字符串，合法（能否落到宿主由适配层决定，见 §6）。
 - 同一概念两个数据位（行程 vs 签证时间）→ 簇里两项，各自写死 `prop`。
 
 ### 6. 宿主 Item `prop` 不由内核决定
 
-内核 Item `fl` 只给 `binding`（`model[i] ↔ prop[i]`）+ `getValues()`，**不**预计算 ElFormItem `prop`，也不下发任何「身份名」（2026-09-14 修订，`fieldKey` 已废）。内核只提供 `parsePath` 语法解析（把 `buyers[0].name` 拆成段）；把位置编码成宿主 `prop` 形态是适配层职责——Element 需要 dot（`buyers.0.name`，单口），别的宿主可以用自己的写法（如 namePath 数组）。**一个位置编不出来就不编**：多口一格（一个宿主 `prop` 装不下）或路径无法编码时，`item.props` 写出 `undefined`，该格因此不注册进宿主、不参与 `validate` / `resetFields`；要宿主校验就按 `fl:field="wrap-embed"` 把口拆成格（[ADR-013](./013-one-control-multiple-items.md) / [ADR-014](./014-multi-vmodel-host-validation.md)）。本仓库示例见 `playground/src/ep/form-view.ts`。
+内核 Item `fl`（`ItemFl`）只给归一化的 `model` / `prop`（`model[i] ↔ prop[i]`）+ `getValues()`，**不**预计算 ElFormItem `prop`，也不下发任何「身份名」（2026-09-14 修订，`fieldKey` 已废；`getValues` 尚未实现）。内核只提供 `parsePath` 语法解析（把 `buyers[0].name` 拆成段）；把位置编码成宿主 `prop` 形态是适配层职责——Element 需要 dot（`buyers.0.name`，单口），别的宿主可以用自己的写法（如 namePath 数组）。**一个位置编不出来就不编**：多口一格（一个宿主 `prop` 装不下）或路径无法编码时，`item.props` 写出 `undefined`，该格因此不注册进宿主、不参与 `validate` / `resetFields`；要宿主校验就按 `fl:field="wrap-embed"` 把口拆成格（[ADR-013](./013-one-control-multiple-items.md) / [ADR-014](./014-multi-vmodel-host-validation.md)）。本仓库示例见 `playground/src/ep/form-view.ts`。
 
 一颗 control 铺 **多格** Item 时，适配按口派生位置，见 [ADR-013](./013-one-control-multiple-items.md)。
 
@@ -112,7 +113,7 @@ keyed-map **行编辑 UI**（遍历键 / 增删键）不属于内核：`getIn` /
 
 根为 array 时：`<FormView v-model="users">` + `` :fl:prop="`[${$index}].name`" ``。
 
-写入：`ctx.update(prop, value)` → FormView 同 tick 合并 patch → `emit` 新对象。见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)。
+写入：`access(prop).update(value)`（`access` 由最近 FormView 经 `FORM_FIELD_KEY` 提供）→ FormView 同 tick 合并 patch → `emit` 新对象。见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md) 与 `design.md` §14。
 
 ## 备选方案
 

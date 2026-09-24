@@ -18,7 +18,24 @@
   - 2026-08-26 — Form/Item 不再吃 `props.fl`。转化是 `item.props` / control `props`（对象或函数）；覆盖见 [ADR-016](./016-fl-project-and-overlay.md)。
   - 2026-09-01 — 无 Col：不开 FormView `:fl:layout`，或 `'self'` 外层；不再用 schema `layout: false`。
   - 2026-09-09 — `component` 仍只接 Input；壳是 FormCell；组合体 `cell` 三态见 [ADR-020](./020-form-view-cell-field.md)。`item` 仅 boolean（ElFormItem）。
+  - 2026-09-24 — **最终收束**：`:formless` 袋 → `fl:*` 逐键平铺；`FormCell` → `FormField`；`item: 'self'` 已废；`useFormItem` 未落地（内层格写 `<FormField fl:model>`）；壳通道为 `item:` / `layout-item:` / `layout:` + 裸名；只有 `component` 被工厂壳锁死，`model` / `prop` / `item` / `field` 标签可覆盖（见下）。
 - **来源**：相对 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md) / [ADR-010](./010-controls-as-semantic-cluster.md) 的后续收口（`component` 接什么、Item 挂在哪、规则与策略如何变成宿主 `rules`、一颗标签如何分流）
+
+## 最终状态（2026-09 收束）
+
+本文的分工结论仍成立（`component` 只接输入；Form / Item 由 `createFormView` 工厂绑宿主；`validation` 是 schema 静态，`validate` 是 use-site 策略），词表与通道按 `design.md` 收束：
+
+| 本文 | 最终 |
+|------|------|
+| `:formless="{ … }"` 袋 | `fl:*` 逐键平铺（`fl:label` / `fl:prop` / `fl:model` / `fl:item` / `fl:field` / `fl:validate`） |
+| `:formless.validate` | `:fl:validate` |
+| `:item:xxx` / `@item:xxx` / `#[item:xxx]` | 不变（宿主 Item 通道） |
+| `:col:span` / `:col:place` | `layout-item:span` / `layout-item:place` |
+| `:row:*` | `layout:*` |
+| `FormCell` | `FormField`（`FormItem` 只指宿主 ElFormItem） |
+| `item: 'self'` / `:formless.bare` | 已废；关壳写 `fl:item="false"`，组合体只写体 `formless.field: 'embed'` |
+
+**「标签不得覆盖」只剩 `component`**：工厂壳取 `schema.component ?? 标签.fl:component`（`design.md` §11.2）。`model` / `prop` / `item` / `field` 现在都由标签覆盖 schema——本文「不可在标签覆盖 `model`」一句按代码作废。`validation` 仍不在标签上覆盖（它是 schema 静态键，`fl:` 上没有对应标签）。
 
 ## 背景
 
@@ -84,7 +101,7 @@ h(Form?, { ...form.props(fl), ...attrs }, { default: () =>
 
 不把栅格拆成公开的 `FormLayout`（[ADR-008](./008-form-view-vmodel-and-grid-gcd.md)）。
 
-### 3. `validation` 在 Schema，策略在 `:formless.validate`
+### 3. `validation` 在 Schema，策略在 `:fl:validate`
 
 **静态（FieldSchema）**：这个输入会什么。校验收成一组 `validation`，不要和 `component` / `label` 平铺，也不要叫 `rules`（以免像 ElForm）。**不得**出现 `required: true`、`trigger`。标签 **不能** 覆盖 `validation` 或 `component`。
 
@@ -103,22 +120,24 @@ mobile: {
 
 **运行时（`:fl:`）**：这场怎么用。覆盖静态同名键（`label` / `prop`）+ 仅此场（`span`）：
 
-| `:formless.validate` | 含义 |
-|----------------------|------|
+| `:fl:validate` | 含义 |
+|-----------------|------|
 | 不写 / `'optional'` | 选填：空不报；**有值仍跑格式** |
 | `'required'` | 必填：空值 + 格式 |
 | `'none'` | 本场不跑 |
 
 **投影**：适配 Item 把 snapshot 转成宿主 props。跨格约束仍走页面 / 提交。多口见 [ADR-014](./014-multi-vmodel-host-validation.md)。
 
-### 4. 两条通道：`:formless` vs 输入自身
+### 4. 两条通道：`fl:` vs 输入自身
 
-模板仍是 `<User.Name />`。生成组件只声明 **一个** 配置 prop `formless`（可拓展，不占输入的名字）；其余 attrs / 事件 / 无前缀槽全部给 `component`。
+模板仍是 `<User.Name />`。所有 `fl:*` 键都是**平铺的标签 props**（没有 `:formless` 袋子）；不在 `fl:` / `item:` / `layout:` / `layout-item:` 里的 attrs / 事件 / 无前缀槽全部给 `component`。
 
 ```vue
 <User.Name
-  :formless="{ validate: 'required', span: 12, label: '姓名' }"
-  :item:label-width="123"
+  fl:validate="'required'"
+  layout-item:span="12"
+  fl:label="'姓名'"
+  item:label-width="123"
   placeholder="请输入"
   clearable
   @blur="onBlur"
@@ -133,16 +152,16 @@ mobile: {
 
 | 能力 | 通道 | 覆盖 |
 |------|------|------|
-| 改接线 / 文案 | `:fl:` 同名键 | `label`、`prop` |
-| 此场策略 / 布局 | `:formless` 仅运行时键 | `validate`、`span`（`bare` 暂无） |
+| 改接线 / 文案 | `fl:` 同名键 | `fl:label`、`fl:prop`、`fl:model` |
+| 此场策略 / 布局 | `fl:validate` / `layout-item:*` / `layout:*` | `fl:validate`、`layout-item:span` |
 | 改输入自己的面 | 顶层 attrs / `@blur` / 无前缀槽 | `placeholder`、`#append`、`#item` |
 | Item 面 | `:item:xxx` / `@item:xxx` / `` #[`item:xxx`] `` | Item 的 props / 事件 / 槽 |
 
-不可在标签覆盖：`component`、`model`、`validation`。
+不可在标签覆盖：`component`（工厂壳锁）；`validation` 是 schema 静态键，`fl:` 上没有对应标签。`model` / `prop` / `item` / `field` 均可被标签覆盖（`design.md` §11.2）。
 
 簇里的 `props` 与顶层 attrs 合并后给输入。整表禁用走宿主 `Form` 的 attrs（如落到 ElForm 的 `disabled`）；单格 `disabled` / `readonly` 是输入自己的 attrs，不经 FormContext 广播。
 
-`:item:xxx` 是宿主 Item 原生 props（如 `label-width`），**不是** Formless 语义。默认 Item 形状由适配 Item 自己转 snapshot；`:item:` 盖在转换结果上。不要把各家 Item 长尾塞进 `:formless`。
+`:item:xxx` 是宿主 Item 原生 props（如 `label-width`），**不是** Formless 语义。默认 Item 形状由适配 Item 自己转 snapshot；`:item:` 盖在转换结果上。不要把各家 Item 长尾塞进 `fl:`。
 
 ### 5. Item 前缀协议
 

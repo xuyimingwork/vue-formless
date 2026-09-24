@@ -20,6 +20,7 @@
   - 2026-09-03 — 布局对外改为 `createLayoutView` + `LayoutItem`（不再 `useLayoutItem`）。
   - 2026-09-04 — 格占用 `:col:take="'rest'"` 见 [ADR-018](./018-col-take-rest.md)；Layout 行窗口 `:row:row` 见 [ADR-019](./019-layout-row-window.md)。
   - 2026-09-15 — `:col:take` 已否（[ADR-018](./018-col-take-rest.md)）：行内占用保持 `:col:place` 单轴；§2 该句已改写。
+  - 2026-09-24 — **最终收束**：`:row:*` → `layout:*`、`:col:span` / `:col:place` → `layout-item:span` / `layout-item:place`；页密度从工厂 `layout.column` / `layout.gutter` 改为 `layout.props`；`LayoutView` 仍然只有 `disabled` / `column`（ADR-019 的 `row` 窗口与 `layout-item:show` **未落地**）；Context 的写入缝是 `FORM_VIEW_KEY`（`value` / `getIn` / `setIn`），FormField 只 inject `FORM_FIELD_KEY`（`access(prop).update` / `getProp` / 壳资源）；`'self'` 已废（[ADR-017](./017-composite-item-self.md)），单格关壳写 `fl:item="false"`，组合体只写体 `formless.field: 'embed'`。
 - **来源**：相对 [ADR-004](./004-form-layout-and-context.md) / [ADR-007](./007-layout-adapter-and-span-priority.md) 的后续澄清（命名、数据口、适配面与占位策略）
 
 ## 背景
@@ -68,7 +69,7 @@ ADR-004 中的 `FormLayout` 名称由本文废止为推荐对外名；**也不**
 ### 2. 表单数据口使用 `v-model`
 
 ```vue
-<FormView v-model="user" :layout="{ column: 2, gutter: 16 }">
+<FormView v-model="user" fl:layout layout:column="2" layout:gutter="16">
   <User.Name />
 </FormView>
 ```
@@ -76,7 +77,7 @@ ADR-004 中的 `FormLayout` 名称由本文废止为推荐对外名；**也不**
 理由：
 
 - `<User.Name />` **不**在页面模板上绑 `v-model`。ElForm 的 `:model` 只给校验/重置用，真正写入在每个输入的 `v-model="form.xxx"`。Formless 收掉这些口之后，作者能指认的写入点只剩 `FormView` 的 `v-model`。
-- 因此 **FormView 必须是改动真实发生的位置**：控件经 Context `update(prop, value)` 上报，FormView `emit('update:modelValue', next)`，由父级 `v-model` 赋值。
+- 因此 **FormView 必须是改动真实发生的位置**：控件经 `FORM_FIELD_KEY.access(prop).update(value)` 上报，FormView 同 tick 合并 patch 后 `emit('update:modelValue', next)`，由父级 `v-model` 赋值。
 - 根上单向 `:model` 对齐的是 Element 的校验袋，不是本库的写口；已否。
 
 实现约定：
@@ -89,26 +90,30 @@ ADR-004 中的 `FormLayout` 名称由本文废止为推荐对外名；**也不**
 - 父级绑定必须可赋值（`ref` / 可写属性）。`reactive` 对象无法被 `v-model` 整包替换
 - 页级密度收在 **`layout`**（见下），不再散落 `default-span` / `gutter` / `columns`
 
-### 2.1 `layout`：boolean 开关；密度在工厂与 `row:`
+### 2.1 `fl:layout`：boolean 开关；密度在工厂 `layout.props` 与 `layout:`
 
 与 HTML 布尔属性一致：**不写 = false = LayoutView 透传**（不长 Row/Col）。
 
 ```ts
 createFormView({
-  layout: { Row: ElRow, Col: ElCol, column?: number, gutter?: number },
+  layout: {
+    Row: ElRow,
+    Col: ElCol,
+    props: { column: 2, gutter: 16 },   // 默认密度；标签 :layout:* 覆盖
+  },
 })
 ```
 
-内核 `DEFAULT_LAYOUT = { column: 1, gutter: 0 }`。项目密度写在工厂。实例覆盖：`:row:column` / `:row:gutter`（FormView 声明 props，不进 ElForm）。
+项目密度写在工厂 `layout.props`（对象或 `(fl) =>` 函数）。实例覆盖：`layout:column` / `layout:gutter`（FormView 认领 `layout` 通道，`disabled` 由内核固定为 `!fl:layout`）。
 
 | 写法 | 含义 |
 |------|------|
 | 不写 / `:fl:layout="false"` | 不托管栅格 |
-| `fl:layout` / `:fl:layout="true"` | 托管；密度 = 工厂 ?? 内核 1/0 |
-| `:row:column="4"` | 这一层覆盖 column（须同时 `fl:layout`） |
-| `:fl:layout="{ column: 4 }"` | **非法**；throw |
+| `fl:layout` / `:fl:layout="true"` | 托管；密度 = 工厂 `layout.props` ?? LayoutView 缺省 |
+| `:layout:column="4"` | 这一层覆盖 column（须同时 `fl:layout`） |
+| `:fl:layout="{ column: 4 }"` | **非法**（值域是 boolean）；密度只认 `layout.props` / `:layout:*` |
 
-格宽 `:col:span`（省略=`1x`，`'Nx'` / `'max'` / 绝对 1–24）；行内落位 / 占行 `:col:place`（`auto` / `start` / `end`）。行窗口 `:row:row`（省略=不限，见 [ADR-019](./019-layout-row-window.md)）。空白格是 fragment 里的 Col，不用 `offset`。（原「占用 `:col:take`」已否，见 [ADR-018](./018-col-take-rest.md)。）
+格宽 `layout-item:span`（省略=`1x`，`'Nx'` / `'max'` / 绝对 1–24）；行内落位 / 占行 `layout-item:place`（`auto` / `start` / `end`）。空白格是 fragment 里的 Col，不用 `offset`。（原「占用 `:col:take`」已否，见 [ADR-018](./018-col-take-rest.md)；ADR-019 的 `layout:row` 窗口与 `layout-item:show` **未落地**。）
 
 ### 2.2 `form` / `item`：实例开关
 
@@ -131,7 +136,7 @@ createFormView({
 
 <!-- 多段密度：内层只换 layout -->
 <FormView v-model="form" label-width="96px">
-  <FormView fl:layout :row:column="3" :row:gutter="16">
+  <FormView fl:layout layout:column="3" layout:gutter="16">
     <User.Name />
   </FormView>
 </FormView>
@@ -147,7 +152,7 @@ Vue 组件 ref 不会自动变成子组件：FormView `expose` 代理内层 Form
 
 ```ts
 export const FormView = createFormView({
-  layout: { Row: ElRow, Col: ElCol, column: 2, gutter: 16 },
+  layout: { Row: ElRow, Col: ElCol, props: { column: 2, gutter: 16 } },
   form: { component: ElForm },
   item: { component: ElFormItem, props: toEpItemProps },
 })
@@ -155,7 +160,7 @@ export const FormView = createFormView({
 
 | 能力 | 归属 | 说明 |
 |------|------|------|
-| **span**（24 格占位） | 外部 Col（托管时必须） | `:col:span` 解析后交给 Col；缺省 `1x` = `floor(24 / column)` |
+| **span**（24 格占位） | 外部 Col（托管时必须） | `layout-item:span` 解析后交给 Col；缺省 `1x` = `floor(24 / column)` |
 | **Row 容器** | 外部（托管时必须） | 经典栅格下 Col 的 span 依赖行容器；由 FormView 在 Form **内侧**套上 |
 | **Form**（校验容器） | 外部（需要 `validate()` 时） | 内核有则 `h(Form)`，无则字段树原样出门；投影 model 见 [ADR-014](./014-multi-vmodel-host-validation.md) |
 | **Item**（label / 错误） | 外部（校验呈现时） | 内核有则 `h(Item, overlay(item.props), slots)`，无则只渲输入；`rules` / `label` / `prop` 由 `item.props` 转，见 [ADR-016](./016-fl-project-and-overlay.md) |
@@ -176,7 +181,7 @@ export const FormView = createFormView({
 → 再加上 Form
 ```
 
-`gutter` 不是接入门槛；空白 Col 是托管布局的统一占位手段。无 Item 则不套表单项；无 Form 则不套宿主表单。`component` 始终是输入（ADR-012）。包不包 Form / Item / Col **只由 formless 决定**（工厂有没有组件、实例 `form` / `item` / `:layout`、schema `item` / `'self'`），适配必须渲 `slots.default`。
+`gutter` 不是接入门槛；空白 Col 是托管布局的统一占位手段。无 Item 则不套表单项；无 Form 则不套宿主表单。`component` 始终是输入（ADR-012）。包不包 Form / Item / Col **只由 formless 决定**（工厂有没有组件、实例 `fl:form` / `fl:item` / `fl:layout`、schema `item`），适配必须渲 `slots.default`。
 
 ### 4. 主路径一层嵌套；拆原语仅用于逃逸
 

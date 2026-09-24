@@ -4,7 +4,25 @@
 - **日期**：2026-09-10
 - **来源**：相对 [ADR-015](./015-formless-config-groups.md) / [ADR-016](./016-fl-project-and-overlay.md) / [ADR-020](./020-form-view-cell-field.md) 的通道与词表重写；复核 [ADR-011](./011-model-and-path.md) / [ADR-013](./013-one-control-multiple-items.md) / [ADR-018](./018-col-take-rest.md) / [ADR-019](./019-layout-row-window.md)。
 - **修订**：015（§1 通道表 / §3 / 不纳入）、016（§3 组树开关清单）、020（词表 `FormCell` → `FormItem`）、011（§5 `fl:model` 说明）、018 / 019（`col:` → `cell:`、`row:` → `layout:`）。
+  - 2026-09-24 — 词表被 [`docs/design.md`](../design.md) **再收束**：`cell:` → `layout-item:`、`fl:tree` → `fl:field`、内核 `FormItem` → `FormField`、`LayoutCell` → `LayoutItem`；`fl:grid` 与 `cell:show` 未落地（开关仍写 `fl:layout`）。见下「最终状态」。
 - **库尚未发 1.0**：词汇准确优先于兼容（同 [ADR-020](./020-form-view-cell-field.md)）。
+
+## 最终状态（2026-09 收束）
+
+本文的核心规则（**前缀 = 目标组件、裸名 = 主宿主；`fl:` = 语义源、其余 = 机械落地**）保留；词表被 `design.md` 再收束一次：
+
+| 本文 | 最终 |
+|------|------|
+| `FormItem`（内核一格，原 `FormCell`） | `FormField`（`FormItem` 一词只留给宿主 ElFormItem） |
+| `LayoutCell` | `LayoutItem` |
+| `cell:` | `layout-item:`（`layout-item:span` / `layout-item:place`） |
+| `row:` | `layout:` |
+| `item:` | 不变 |
+| `fl:tree`（组树三态） | `fl:field`（值域 `'auto'` / `'embed'` / `'wrap-embed'`） |
+| `fl:grid`（栅格开关） | **未落地**；开关仍写 `fl:layout`（boolean） |
+| `cell:show` / `layout:row`（窗口） | **未落地**（`LayoutItemProps` 只有 `span` / `place`；LayoutView 只有 `disabled` / `column`） |
+
+当前代码的通道表就是这四个常量（`dispatch.ts` 的 `CHANNELS`）：`fl` / `layout-item` / `layout` / `item`；FormField 认领这四个，FormView 认领 `fl` / `layout`（`layout-item:` / `item:` 在 FormView 上落 `default`）。`useFormCell` 已退场，按口切片只剩 `fl:model`。
 
 ## 背景
 

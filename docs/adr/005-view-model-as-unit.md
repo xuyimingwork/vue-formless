@@ -6,6 +6,7 @@
   - 2026-08-17 — 控件键用 `agency` 而非 `agencyId`；默认绑定的载体是页级控件表，不是领域字段单例。见 [ADR-009](./009-controls-as-protagonist.md)。
   - 2026-08-18 — 控件表可写 `validation`（空值/格式），本场策略在 `:formless.validate`；不配联动。见 [ADR-010](./010-controls-as-semantic-cluster.md) / [ADR-012](./012-input-item-and-rule-compile.md)。
   - 2026-08-18 — 流程 Adapter 只做 API DTO ↔ 表单模型；控件多口到叶子由 `model` / `prop` 完成，见 [ADR-011](./011-model-and-path.md)。
+  - 2026-09-24 — **最终收束**：`:formless.validate` → `:fl:validate`；内核格名 `FormCell` / `FormItem` → `FormField`；写入缝为 `FORM_FIELD_KEY.access(prop).update(value)`。
 - **来源**：动态表单架构设计推演
 
 ## 背景
@@ -29,7 +30,7 @@
 
 4. **校验分层**  
    - 随控件：空值判定、格式写成该控件的 `validation`（不是 ElForm 数组；「这个输入会什么」）  
-   - 随场景：`:formless.validate`（`'required'` / 不写 = `'optional'` / `'none'`）、本次提交的跨格规则  
+   - 随场景：`:fl:validate`（`'required'` / 不写 = `'optional'` / `'none'`）、本次提交的跨格规则  
    控件表**写**身份校验，**不**写死本场必填；投影到 Item 见 [ADR-012](./012-input-item-and-rule-compile.md)，原则见 [ADR-010](./010-controls-as-semantic-cluster.md)。
 
 5. **复合控件可提供默认插槽出口**（如 `<User.OrderList>` 内自定义行渲染），仍属同一 View-Model 单元。

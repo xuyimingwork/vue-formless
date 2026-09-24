@@ -4,6 +4,7 @@
 - **日期**：2026-09-04
 - **修订**：
   - 2026-09-10 — 通道前缀重写：窗口键（`column` / `gutter` / `row`）挂 `layout:`，格子 `show` 挂 `cell:`；`:row:row` 叠词消失（→ `layout:row`）。见 [ADR-021](./021-channel-prefix-and-form-item.md)。
+  - 2026-09-24 — **最终通道名 + 未落地**：`cell:` 最终为 `layout-item:`，即窗口键写 `layout:column` / `layout:gutter` / `layout:row`，格子写 `layout-item:show`；`LayoutItem` 现名 `LayoutItem`、FormView 上的格子通道为 `layout-item:*`。**本文整体尚未落地**：当前 `LayoutViewProps` 只有 `disabled` / `column`，`LayoutItemProps` 只有 `span` / `place`，没有 `row` / `show` / `pickVisibleCells` / `overflow`。
 - **来源**：相对 [ADR-007](./007-layout-adapter-and-span-priority.md) / [ADR-008](./008-form-view-vmodel-and-grid-gcd.md) / [ADR-015](./015-formless-config-groups.md)。列表筛选条要收起成固定行数，查询 / 重置钉在最后一行末尾；展开后全部出现。
 
 ## 背景

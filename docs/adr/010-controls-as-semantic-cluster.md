@@ -10,6 +10,7 @@
   - 2026-08-19 — 一颗区间控件可以铺多格 Item，身份仍是一份 `validation`。见 [ADR-013](./013-one-control-multiple-items.md)。
   - 2026-08-19 — 多口挂到 ElForm 上见 [ADR-014](./014-multi-vmodel-host-validation.md)。
   - 2026-09-09 — 工厂更名 `createFormFields`；英文 Field 见 [ADR-020](./020-form-view-cell-field.md)。仍不是表单 schema。
+  - 2026-09-24 — **最终收束**：`:formless.validate` / `:formless.span` → `:fl:validate` / `layout-item:span`；内核格名 `FormCell` / `FormItem` → `FormField`。结论（`validation` 是身份、策略在标签；联动 / 布局不进簇）不变。
 - **来源**：相对 [ADR-009](./009-controls-as-protagonist.md) 的定位收口（工厂是什么、故意不做什么）
 
 ## 背景
@@ -33,7 +34,7 @@
 
 簇里的「有关联」是同一套业务词汇和默认绑定（都是 User 身上的输入，默认绑 `name` / `mobile`），**不是**同一套排版、同一套必填、同一次提交。
 
-等价于前端有一个 `user/` 目录：`NameInput.vue`、`GenderInput.vue`、`AgencyInput.vue`。工厂是少建这些文件、又给它们**统一交互**（进 FormView 就绑、`<User.Name />` 点名、`:formless="{ validate: 'required' }"` 开必填）的办法。文件夹是「真拆成组件」时的落点；表是同一件事的便宜写法。
+等价于前端有一个 `user/` 目录：`NameInput.vue`、`GenderInput.vue`、`AgencyInput.vue`。工厂是少建这些文件、又给它们**统一交互**（进 FormView 就绑、`<User.Name />` 点名、`:fl:validate="'required'"` 开必填）的办法。文件夹是「真拆成组件」时的落点；表是同一件事的便宜写法。
 
 这带一点领域，但是 **界面上的 User 输入词汇**，不是后端 User 聚合：有点模型（名词、默认绑哪、会什么校验），产物和复用仍是组件。`User.Agency` 是「用户表单上的机构格」，不是 Agency 域的根。
 
@@ -59,10 +60,10 @@ User.Name / User.Agency    ← 本层：有业务名、默认绑哪、属于这�
 模板只写策略，不写规则体：
 
 ```vue
-<User.Name :formless="{ validate: 'required' }" />
-<User.Mobile :formless="{ validate: 'required' }" />
+<User.Name fl:validate="'required'" />
+<User.Mobile fl:validate="'required'" />
 <User.Email />                                <!-- 选填：空不报，有值仍校格式 -->
-<User.Keyword :formless="{ validate: 'none' }" />
+<User.Keyword fl:validate="'none'" />
 ```
 
 ```ts
@@ -81,10 +82,10 @@ mobile: {
 }
 ```
 
-策略写在 `:formless.validate`（适配层投影到 Item，见 [ADR-012](./012-input-item-and-rule-compile.md)）：
+策略写在 `:fl:validate`（适配层投影到 Item，见 [ADR-012](./012-input-item-and-rule-compile.md)）：
 
-| `:formless.validate` | 含义 |
-|----------------------|------|
+| `:fl:validate` | 含义 |
+|-----------------|------|
 | 不写 / `'optional'` | 选填：空不报；有值仍跑格式 |
 | `'required'` | 必填：空值 + 格式 |
 | `'none'` | 本场不跑 |
@@ -94,9 +95,9 @@ mobile: {
 ### 3. 写进 controls 即越界
 
 - **控件间联动**（省变市 options、改类型显隐、清下游）：页面 / 流程（`watch`、事件、拉数）。例外：完全发生在**单个** `component` 内部的（树选 `loadData`、时间范围自限区间）。
-- **本场策略**：`:formless.validate`（`'required'` / 不写 = `'optional'` / `'none'`）。不要在簇上写死本场必填（那是这场用法，不是「手机号会什么」）。筛选与编辑应能点同一套 `User.Name` 而必填不同。投影见 [ADR-012](./012-input-item-and-rule-compile.md)。
+- **本场策略**：`:fl:validate`（`'required'` / 不写 = `'optional'` / `'none'`）。不要在簇上写死本场必填（那是这场用法，不是「手机号会什么」）。筛选与编辑应能点同一套 `User.Name` 而必填不同。投影见 [ADR-012](./012-input-item-and-rule-compile.md)。
 - **跨控件约束**（两个独立的开始/结束时间）：跟 FormView 上那份对象走，或提交时再判；不写进 `User.EndTime` 的 schema。一个 `CreateTimeRange` 控件绑两端，则区间约束仍写在该 control 的 `validation` 上——哪怕 DOM 是两格 Item，见 [ADR-013](./013-one-control-multiple-items.md)；一格多口时宿主 `value` 见 [ADR-014](./014-multi-vmodel-host-validation.md)。
-- **布局**：FormView 托管栅格 + 模板 `:formless.span`；整段退出托管则不写 `layout`。语义输入不把自己包成 Col。
+- **布局**：FormView 托管栅格 + 模板 `layout-item:span`；整段退出托管则不写 `fl:layout`。语义输入不把自己包成 Col。
 - **别人的格**：订单字段、与 User 无关的查询时间不要进 `User.*`。筛选用 `CreateTimeRange` 不算越界。
 
 `label` 与 `validation` 都可以留在工厂（叫什么、会校验什么）；不要把「本场必填」和规则体焊成同一份 FormItem DSL。`component` 是输入，FormItem 在适配层，见 [ADR-012](./012-input-item-and-rule-compile.md)。
@@ -110,6 +111,6 @@ mobile: {
 
 ## 后果
 
-- **正向**：有人提「在 schema 里配级联 / 把本场必填写进控件表」时，用本文挡。`validation` 写在 control 上；怎么跑由 `:formless.validate` 决定。复用单元是簇里的标签，不是 Form。
+- **正向**：有人提「在 schema 里配级联 / 把本场必填写进控件表」时，用本文挡。`validation` 写在 control 上；怎么跑由 `:fl:validate` 决定。复用单元是簇里的标签，不是 Form。
 - **代价**：先声明簇再在模板点名（两处）；调试栈多一个工厂组件。
 - **关联**：控件主角、页级所有权、列表见 [ADR-009](./009-controls-as-protagonist.md)；`model` / `path` 见 [ADR-011](./011-model-and-path.md)；命名空间标签见 [ADR-003](./003-namespaced-field-components.md)；配置单元见 [ADR-005](./005-view-model-as-unit.md)；布局见 [ADR-008](./008-form-view-vmodel-and-grid-gcd.md)；Form / Item slot 见 [ADR-012](./012-input-item-and-rule-compile.md)；一 control 多 Item 见 [ADR-013](./013-one-control-multiple-items.md)；多口宿主校验见 [ADR-014](./014-multi-vmodel-host-validation.md)。

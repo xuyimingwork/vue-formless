@@ -5,9 +5,26 @@
 - **修订**：
   - 2026-09-10 — 词表重写：`FormCell` → `FormItem`（名字 = 主宿主，`cell` 让给 `LayoutCell`）；`cell` 三态改 `fl:tree`；`useFormCell(port)` 退场改 `fl:model`；通道前缀 = 目标组件。见 [ADR-021](./021-channel-prefix-and-form-item.md)。
   - 2026-09-14 — §1 词表里的 `controlKey → fieldKey` **再作废**：内核不发身份名（改 `fieldIdentityKey` / `fl:key` / `ItemFl.fieldKey` 均已删，见 [ADR-011](./011-model-and-path.md) 修订）；宿主 `Item.prop` 由适配层自行编码，多口一格不绑宿主。
+  - 2026-09-24 — 词表被 [`docs/design.md`](../design.md) **再收束**：`FormCell`（内核格）→ `FormField`；`LayoutCell` → `LayoutItem`；`cell` 三态 → `fl:field`；`:col:*` → `layout-item:*`、`:row:*` → `layout:*`；`useFormCell` → `fl:model`。见下「最终状态」。
 - **来源**：layout 抽离之后 formless 结构对照；相对 [009](./009-controls-as-protagonist.md) / [012](./012-input-item-and-rule-compile.md) / [013](./013-one-control-multiple-items.md) / [017](./017-composite-item-self.md) 的词表与壳模型重写。
 - **废止**：[017](./017-composite-item-self.md)（`item: 'self'`、`wrapCol` / `extraRow`、四档壳表）。013「一颗身份、N 格」仍成立，组装改由本文 `cell` 三态表达。
 - **库尚未发 1.0**：词汇准确优先于兼容；允许整表更名。
+
+## 最终状态（2026-09 收束）
+
+本文 §1–§3 的词表与三态键写于当时，其后被 `design.md` 收束。**以代码 + `design.md` 为准**：
+
+| 本文 | 最终 |
+|------|------|
+| `FormCell`（内核一格表单 UI） | `FormField`（`FormItem` 一词只留给宿主 ElFormItem） |
+| `LayoutCell` | `LayoutItem` |
+| `cell` 三态 | `fl:field`（值域 `'auto'` / `'embed'` / `'wrap-embed'`；`'wrap'` 类型上仍在，实现按 `'auto'`） |
+| `:col:span` / `:col:place` | `layout-item:span` / `layout-item:place` |
+| `:row:*` | `layout:*` |
+| `useFormCell(port)` | `fl:model`（在该 Field 已声明口里选一个） |
+| `fieldKey`、旧 `controlKey` | 已删——内核不发身份名（见 [ADR-011](./011-model-and-path.md) 修订） |
+
+仍然有效的结论（本文其余部分照旧）：FormView 只管 v-model 归集 / 可选宿主 Form / 页级 LayoutView；组装位置是**同一键整颗替换**、不做 `wrap`∪`embed` 智能合并；`item` 仍是只指宿主 ElFormItem 的 boolean；组合体只写「体」（`formless.field: 'embed'`），要内层窗口须显式写 `'wrap-embed'`（**没有**自动升格）。当前装配点只有一颗 `FormFieldCore`（收 `preset` + 五个通道桶），壳由工厂 `createFormView` / `createFormItem` 闭包持有。
 
 ## 背景
 
@@ -56,7 +73,7 @@ HTML 的 form control = Input。MUI FormControl ≈ FormCell。本库 1.0 **不*
 
 [ADR-009](./009-controls-as-protagonist.md) 否掉的是 **键跟 DTO 走**（`User.AgencyId`），不是英文 Field 不能用。工厂改为 `createFormFields`；**键仍是控件名** `agency`，不是 `agencyId`。中文说「表单域 / 控件」，不要写成「接口字段」。
 
-公开作者面：`FormView`、`FormCell`、`createFormFields`。embed 内部：`useFormCell(port)`。`FormField` 是内核组装件（工厂产出的标签就是一颗 Field）。
+公开作者面：`FormView`、`FormCell`、`createFormFields`。embed 内部：`useFormCell(port)`。`FormField` 是内核组装件（工厂产出的标签就是一颗 Field）。（最终：公开面为 `FormView` / `FormField` / `createFormFields`，按口切片改 `fl:model`，见「最终状态」。）
 
 旧名 → 1.0：
 
@@ -157,17 +174,17 @@ defineOptions({
 
 provide：`model` / `update`、宿主 `Item` + `itemProps`、本层 `item`、工厂 `LayoutView`（wrap-embed 新建内层窗口）。**不** provide `wrap`、页 `layout` 开关、工厂 `column`；**不**让 FormCell 读 layout 决定是否包 Col。
 
-### 5. 实现结构（目标）
+### 5. 实现结构
 
-组件树 = 概念树 = 文件树：
+组件树 = 概念树 = 文件树（**最终落地状态**；本文写就时为 `FormCell.tsx` 一格）：
 
-- [`createFormView`](../../packages/vue-formless/src/create-form-view.ts)：根
-- [`FormCell`](../../packages/vue-formless/src/FormCell.tsx)：一格
-- [`FormField.tsx`](../../packages/vue-formless/src/FormField.tsx)：内核装配件 `FormFieldCore`（收五个通道桶 `fl` / `layoutItem` / `layout` / `item` / `control`，内核私有、不进 `index.ts`）+ 公开标签 `FormField`（façade）
-- [`create-field-component.ts`](../../packages/vue-formless/src/create-field-component.tsx) + [`create-form-fields.ts`](../../packages/vue-formless/src/create-form-fields.ts)：薄工厂，每项挂一颗 Field
-- 纯函数保留：`control-model`（可改名 field-model）、`overlay-props`、`model-path`（`form-model-writer` 已并入 `use-form-view-model-value`）
+- [`create-form-view.tsx`](../../packages/vue-formless/src/create-form-view.tsx)：根（v-model、可选宿主 Form、页级 LayoutView；宿主 Form / FormItem / Row / Col 留在工厂闭包）
+- [`create-form-item.tsx`](../../packages/vue-formless/src/create-form-item.tsx)：组装宿主 Item 壳（内核私有，不进 `index.ts`）；页级 `fl:item` 由 FormView 提供的包装层合并
+- [`FormField.tsx`](../../packages/vue-formless/src/FormField.tsx)：内核装配件 `FormFieldCore`（收 `preset` + 五个通道桶 `fl` / `layoutItem` / `layout` / `item` / `control`）+ 工厂壳 `createFormField` + 公开标签 `FormField`
+- [`create-form-fields.ts`](../../packages/vue-formless/src/create-form-fields.ts)：域表工厂，每项走 `createFormField`；[`create-field-component.tsx`](../../packages/vue-formless/src/create-field-component.tsx) 已无调用点（待清理）
+- 纯函数保留：`path-access` / `path-parse`、`props-overlay`（`mergeAttrs` / `resolveProps`）、`use-form-view-value.ts`
 
-删除或收掉：`resolveControlShell` 的 `wrapCol` / `extraRow` / `'self'`、`wrap-control.ts`、`ControlFrame`、工厂里剥两遍 attrs 再塞 frame。前缀剥一次，变成 FormCell / Input / 内层 LayoutView 的真 props。
+删除或收掉（已落地）：`resolveControlShell` 的 `wrapCol` / `extraRow` / `'self'`、`wrap-control.ts`、`ControlFrame`；前缀剥一次，变成 LayoutItem / FormItem / control / 内层 LayoutView 的真 props。后续合并：`field-identity.ts` / `fl-keys.ts` 退场，身份与快照逻辑并入 `FormFieldCore`；`overlayProps` → `mergeAttrs`、`toAttrBoolean` → `getAttrBoolean`、`use-form-view-model` → `use-form-view-value`（见 `design.md` §16.3）。
 
 建议落地顺序：
 

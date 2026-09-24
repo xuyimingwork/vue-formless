@@ -9,6 +9,7 @@
   - 2026-08-18 — 表格一层 FormView + 行上的 `:fl:prop`。
   - 2026-08-27 — 取消独立 `path`；位置只写 `prop`。见 [ADR-011](./011-model-and-path.md)。
   - 2026-09-09 — 1.0 英文主角改为 Field；工厂 `createFormFields`；壳见 [ADR-020](./020-form-view-cell-field.md)。键仍是控件名（`agency`），不是 DTO。
+  - 2026-09-24 — **最终收束**：内核格名 `FormCell` / `FormItem` → `FormField`；`:formless.validate` → `fl:validate`；写入缝 `update(prop, value)` → `FORM_FIELD_KEY.access(prop).update(value)`；**标签可覆盖 `model`**（本文「不要在标签上改 `model`」按代码作废，工厂壳只锁 `component`）；`span` → `layout-item:span`。
 - **来源**：相对 [ADR-003](./003-namespaced-field-components.md) / [ADR-004](./004-form-layout-and-context.md) / [ADR-005](./005-view-model-as-unit.md) 的后续澄清（命名、共享边界、换绑、数组行）
 
 ## 背景
@@ -92,7 +93,7 @@ FormView v-model 把当前对象接到这些控件上
 
 ### 5. 列表 / 表格：一层 FormView + `:fl:prop`
 
-控件读 `getIn(modelValue, prop)`，写 `update(prop, value)`，经 FormView emit。`model` 只描述组件 v-model 口。
+控件读 `access(prop).value`，写 `access(prop).update(value)`，经 FormView emit。`model` 只描述组件 v-model 口。
 
 - 整表：`FormView v-model="order"` + `<User.Name />` → `prop: name` → emit `{ ...order, name }`
 - 表格：同一 FormView，单元格 `` :fl:prop="`buyers[${$index}].name`" `` → `order.buyers[i].name`，emit 含新 `buyers` array
@@ -132,7 +133,7 @@ xxx: {
 | 多绑定 | `prop` 可短于 `model` | `prop: ['startTime', 'endTime']` |
 | 表格 | `:fl:prop` 完整位置 | `` :fl:prop="`buyers[${$index}].name`" `` |
 
-标签用 `:fl:prop` 覆盖位置，不可覆盖 `model`。
+标签用 `:fl:prop` 覆盖位置、`:fl:model` 覆盖口（[ADR-011](./011-model-and-path.md) 修订；工厂壳只锁 `component`）。
 
 ## 备选方案
 
