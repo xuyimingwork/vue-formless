@@ -19,8 +19,6 @@ import { toCamel, upperFirst } from '@/utils'
 /** `Component` is a union; JSX needs a constructable host. */
 type JsxHost = new () => { $props: Record<string, unknown> }
 
-export type { FormFieldTagProps } from './field-schema'
-
 export interface FormFieldSlotProps {
   $bindings: Record<string, unknown>
 }
@@ -62,19 +60,6 @@ function normalizeProp(prop: unknown): (string | undefined)[] | undefined {
  *
  * Identity and the `provide` live here and nowhere else; the shell never provides.
  */
-export interface FormFieldCoreProps {
-  /** `fl` channel bucket: the merged identity/assembly layer. */
-  fl: Record<string, unknown>
-  /** `layout-item` channel bucket. */
-  layoutItem: Record<string, unknown>
-  /** `layout` channel bucket. */
-  layout: Record<string, unknown>
-  /** `item` channel bucket (host Item shell attrs). */
-  item: Record<string, unknown>
-  /** control layer: bare names, or derived from the snapshot (factory `schema.props`). */
-  control: HostProps<ItemFl>
-}
-
 export const FormFieldCore = defineComponent({
   name: 'FormFieldCore',
   inheritAttrs: false,

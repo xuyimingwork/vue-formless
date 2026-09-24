@@ -4,22 +4,7 @@ import {
   type FieldSchemaInput,
 } from './create-field-component'
 import { createFormField, type FormFieldComponent } from './FormField'
-import type { FieldSchema } from './field-schema'
 import type { ControlTagProps } from './control-props'
-
-export type { FieldSchemaInput } from './create-field-component'
-export type { FormFieldComponent } from './FormField'
-export type { FieldMode, FieldSchema, FormFieldTagProps, ItemFl } from './field-schema'
-export type { ControlProp, ControlVModel } from './control-binding'
-export type { HostProps } from './props-overlay'
-export type {
-  ComponentPublicProps,
-  LockedVModelKeys,
-  ControlTagProps,
-} from './control-props'
-
-/** Loose schema bag. Prefer inferring `S` from an object literal via `createFormFields`. */
-export type FormFieldsSchema = Record<string, FieldSchema>
 
 /**
  * PascalCase field tags. `S` must not be `Record<string, _>` or `keyof` collapses

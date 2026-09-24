@@ -55,8 +55,6 @@ export interface CreateFormViewOptions {
   item?: FormViewHostBind<ItemFl>
 }
 
-export type { HostProps } from './props-overlay'
-
 /** FormView `:fl:layout` is a boolean switch. Density is factory `layout.props` / `:layout:*`. */
 export type FormLayoutProp = boolean
 

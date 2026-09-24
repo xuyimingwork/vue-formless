@@ -1,5 +1,4 @@
 import type { Component, ComputedRef, InjectionKey, MaybeRefOrGetter } from 'vue'
-import type { ModelBinding } from './control-binding'
 
 /**
  * `FORM_VIEW_KEY`：只供嵌套 FormView 继承（读/写源 + nested 判定）。
