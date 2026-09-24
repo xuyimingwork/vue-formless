@@ -155,15 +155,12 @@ export const FormFieldCore = defineComponent({
       return outer === 'auto' ? 'embed' : outer
     })
 
-    const item = computed(() => propFormless.value?.item !== false)
-
     const formless = computed(() => {
       return {
         ...propFormless.value,
         model: model.value,
         prop: prop.value,
-        field: field.value,
-        item: item.value,
+        field: field.value
       }
     })
 
@@ -198,8 +195,7 @@ export const FormFieldCore = defineComponent({
         : pureControl
       
       const FormItem = context?.FormItem as JsxHost | undefined
-      // TODO: 这里需要处理 item props 函数回调的问题
-      const body = FormItem && item.value ? <FormItem 
+      const body = FormItem ? <FormItem 
         fl={formless.value}
         item={props.item} v-slots={{ 
         ...itemSlots,

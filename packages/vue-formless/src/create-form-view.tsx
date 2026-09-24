@@ -136,6 +136,8 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
   const LayoutView = createLayoutView({ Row, Col })
   // 表单组件
   const Form = options.form?.component ? markRaw(options.form.component) : undefined
+  // 表单项组件
+  const FormItem: any = createFormItem(options.item)
 
   const layoutPropsSpec = options.layout?.props
   
@@ -165,27 +167,22 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
 
       // 处理 FormView 的值
       const { value, getIn, setIn } = useFormViewValue()
-
-      // Page `fl` is per-instance: assemble here so the page default tracks this layer's attrs.
-      const FormItem = createFormItem({ ...options.item, fl: viewFormlessOptions })
       
       provide(FORM_FIELD_KEY, {
-        getModelBinding(prop: string) {
-          if (!prop) return undefined
-          return {
-            get value() {
-              return getIn(prop)
-            },
-            update: (value: unknown) => setIn(prop, value),
-          }
-        },
         access(prop: MaybeRefOrGetter<string>) {
           return {
             value: computed(() => getIn(toValue(prop))),
             update: (v: string) => setIn(toValue(prop), v)
           }
         },
-        FormItem: markRaw(FormItem),
+        FormItem: (props, { slots }) => (<FormItem {...{
+          ...props,
+          fl: {
+            ...props.fl,
+            item: typeof props.fl?.item === 'boolean' ? props.fl.item : viewFormlessOptions.value.item !== false,
+          }
+          
+        }} v-slots={slots} />),
         LayoutView: markRaw(LayoutView),
       } as FormFieldContext)
 

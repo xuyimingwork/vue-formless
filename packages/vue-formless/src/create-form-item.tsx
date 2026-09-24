@@ -32,9 +32,6 @@ export interface CreateFormItemOptions {
  */
 export function createFormItem(options: CreateFormItemOptions = {}): Component {
   const Host = options.component ? markRaw(options.component) : undefined
-  const propsSpec = options.props
-  // Option `fl` is the page's; prop `fl` is the field's — rename to avoid confusion.
-  const pageFl = options.fl
 
   return defineComponent({
     name: 'FormItem',
@@ -44,21 +41,16 @@ export function createFormItem(options: CreateFormItemOptions = {}): Component {
       item: { type: Object as PropType<Record<string, unknown>>, required: true },
     },
     setup(props, { slots }) {
-      /** Page < field layer merge + boolean normalization (§9 / §12.1). */
-      const formlessOptions = computed(() => {
-        const pageItem = pageFl ? toValue(pageFl).item : undefined
-        const fl = mergeAttrs({ item: pageItem }, props.fl)
-        return { ...fl, item: toAttrBoolean(fl.item, true) }
-      })
-
       return (): VNodeChild => {
-        if (!Host || !formlessOptions.value.item) return slots.default?.() ?? null
+        if (!Host || !props.fl?.item) return slots.default?.() ?? null
         const HostItem = Host as JsxHost
+        const base = typeof options.props === 'function' ? options.props(props.fl as any) : options.props
         return (
           <HostItem
-            // Snapshot normalization is deferred; the raw `fl` bucket stands in
-            // for `ItemFl` until that lands (see plan "遗留问题").
-            {...mergeAttrs(resolveProps(propsSpec, formlessOptions.value as unknown as ItemFl), props.item)}
+            {...{
+              ...base,
+              ...props.item
+            }}
             v-slots={slots}
           />
         )
