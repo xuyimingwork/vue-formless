@@ -6,8 +6,7 @@ import {
   type PropType,
   type VNodeChild,
 } from 'vue'
-import type { ItemFl } from './field-schema'
-import { type HostProps } from './props-overlay'
+import type { HostProps, ItemFl } from './field-schema'
 
 /** `Component` is a union; JSX needs a constructable host. */
 type JsxHost = new () => { $props: Record<string, unknown> }

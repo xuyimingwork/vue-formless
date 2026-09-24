@@ -1,6 +1,37 @@
 import type { Component } from 'vue'
-import type { ControlProp, ControlVModel } from './control-binding'
-import type { HostProps } from './props-overlay'
+
+/** Static host props, or derived from that layer's snapshot. */
+export type HostProps<TFl> =
+  | Record<string, unknown>
+  | ((fl: TFl) => Record<string, unknown> | undefined)
+
+/**
+ * Field binding (design.md §7.1):
+ * - `model` — v-model names on the control (identity). Default `'modelValue'`.
+ * - `prop`  — location(s) from FormView root (`name`, `buyers[0].name`). Default: the schema key.
+ * `prop` array pairs with `model` (prefix-aligned). Extra model ports are unbound.
+ */
+export type ControlVModel = string | readonly string[]
+export type ControlProp = string | readonly string[]
+
+/** Static `formless` bag a control may declare on `ComponentCustomOptions`. */
+export interface ControlFormless {
+  /** v-model ports on the control (design.md §7.1). */
+  model?: string | string[]
+  /**
+   * Composite marker (design.md §8): "my inner `<FormField>`s need an inner
+   * LayoutView whenever this field is boxed". Only `'embed'` is meaningful —
+   * it is the control's **nature**, not a placement, so it is read at render
+   * (`FormFieldCore`) and folded into `fl:field`, never merged as a preset layer.
+   */
+  field?: 'embed'
+}
+
+declare module 'vue' {
+  interface ComponentCustomOptions {
+    formless?: ControlFormless
+  }
+}
 
 /**
  * `field` assembly placement (design.md §8) — the four **writable** values.
@@ -56,6 +87,20 @@ export interface FieldSchema {
 /** Adapter fields on FieldSchema (everything except kernel keys). */
 export type FieldSchemaExtras = Omit<FieldSchema, FieldSchemaKernelKey>
 
+/**
+ * FieldSchema widened for owner-supplied controls: `component` stays loose so a
+ * field table can pass any control and let the tag infer its public props.
+ */
+export type FieldSchemaInput = Omit<FieldSchema, 'component'> & {
+  component?: unknown
+}
+
+/** One field-table entry: the schema plus an optional debug-only tag name. */
+export type FieldFactoryInput = FieldSchemaInput & {
+  /** Debug-only component name; omit when the schema always declares `prop`. */
+  name?: string
+}
+
 /** Tag attrs: `label?: string` → `'fl:label'?: string`. Always optional (override, not required). */
 export type FlExtraProps<T> = {
   [K in keyof T as K extends string ? `fl:${K}` : never]+?: T[K]
@@ -80,12 +125,14 @@ export type ItemFl = {
   [extra: string]: unknown
 } & FieldSchemaExtras
 
-/** Kernel `fl:` / `item:` / `layout:` / `layout-item:` keys on `<FormField>` / `<User.Xxx />`.
+/**
+ * Public props of `<FormField>` / `<User.Xxx />`. Kernel `fl:` / `item:` /
+ * `layout:` / `layout-item:` keys on `<FormField>` / `<User.Xxx />`.
  * Schema extras are prefixed automatically.
  * `fl:model` declares the v-model ports at the identity root and selects one declared port inside it.
  * `layout:column` is formless density; other `layout:*` (e.g. gutter) stay attrs and fall through to LayoutView → Row.
  */
-export type FormFieldTagProps = {
+export type FormFieldProps = {
   'fl:prop'?: string | string[]
   'fl:model'?: string | string[]
   'fl:item'?: boolean

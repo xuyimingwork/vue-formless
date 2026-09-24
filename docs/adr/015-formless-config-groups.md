@@ -79,7 +79,7 @@ formless: {
 
 ### 6. 内核与适配分工
 
-- 内核读核心键：`component`、`model`、`props`、`prop`、`item`、`field`。其余 schema 键与 `fl:*` extras **不解释**，进 Item/control 转化函数的 snapshot。extras 只扩 `FieldSchema`；`ItemFl` / `FormFieldProps` / `FormFieldTagProps` 从 extras 推导（`label` → snapshot `label` 与 `:fl:label`）。内核不预声明 `label` / `validate`。见 [ADR-016](./016-fl-project-and-overlay.md)。
+- 内核读核心键：`component`、`model`、`props`、`prop`、`item`、`field`。其余 schema 键与 `fl:*` extras **不解释**，进 Item/control 转化函数的 snapshot。extras 只扩 `FieldSchema`；`ItemFl` / `FormFieldProps` 从 extras 推导（`label` → snapshot `label` 与 `:fl:label`）。内核不预声明 `label` / `validate`。见 [ADR-016](./016-fl-project-and-overlay.md)。
 - 内核 **删除 `identity-rules`**。`validation` / `validate` 是不透明 extras；默认 `'optional'` 和编 `rules` 都在适配（playground `toEpRules`）。
 - Col 只吃内核算出的数字 `span`；Row 只吃该层 LayoutView 的 `gutter`。`fl:span` 丢掉（开发态 warn）。
 - 布局模块导出 `createLayoutView` / `LayoutItem`。否：`place="center"`、开放 Col 透传、`layout-item:justify`。

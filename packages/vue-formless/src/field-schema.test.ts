@@ -3,14 +3,14 @@ import type { Component } from 'vue'
 import type {
   FieldSchemaExtras,
   FlExtraProps,
-  FormFieldTagProps,
+  FormFieldProps,
   ItemFl,
 } from './field-schema'
 
 describe('FieldSchema extras', () => {
-  it('kernel FormFieldTagProps are only the fl / layout keys', () => {
+  it('kernel FormFieldProps are only the fl / layout keys', () => {
     expectTypeOf<FieldSchemaExtras>().toEqualTypeOf<{}>()
-    expectTypeOf<FormFieldTagProps>().toEqualTypeOf<{
+    expectTypeOf<FormFieldProps>().toEqualTypeOf<{
       'fl:prop'?: string | string[]
       'fl:model'?: string | string[]
       'fl:item'?: boolean

@@ -1,9 +1,5 @@
+import type { HostProps } from './field-schema'
 import { omitUndefined } from './utils'
-
-/** Static host props, or derived from that layer's snapshot. */
-export type HostProps<TFl> =
-  | Record<string, unknown>
-  | ((fl: TFl) => Record<string, unknown> | undefined)
 
 export function resolveProps<TFl>(
   spec: HostProps<TFl> | undefined,

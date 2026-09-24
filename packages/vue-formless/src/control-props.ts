@@ -1,4 +1,4 @@
-import type { ControlVModel } from './control-binding'
+import type { ControlVModel } from './field-schema'
 
 /**
  * Public `$props` of a Vue constructor, functional component, or SFC.

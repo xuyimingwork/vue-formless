@@ -1,15 +1,9 @@
-// Public API (design.md §19): 5 runtime values + the types needed to use them.
+// Public API (design.md §19): 5 runtime values + the types a consumer must name.
 // Everything else in `src` is kernel-private.
 
 // --- layout re-exports -----------------------------------------------------
+// Values only: the layout prop types stay in `@vue-formless/layout`.
 export { createLayoutView, LayoutItem } from '@vue-formless/layout'
-export type {
-  CreateLayoutViewOptions,
-  LayoutItemPlace,
-  LayoutItemProps,
-  LayoutItemSpan,
-  LayoutViewProps,
-} from '@vue-formless/layout'
 
 // --- FormView --------------------------------------------------------------
 export { createFormView } from './create-form-view'
@@ -25,19 +19,17 @@ export type { NamespacedFields } from './create-form-fields'
 
 // --- FormField -------------------------------------------------------------
 export { FormField } from './FormField'
-export type {
-  FormFieldComponent,
-  FormFieldProps,
-  FormFieldSlotProps,
-} from './FormField'
+export type { FormFieldComponent, FormFieldSlotProps } from './FormField'
 
 // --- schema / binding types ------------------------------------------------
+// Only the three a consumer has to name: the module-augmentation target
+// (`FieldSchema`), the control bag that augments it (`ControlFormless`), and
+// the adapter snapshot (`ItemFl`). Their derivations — `FieldSchemaExtras`,
+// `FieldSchemaInput`, `FieldMode`, `ControlProp` / `ControlVModel`, `HostProps`
+// — stay private; `FieldSchema`'s own members are reachable via indexed access.
 export type {
-  FieldMode,
+  ControlFormless,
   FieldSchema,
-  FieldSchemaExtras,
+  FormFieldProps,
   ItemFl,
 } from './field-schema'
-export type { ControlProp, ControlVModel } from './control-binding'
-export type { HostProps } from './props-overlay'
-export type { ControlFormless } from './control-config'

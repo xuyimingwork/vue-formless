@@ -1,5 +1,4 @@
 import {
-  Component,
   computed,
   defineComponent,
   inject,
@@ -10,10 +9,9 @@ import {
 } from 'vue'
 import { LayoutItem } from '@vue-formless/layout'
 import { FORM_FIELD_KEY } from './injection-keys'
-import type { FormFieldTagProps, ItemFl } from './field-schema'
+import type { FieldFactoryInput, FormFieldProps, HostProps, ItemFl } from './field-schema'
 import { FIELD_SLOT_CHANNELS, FIELD_ATTR_CHANNELS, useDispatch } from './use-form-attrs'
 import { dispatch } from './dispatch'
-import { type HostProps } from './props-overlay'
 import { toCamel, upperFirst } from './utils'
 
 /** `Component` is a union; JSX needs a constructable host. */
@@ -22,8 +20,6 @@ type JsxHost = new () => { $props: Record<string, unknown> }
 export interface FormFieldSlotProps {
   $bindings: Record<string, unknown>
 }
-
-export type FormFieldProps = FormFieldTagProps
 
 export type FormFieldComponent<P = {}> = DefineComponent<FormFieldProps & P>
 
@@ -67,7 +63,7 @@ export const FormFieldCore = defineComponent({
     preset: {
       type: Object as PropType<{
         fl: Record<string, unknown>
-        props: HostProps<ItemFl>
+        props?: HostProps<ItemFl>
       }>
     },
     fl: { type: Object as PropType<Record<string, unknown>>, required: true },
@@ -197,30 +193,8 @@ export const FormFieldCore = defineComponent({
  * tag's `fl:component` / `fl:model` are its own declaration (design.md §7.2);
  * locking those to a schema is the factory shell's job, not this one's.
  */
-
-
-type FormFieldFormless = {
-  component: Component
-  // props component 的默认参数，待定
-  model: string[]
-  prop: string[]
-  // 是否渲染 HostFormItem 组件
-  item?: boolean
-  /**
-   * 渲染模式：
-   * - auto: 依据 HostFormControl 的 field 配置决定自身渲染，HostFormControl field 无定义时普通 wrap 渲染
-   * - embed: 不渲染自身，只渲染 HostFormControl
-   * - wrap-embed: 渲染自身，且渲染 LayoutView（embed 的内容需要）
-   */
-  field?: 'auto' | 'embed' | 'wrap-embed'
-}
-
-type CreateFormFieldOptions = {
-
-}
-
-export function createFormField(options: CreateFormFieldOptions = {}) {
-  const { name, component, props, ...preset } = options as any
+export function createFormField(options: FieldFactoryInput = {}) {
+  const { name, component, props, ...preset } = options
 
   return defineComponent({
     name: name ? `FormField${upperFirst(name)}` : 'FormField',

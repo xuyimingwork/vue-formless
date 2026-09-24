@@ -1,7 +1,5 @@
 import { upperFirst, type UpperFirst } from './utils'
-import {
-  type FieldSchemaInput,
-} from './create-field-component'
+import { type FieldSchemaInput } from './field-schema'
 import { createFormField, type FormFieldComponent } from './FormField'
 import type { ControlTagProps } from './control-props'
 

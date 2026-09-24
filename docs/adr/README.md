@@ -24,7 +24,7 @@
 | `createFormControls` | `createFormFields` |
 | `use-form-view-model.ts` | `use-form-view-value.ts` |
 | `field-identity.ts` / `fl-keys.ts` | 退场（逻辑并入 `FormFieldCore`；`SHELL_KEYS` 随 `fl-keys.ts` 删除） |
-| `FormCellProps` / `FormCellTagProps` / `FormCellSlotProps` | `FormFieldProps` / `FormFieldTagProps` / `FormFieldSlotProps` |
+| `FormCellProps` / `FormCellTagProps` / `FormCellSlotProps` | `FormFieldProps`（前两者合并） / `FormFieldSlotProps` |
 
 布局侧：`span` / `place` 走 `layout-item:`；ADR-019 的 `show` 与 LayoutView `row` 窗口**尚未落地**。
 
