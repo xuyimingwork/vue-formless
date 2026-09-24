@@ -1,6 +1,5 @@
 import { upperFirst, type UpperFirst } from './utils'
 import {
-  createFormFieldComponent,
   type FieldSchemaInput,
 } from './create-field-component'
 import { createFormField, type FormFieldComponent } from './FormField'

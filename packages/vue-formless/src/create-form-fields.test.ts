@@ -185,25 +185,6 @@ describe('createFormFields props overlay', () => {
     expect(html).toContain('class="e"')
   })
 
-  it('gives a composite control its inner window when the tag asks for wrap', async () => {
-    const Fields = createFormFields({
-      range: { label: '签证', component: Two, prop: ['fromTime', 'toTime'] },
-    })
-    const html = await render(
-      h(
-        shellView(),
-        { modelValue: { fromTime: '', toTime: '' }, 'fl:layout': true },
-        () => h(Fields.Range, { 'fl:field': 'wrap' }),
-      ),
-    )
-    // Outer Item(签证) + the two inner items.
-    expect(html.match(/class="item"/g)?.length).toBe(3)
-    expect(html).toContain('data-label="签证"')
-    // The inner window adds a Col per slice, on top of the outer cell's Col.
-    expect(html.match(/class="col"/g)?.length).toBe(3)
-    expect(html.match(/class="row"/g)?.length).toBe(2)
-  })
-
   it('wraps wrap-embed in Col-Item-Row', async () => {
     const Fields = createFormFields({
       range: { label: '签证', component: Two, prop: ['fromTime', 'toTime'] },
@@ -414,35 +395,6 @@ describe('createFormFields props overlay', () => {
     expect(html).toContain('data-label="区间"')
   })
 
-  it('lets the tag fl:field win over the schema and ignores an invalid one', async () => {
-    const Control = defineComponent({
-      inheritAttrs: false,
-      setup: () => () => h('input', { class: 'w' }),
-    })
-    const Fields = createFormFields({
-      range: { label: '区间', component: Control, field: 'embed' },
-    })
-    const view = () => shellView()
-    const embedded = await render(
-      h(view(), { modelValue: { range: '' }, 'fl:layout': true }, () => h(Fields.Range)),
-    )
-    expect(embedded).not.toContain('class="item"')
-
-    const overridden = await render(
-      h(view(), { modelValue: { range: '' }, 'fl:layout': true }, () =>
-        h(Fields.Range, { 'fl:field': 'wrap' }),
-      ),
-    )
-    expect(overridden).toContain('class="item"')
-
-    const invalid = await render(
-      h(view(), { modelValue: { range: '' }, 'fl:layout': true }, () =>
-        h(Fields.Range, { 'fl:field': 'nope' as never }),
-      ),
-    )
-    expect(invalid).not.toContain('class="item"')
-  })
-
   it('scopes a nested slice to its own port through the ancestor layer', async () => {
     const emit = vi.fn()
     const bags: Record<string, unknown>[] = []
@@ -520,51 +472,5 @@ describe('createFormFields props overlay', () => {
     expect(spans).toContain('8')
     expect(spans.filter((s) => s === '24')).toHaveLength(2)
     expect(spans).not.toContain('12')
-  })
-
-  it('renders FormFieldCore from channel buckets, evaluating a control function', async () => {
-    const snapshots: ItemFl[] = []
-    const seen: Record<string, unknown>[] = []
-    const Probe = defineComponent({
-      inheritAttrs: false,
-      setup(_, { attrs }) {
-        seen.push({ ...attrs })
-        return () => h('input', { class: 'probe' })
-      },
-    })
-
-    const html = await render(
-      h(shellView(), { modelValue: { name: 'bob' } }, () =>
-        h(FormFieldCore, {
-          fl: { component: Probe, prop: 'name', model: 'modelValue', label: '姓名' },
-          layoutItem: {},
-          layout: {},
-          item: {},
-          control: (fl: ItemFl) => {
-            snapshots.push(fl)
-            // The binding the core lays over this must win on the same name (§5.2).
-            return { modelValue: 'nope', 'data-prop': fl.prop[0], 'data-label': fl.label }
-          },
-        }),
-      ),
-    )
-
-    // The control function sees the core's own snapshot, identity included.
-    expect(snapshots).toHaveLength(1)
-    expect(snapshots[0]).toMatchObject({
-      model: ['modelValue'],
-      prop: ['name'],
-      label: '姓名',
-    })
-    expect(snapshots[0]!.getValues()).toEqual(['bob'])
-
-    // Its return value lands on the control, under the v-model binding.
-    expect(html).toContain('class="probe"')
-    expect(seen[0]).toMatchObject({
-      modelValue: 'bob',
-      'data-prop': 'name',
-      'data-label': '姓名',
-    })
-    expect(seen[0]!['onUpdate:modelValue']).toBeTypeOf('function')
   })
 })

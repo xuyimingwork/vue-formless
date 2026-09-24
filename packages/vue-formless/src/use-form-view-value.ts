@@ -41,7 +41,7 @@ export function useFormViewValue(): FormViewContext {
   const attrs = useAttrs()
 
   // inject 只在 setup 时读取，此处不是响应式的
-  const context = inject(FORM_VIEW_KEY)
+  const context = inject(FORM_VIEW_KEY, null)
 
   // 解析 value 的控制方
   const { source, key, event } = useValueMeta(attrs, !!context)
