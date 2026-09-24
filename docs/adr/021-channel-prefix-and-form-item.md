@@ -22,7 +22,7 @@
 | `fl:grid`（栅格开关） | **未落地**；开关仍写 `fl:layout`（boolean） |
 | `cell:show` / `layout:row`（窗口） | **未落地**（`LayoutItemProps` 只有 `span` / `place`；LayoutView 只有 `disabled` / `column`） |
 
-当前代码的通道表就是这四个常量（`dispatch.ts` 的 `CHANNELS`）：`fl` / `layout-item` / `layout` / `item`；FormField 认领这四个，FormView 认领 `fl` / `layout`（`layout-item:` / `item:` 在 FormView 上落 `default`）。`useFormCell` 已退场，按口切片只剩 `fl:model`。
+当前代码的通道表就是这四个常量（`use-dispatch.ts` 的 `CHANNELS`）：`fl` / `layout-item` / `layout` / `item`；FormField 认领这四个，FormView 认领 `fl` / `layout`（`layout-item:` / `item:` 在 FormView 上落 `default`）。`useFormCell` 已退场，按口切片只剩 `fl:model`。
 
 ## 背景
 
@@ -264,6 +264,7 @@ useFormCell        → 删除（§7）
 14. **通道路由统一**（后续落地，见 design.md §5.2）：`channels.ts` 改通道表 + 派生监听前缀（删 `onItem:` 字面量）；`attrs.ts` 只留 `pickAttrs`（单通道，props 与监听同袋）/ `omitAttrs`（多通道）；`splitFlAttrs` / `takePrefixed` / `splitFormlessProps` / `useFormlessProps` / `split-fallthrough.ts` 退场，响应式包装回调用点。连带效果：`@layout:*` / `@layout-item:*` 开始真正去 LayoutView / LayoutItem（此前只有 `item:` 实现了监听半边）。
 15. **通道分发合一**（后续落地，取代第 14 条的「两个原语」）：`channels.ts` / `attrs.ts` / `slots.ts` 合并为 `dispatch.ts` —— 通道表 + 前缀派生 + 一个分桶原语 `dispatch(bag, channels)`（每通道一桶 + `default` 裸名残差，props 与监听一视同仁，不筛值）；其上是 `use-form-attrs.ts` 的 `useFormViewAttrs` / `useFormFieldAttrs` / `useFormFieldSlots`，由这层持有「页 / 格各认领哪些通道」。`pickAttrs` / `omitAttrs` / `splitSlots` 退场（第 14 条的措辞被本条取代），`toAttrBoolean` 归 `utils.ts`。§5.2 的「pick 只能一个通道」不再是调用点纪律：各通道各进各桶，串味在结构上不可能。
 16. **`useDispatch` 统一 + `keep` 投影**（后续落地，修订第 15 条的 hook 层）：两个 attrs hook 合成 `useDispatch(attrs, channels, options?)`，桶名由 `Channel` 经 `ToCamel` 派生（`layout-item` → `layoutItem`，不再手写第二个桶名映射），通道集改为 `VIEW_ATTR_CHANNELS` / `FIELD_ATTR_CHANNELS`（导出，由调用点自取）；`dispatch` 增可选 `{ prefix: 'keep' | 'drop' }`（默认 `'drop'`），`keep` 只改被认领通道的键形——保留输入拼写（前缀与监听拼写都不动），使该桶可被同一张通道表**再认领一次**，供后续「父子组件各持一段同一通道（如 FormItem 读 `fl:`）」的转发使用；`default` 两模式完全一致，`resolveKey` 不加分支。行为不变，`dispatch(slots, …)` 与工厂壳的裸 `dispatch` 调用照旧。
+17. **分发与关口同一个模块**（落地，修订第 15 条的文件划分）：`dispatch.ts` + `use-form-attrs.ts` 合并为 `use-dispatch.ts`——通道表 / `resolveKey` / `dispatch` 原语与 `useDispatch` 关口、三个通道集（`VIEW_ATTR_CHANNELS` / `FIELD_ATTR_CHANNELS` / `FIELD_SLOT_CHANNELS`）同处一个模块，文件名与内容对齐（原 `use-form-attrs.ts` 里并没有 `useFormAttrs`）；测试同步并为 `use-dispatch.test.ts`。行为与公开导出不变。
 
 落地顺序建议：本文 → 内核改名与通道常量 → 测试 → playground → 旧 ADR 交叉标注。
 

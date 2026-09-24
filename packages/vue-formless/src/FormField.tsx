@@ -10,8 +10,7 @@ import {
 import { LayoutItem } from '@vue-formless/layout'
 import { FORM_FIELD_KEY } from './injection-keys'
 import type { FieldFactoryInput, FormFieldProps, HostProps, ItemFl } from './field-schema'
-import { FIELD_SLOT_CHANNELS, FIELD_ATTR_CHANNELS, useDispatch } from './use-form-attrs'
-import { dispatch } from './dispatch'
+import { dispatch, FIELD_SLOT_CHANNELS, FIELD_ATTR_CHANNELS, useDispatch } from './use-dispatch'
 import { toCamel, upperFirst } from './utils'
 
 /** `Component` is a union; JSX needs a constructable host. */

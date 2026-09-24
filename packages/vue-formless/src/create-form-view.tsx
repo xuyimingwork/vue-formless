@@ -19,7 +19,7 @@ import { useFormViewValue } from './use-form-view-value'
 import type { HostProps, ItemFl } from './field-schema'
 import { mergeAttrs, resolveProps } from './props-overlay'
 import { omit, getAttrBoolean } from './utils'
-import { VIEW_ATTR_CHANNELS, useDispatch } from './use-form-attrs'
+import { VIEW_ATTR_CHANNELS, useDispatch } from './use-dispatch'
 
 /** `Component` is a union; JSX needs a constructable host. */
 type JsxHost = new () => { $props: Record<string, unknown> }
