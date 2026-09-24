@@ -728,7 +728,7 @@ quoted   := '"' keychar* '"' | "'" keychar* "'"   转义 '\'
 | `create-form-view.tsx` | 根：v-model、可选 Form、页级 LayoutView、provide context |
 | `create-form-item.tsx` | 组装宿主 Item：`createFormItem({ component, props })` → `FormItem`（收 FormField 的 `fl` / `item` 两个 prop；`props.fl.item` 为假时直接透传 children） |
 | `FormField.tsx` | 内核装配件 `FormFieldCore` + 工厂壳 `createFormField` + 公开标签 `FormField`：`FormFieldCore` 收 `preset` + 五个通道桶（`fl` / `layoutItem` / `layout` / `item` / `control`）做 LayoutItem + 可选 FormItem + control + `$bindings`、按 `fl:field` 选树、v-model 归集、无条件 provide |
-| `create-field-component.tsx` | 已无调用点（`createFormFieldComponent` 是死代码，待清理）；`FieldSchemaInput` / `FieldFactoryInput` 类型仍被 `create-form-fields.ts` 引用 |
+| `create-field-component.tsx` | 只剩 `FieldSchemaInput` / `FieldFactoryInput` 两个类型（`create-form-fields.ts` 引用 `FieldSchemaInput`）；死代码 `createFormFieldComponent` 已删 |
 | `create-form-fields.ts` | 域表工厂，产出 PascalCase Field 标签（每项走 `createFormField`） |
 | `injection-keys.ts` | `FORM_VIEW_KEY`、`FORM_FIELD_KEY` |
 | `control-binding.ts` | 只剩 `ControlVModel` / `ControlProp` 两个类型 |
@@ -738,7 +738,6 @@ quoted   := '"' keychar* '"' | "'" keychar* "'"   转义 '\'
 | `use-form-attrs.ts` | 通道认领的 attrs 关口：`useDispatch(attrs, channels, options?)` → 每桶一个 ref（`BucketRefs<C>`：桶名 = 通道名 camelCase，由 `Channel` 经 `utils.ToCamel` 派生；只给认领的通道建桶）+ 三个通道集：`VIEW_ATTR_CHANNELS`（`fl` / `layout`，`layout-item:` / `item:` 都透传，§5.3）/ `FIELD_ATTR_CHANNELS`（`fl` / `layout` / `layout-item` / `item`）/ `FIELD_SLOT_CHANNELS`（随 render 交给 `dispatch(slots, …)`：`item` 桶 → 宿主 Item 槽，`default` 桶 → control 槽） |
 | `utils.ts` | 通用工具（按 lodash 命名，无 formless 语义）：`upperFirst` / `UpperFirst`、`toCamel` / `ToCamel`（kebab → camel，通道名 / 桶名共用）、`omit` / `omitUndefined`、`getAttrBoolean`（Vue 布尔 attr 语义） |
 | `control-config.ts` | `ControlFormless` 类型 + `ComponentCustomOptions.formless` 增强（`FormFieldCore` 直接读 `component.formless`） |
-| `field-mode.ts` | `isFieldMode` |
 | `field-schema.ts` | `FieldSchema` / `ItemFl` / tag props 类型 |
 | `use-form-view-value.ts` | 源解析：`useFormViewValue()`（本层 v-model 口 + 祖先源 → `value` / `getIn` / `setIn`，并 provide `FORM_VIEW_KEY`）、`useValueMeta` / `ValueSource` / `PORT_NAMES` / `PORT_EVENTS` |
 | `control-props.ts` | control 公开 props 推断（v-model 口剥离） |
@@ -901,7 +900,7 @@ CreateLayoutViewOptions, LayoutViewProps, LayoutItemProps, LayoutItemSpan, Layou
 ```
 
 - `FormView` / `LayoutView` 是工厂**产物**，不作为独立值导出；`FormViewComponent` 仅为类型。
-- 私有（不导出，可随内核演进）：`FormViewContext` / `FormFieldContext`、`FORM_VIEW_KEY` / `FORM_FIELD_KEY`、`FormFieldCore` / `createFormField` / `FormFieldTagProps` / `normalizeModel` / `normalizeProp`、`useFormViewValue` / `useValueMeta` / `ValueSource` / `PORT_NAMES` / `PORT_EVENTS`、`getIn` / `setIn` / `parsePath` / `bindPathAccess` / `WritableSource` / `PathAccess`、`resolveProps` / `mergeAttrs`、`dispatch` / `useDispatch` / `CHANNELS` / `VIEW_ATTR_CHANNELS` / `FIELD_ATTR_CHANNELS` / `FIELD_SLOT_CHANNELS`、`createFormItem` / `CreateFormItemOptions`、`isFieldMode`、`FieldFactoryInput` / `FieldSchemaInput`（`create-field-component.tsx` 残留）、`upperFirst` / `toCamel` / `getAttrBoolean`。
+- 私有（不导出，可随内核演进）：`FormViewContext` / `FormFieldContext`、`FORM_VIEW_KEY` / `FORM_FIELD_KEY`、`FormFieldCore` / `createFormField` / `FormFieldTagProps` / `normalizeModel` / `normalizeProp`、`useFormViewValue` / `useValueMeta` / `ValueSource` / `PORT_NAMES` / `PORT_EVENTS`、`getIn` / `setIn` / `parsePath` / `bindPathAccess` / `WritableSource` / `PathAccess`、`resolveProps` / `mergeAttrs`、`dispatch` / `useDispatch` / `CHANNELS` / `VIEW_ATTR_CHANNELS` / `FIELD_ATTR_CHANNELS` / `FIELD_SLOT_CHANNELS`、`createFormItem` / `CreateFormItemOptions`、`FieldFactoryInput` / `FieldSchemaInput`（`create-field-component.tsx`，仅类型）、`upperFirst` / `toCamel` / `getAttrBoolean`。
 - 定制路径只有三条：`$bindings` slot（§7.3）、`fl:component` 临场格（§7.4）、module augmentation（§18）——都不需要够到内核。
 
 ---

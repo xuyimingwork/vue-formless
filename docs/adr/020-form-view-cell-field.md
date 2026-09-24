@@ -181,7 +181,7 @@ provide：`model` / `update`、宿主 `Item` + `itemProps`、本层 `item`、工
 - [`create-form-view.tsx`](../../packages/vue-formless/src/create-form-view.tsx)：根（v-model、可选宿主 Form、页级 LayoutView；宿主 Form / FormItem / Row / Col 留在工厂闭包）
 - [`create-form-item.tsx`](../../packages/vue-formless/src/create-form-item.tsx)：组装宿主 Item 壳（内核私有，不进 `index.ts`）；页级 `fl:item` 由 FormView 提供的包装层合并
 - [`FormField.tsx`](../../packages/vue-formless/src/FormField.tsx)：内核装配件 `FormFieldCore`（收 `preset` + 五个通道桶 `fl` / `layoutItem` / `layout` / `item` / `control`）+ 工厂壳 `createFormField` + 公开标签 `FormField`
-- [`create-form-fields.ts`](../../packages/vue-formless/src/create-form-fields.ts)：域表工厂，每项走 `createFormField`；[`create-field-component.tsx`](../../packages/vue-formless/src/create-field-component.tsx) 已无调用点（待清理）
+- [`create-form-fields.ts`](../../packages/vue-formless/src/create-form-fields.ts)：域表工厂，每项走 `createFormField`；[`create-field-component.tsx`](../../packages/vue-formless/src/create-field-component.tsx) 只剩 `FieldSchemaInput` / `FieldFactoryInput` 类型（死代码已清理）
 - 纯函数保留：`path-access` / `path-parse`、`props-overlay`（`mergeAttrs` / `resolveProps`）、`use-form-view-value.ts`
 
 删除或收掉（已落地）：`resolveControlShell` 的 `wrapCol` / `extraRow` / `'self'`、`wrap-control.ts`、`ControlFrame`；前缀剥一次，变成 LayoutItem / FormItem / control / 内层 LayoutView 的真 props。后续合并：`field-identity.ts` / `fl-keys.ts` 退场，身份与快照逻辑并入 `FormFieldCore`；`overlayProps` → `mergeAttrs`、`toAttrBoolean` → `getAttrBoolean`、`use-form-view-model` → `use-form-view-value`（见 `design.md` §16.3）。

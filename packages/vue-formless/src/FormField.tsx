@@ -14,7 +14,7 @@ import type { FormFieldTagProps, ItemFl } from './field-schema'
 import { FIELD_SLOT_CHANNELS, FIELD_ATTR_CHANNELS, useDispatch } from './use-form-attrs'
 import { dispatch } from './dispatch'
 import { type HostProps } from './props-overlay'
-import { toCamel, upperFirst } from '@/utils'
+import { toCamel, upperFirst } from './utils'
 
 /** `Component` is a union; JSX needs a constructable host. */
 type JsxHost = new () => { $props: Record<string, unknown> }
