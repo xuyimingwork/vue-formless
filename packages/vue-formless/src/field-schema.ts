@@ -50,7 +50,7 @@ export type FieldSchemaKernelKey =
 
 /**
  * Field identity. Adapter extras (e.g. `label`) via `declare module 'vue-formless'`.
- * Extra keys become `ItemFl` keys and optional `fl:*` tag props.
+ * Extra keys become `FormFieldFormless` keys and optional `fl:*` tag props.
  */
 export interface FieldSchema {
   /**
@@ -59,7 +59,7 @@ export interface FieldSchema {
    */
   component?: Component
   /** Control defaults: static object, or derived from the field snapshot. */
-  props?: HostProps<ItemFl>
+  props?: HostProps<FormFieldFormless>
   /**
    * v-model names on the control (design.md §7.1). Default `'modelValue'`.
    * Locked with the component; tag cannot override. Prefer control `formless.model`.
@@ -107,23 +107,45 @@ export type FlExtraProps<T> = {
 }
 
 /**
- * Snapshot for `item.props` / field `props` functions (design.md §10.1 / §20.9).
- * Kernel wiring + FieldSchema extras. Not passed as a host component prop.
+ * The **raw** formless bag of one field: its `fl` values as declared, before
+ * `model` / `prop` / `field` are normalized. Same key space as `FieldSchema`
+ * (kernel keys + adapter extras), plus an index signature — a schema preset or a
+ * tag may carry keys the kernel never reads.
+ *
+ * This is what `FormField`'s / `FormItem`'s `fl` prop and `FormFieldCore`'s
+ * `preset.fl` carry; `FormFieldCore` turns it into `FormFieldFormless`.
+ */
+export interface FormFieldFormlessRaw extends FieldSchema {
+  [extra: string]: unknown
+}
+
+/**
+ * The **normalized** per-field snapshot (design.md §10.1 / §16.3): what
+ * `item.props` / field `props` functions receive, and what `FormField` hands
+ * down to its host `FormItem`. Not passed as a host component prop.
+ *
+ * Adapters declare their extras once, on `FieldSchema` (module augmentation,
+ * design.md §18); `extends FieldSchemaExtras` pulls them in, so a declared
+ * `label` is `fl.label` in the snapshot **and** `:fl:label` on the tag.
  *
  * `model` / `prop` are this field's **normalized** binding arrays — index-aligned
  * (`model[i] ↔ prop[i]`), never empty and `prop` no longer than `model`. The
  * kernel sends no identity **name**: a host Item `prop` is the adapter's own
  * encoding, so an adapter that cannot encode the field simply leaves it unbound.
  */
-export type ItemFl = {
-  /** This field's v-model ports, index-aligned with `prop`. */
-  model: string[]
-  /** This field's locations, index-aligned with `model`. */
-  prop: string[]
-  /** Live values at those locations, in binding order. */
-  getValues: () => unknown[]
+export interface FormFieldFormless extends FieldSchemaExtras {
+  /**
+   * This field's v-model ports, index-aligned with `prop`. A port that is not a
+   * string stays as an `undefined` placeholder so the alignment survives.
+   */
+  model: (string | undefined)[]
+  /** This field's locations, index-aligned with `model`; `undefined` when nothing bound them. */
+  prop: (string | undefined)[] | undefined
+  /** Assembled placement (design.md §8). `'auto'` is resolved away, never sent. */
+  field: 'wrap' | 'embed' | 'wrap-embed'
+  /** Anything the adapter put in the raw bag that the kernel does not model. */
   [extra: string]: unknown
-} & FieldSchemaExtras
+}
 
 /**
  * Public props of `<FormField>` / `<User.Xxx />`. Kernel `fl:` / `item:` /

@@ -29,7 +29,7 @@ export interface FormFieldContext {
    * 
    * @param model 自身绑定名，如：['modelValue']
    */
-  getProp?(model: (string | undefined)[]): string[]
+  getProp?(model: (string | undefined)[]): (string | undefined)[]
   /**
    * FormView 提供，FormField 原样转发的数据更新工具
    * @param prop 路径

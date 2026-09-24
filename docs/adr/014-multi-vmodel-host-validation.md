@@ -8,6 +8,7 @@
   - 2026-08-26 — 编码落在 `item.props`（及将来的 Form 投影），不再经 `props.fl`。见 [ADR-016](./016-fl-project-and-overlay.md)。
   - 2026-09-14 — **v1 范围收窄**：「一格控件键 + Form 投影」整条路暂不实现（`fieldKey` 已废，见 ADR-011 修订）。多口一格的 `item.props` 写出 `prop: undefined` —— 宿主不注册该格、不校验、不重置（宿主 `prop` 是纯适配编码）。需要宿主校验的多口控件请用 `fl:field="wrap-embed"` 一壳一格（ADR-013），每一格各有一个口，位置即宿主 `prop`。§「决策」里关于控件键 / 投影 / `resetFields(控件键)` 的论证保留为将来恢复该路径时的依据。
   - 2026-09-24 — **最终收束**：`FormCell` / 内核 `FormItem` → `FormField`；`cell: 'embed'` → `formless.field: 'embed'`；`useFormCell('start')` → `<FormField fl:model="start">`；`:formless.prop` / `:formless.validate` → `fl:prop` / `fl:validate`；`binding` → `ItemFl.model` / `ItemFl.prop`。
+  - 2026-09-24（补）— snapshot 定名 **`FormFieldFormless`**（`ItemFl` 作废）；`getValues()` 删除（声明了但从未实现），故本文「用 `getValues()` 取整份口值」的区间校验路径仍不落地。
 - **来源**：相对 [ADR-011](./011-model-and-path.md) / [ADR-012](./012-input-item-and-rule-compile.md)。011 允许 `model` / `prop` 数组只解决了接线；一格 Item 时宿主 Form 的 `value`、红字、`resetFields` 没着落。[ADR-013](./013-one-control-multiple-items.md) 管壳的次数，不管「几个 v-model 口时 rules 吃什么」。
 
 ## 背景

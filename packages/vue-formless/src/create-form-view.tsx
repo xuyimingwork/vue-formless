@@ -16,7 +16,7 @@ import { createLayoutView } from '@vue-formless/layout'
 import { createFormItem } from './create-form-item'
 import { FORM_FIELD_KEY, FORM_VIEW_KEY, type FormFieldContext } from './injection-keys'
 import { useFormViewValue } from './use-form-view-value'
-import type { HostProps, ItemFl } from './field-schema'
+import type { FormFieldFormless, HostProps } from './field-schema'
 import { mergeAttrs, resolveProps } from './props-overlay'
 import { omit, getAttrBoolean } from './utils'
 import { VIEW_ATTR_CHANNELS, useDispatch } from './use-dispatch'
@@ -52,7 +52,7 @@ export interface CreateFormViewOptions {
   /** Host form shell. Omit or `:fl:form="false"` skips wrapping. */
   form?: FormViewHostBind<FormFl>
   /** Host item shell. `props` are defaults (static or from the field snapshot). */
-  item?: FormViewHostBind<ItemFl>
+  item?: FormViewHostBind<FormFieldFormless>
 }
 
 /** FormView `:fl:layout` is a boolean switch. Density is factory `layout.props` / `:layout:*`. */

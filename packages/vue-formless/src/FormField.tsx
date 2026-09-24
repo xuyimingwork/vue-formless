@@ -3,13 +3,14 @@ import {
   defineComponent,
   inject,
   provide,
+  type Component,
   type DefineComponent,
   type PropType,
   type VNodeChild,
 } from 'vue'
 import { LayoutItem } from '@vue-formless/layout'
 import { FORM_FIELD_KEY } from './injection-keys'
-import type { FieldFactoryInput, FormFieldProps, HostProps, ItemFl } from './field-schema'
+import type { FieldFactoryInput, FormFieldFormless, FormFieldFormlessRaw, FormFieldProps, HostProps } from './field-schema'
 import { dispatch, FIELD_SLOT_CHANNELS, FIELD_ATTR_CHANNELS, useDispatch } from './use-dispatch'
 import { toCamel, upperFirst } from './utils'
 
@@ -51,7 +52,7 @@ function normalizeProp(prop: unknown): (string | undefined)[] | undefined {
  * - `FormField` dispatches the tag's own attrs and passes the buckets straight
  *   through; the public tag declares `fl:component` / `fl:model` itself.
  * - The factory shell presets `fl` (creation-time, static) and passes `schema.props`
- *   as the `control` layer, evaluated here against the core's own `ItemFl`.
+ *   as the `control` layer, evaluated here against the core's own `FormFieldFormless`.
  *
  * Identity and the `provide` live here and nowhere else; the shell never provides.
  */
@@ -61,15 +62,15 @@ export const FormFieldCore = defineComponent({
   props: {
     preset: {
       type: Object as PropType<{
-        fl: Record<string, unknown>
-        props?: HostProps<ItemFl>
+        fl: FormFieldFormlessRaw
+        props?: HostProps<FormFieldFormless>
       }>
     },
-    fl: { type: Object as PropType<Record<string, unknown>>, required: true },
+    fl: { type: Object as PropType<FormFieldFormlessRaw>, required: true },
     layoutItem: { type: Object as PropType<Record<string, unknown>>, required: true },
     layout: { type: Object as PropType<Record<string, unknown>>, required: true },
     item: { type: Object as PropType<Record<string, unknown>>, required: true },
-    control: { type: [Object, Function] as PropType<HostProps<ItemFl>>, required: true },
+    control: { type: [Object, Function] as PropType<HostProps<FormFieldFormless>>, required: true },
   },
   setup(props, { slots }) {
     // FormField 唯一消费的上行上下文：model 源 + 身份映射 + 壳资源都在这里。
@@ -212,7 +213,9 @@ export function createFormField(options: FieldFactoryInput = {}) {
           }}
           fl={{
             ...fl.value,
-            component: component ?? fl.value.component,
+            // `fl.value` is the raw tag bucket (`Record<string, unknown>`); schema
+            // still wins over the tag's `fl:component` (design.md §11.2).
+            component: (component ?? fl.value.component) as Component | undefined,
           }}
           layoutItem={layoutItem.value}
           layout={layout.value}

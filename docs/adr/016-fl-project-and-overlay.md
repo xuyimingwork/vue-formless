@@ -6,6 +6,7 @@
   - 2026-09-10 — §3 组树开关改前缀：`:fl:cell` → `:fl:tree`、`:fl:layout` → `:fl:grid`、`:col:*` → `:cell:*`、`:row:*` → `:layout:*`；`fl:` 定为「参与派生的语义源」，其余通道为机械落地。见 [ADR-021](./021-channel-prefix-and-form-item.md)。
   - 2026-09-18 — 去掉 `createFormFields` 第二参（簇级 `props`）：输入 props 只剩 `schema.props` 一层，覆盖链为 模板 > `schema.props`。§1 / §2 的「簇第二参」不再存在。
   - 2026-09-24 — **最终收束**：通道名收为 `fl:` / `layout-item:` / `layout:` / `item:`（`:col:*` → `layout-item:*`、`:row:*` → `layout:`；`fl:tree` / `fl:grid` 未落地，开关仍写 `fl:layout`）；`FormCell` → `FormField`；密度写在 `layout.props`（`layout.column` / `layout.gutter` 已退场）；`ItemFl` snapshot = `model` / `prop`（下标对齐）+ `getValues()`（未实现）+ extras，不再是 `binding`。见下。
+  - 2026-09-24（补）— snapshot 定名 **`FormFieldFormless`**（`ItemFl` 作废），未归一化的 `fl` 袋定名 **`FormFieldFormlessRaw`**；`getValues()` 删除，snapshot 补 `field`。extras 仍只扩 `FieldSchema`，经 `extends` 流进 snapshot 与 `fl:*` 标签。
 - **来源**：[ADR-012](./012-input-item-and-rule-compile.md) / [ADR-015](./015-formless-config-groups.md)。本文钉 **转化与覆盖**：`fl` 如何变成 Form / Item / Input 的 props，以及谁赢。
 
 ## 背景

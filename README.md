@@ -25,7 +25,7 @@ peer：`vue` ^3.3。
 
 ```ts
 import { ElCol, ElForm, ElFormItem, ElInput, ElRow } from 'element-plus'
-import { createFormFields, createFormView, type ItemFl } from 'vue-formless'
+import { createFormFields, createFormView, type FormFieldFormless } from 'vue-formless'
 
 declare module 'vue-formless' {
   interface FieldSchema {
@@ -36,9 +36,10 @@ declare module 'vue-formless' {
 // ElFormItem 的 `prop` 用点分路径；内核位置（`buyers[0].name`）由本层编码（design.md §20.9）。
 // 一个宿主 `prop` 装不下多个口 → 多口一格不绑宿主（`undefined`），
 // 需要宿主校验就用 `fl:field="wrap-embed"` 拆成一格一口。
-function toItemProp(prop: ItemFl['prop']): string | undefined {
-  if (prop.length !== 1) return undefined
+function toItemProp(prop: FormFieldFormless['prop']): string | undefined {
+  if (prop == null || prop.length !== 1) return undefined
   const [location] = prop
+  if (location == null) return undefined
   const dotted = location.replace(/\[(\d+)\]/g, '.$1').replace(/^\./, '')
   if (!dotted || /[[\]]/.test(dotted)) return undefined // 编不出来：不绑宿主
   return dotted
@@ -52,7 +53,7 @@ export const FormView = createFormView({
   },
   item: {
     component: ElFormItem,
-    props: (fl: ItemFl) => ({
+    props: (fl: FormFieldFormless) => ({
       label: fl.label,
       prop: toItemProp(fl.prop),
     }),

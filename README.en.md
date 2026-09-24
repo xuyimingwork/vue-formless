@@ -25,7 +25,7 @@ Bind host Form / Item / Row / Col once in the project (no official Element adapt
 
 ```ts
 import { ElCol, ElForm, ElFormItem, ElInput, ElRow } from 'element-plus'
-import { createFormFields, createFormView, type ItemFl } from 'vue-formless'
+import { createFormFields, createFormView, type FormFieldFormless } from 'vue-formless'
 
 declare module 'vue-formless' {
   interface FieldSchema {
@@ -37,9 +37,10 @@ declare module 'vue-formless' {
 // is encoded here, in the adapter (design.md §20.9). One host `prop` cannot hold
 // several ports, so such a field stays unbound (`undefined`) — use
 // `fl:field="wrap-embed"` (one port per field) when the host must validate it.
-function toItemProp(prop: ItemFl['prop']): string | undefined {
-  if (prop.length !== 1) return undefined
+function toItemProp(prop: FormFieldFormless['prop']): string | undefined {
+  if (prop == null || prop.length !== 1) return undefined
   const [location] = prop
+  if (location == null) return undefined
   const dotted = location.replace(/\[(\d+)\]/g, '.$1').replace(/^\./, '')
   if (!dotted || /[[\]]/.test(dotted)) return undefined // unencodable: leave unbound
   return dotted
@@ -53,7 +54,7 @@ export const FormView = createFormView({
   },
   item: {
     component: ElFormItem,
-    props: (fl: ItemFl) => ({
+    props: (fl: FormFieldFormless) => ({
       label: fl.label,
       prop: toItemProp(fl.prop),
     }),

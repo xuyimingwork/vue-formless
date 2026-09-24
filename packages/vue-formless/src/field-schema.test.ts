@@ -1,10 +1,14 @@
 import { describe, expectTypeOf, it } from 'vitest'
 import type { Component } from 'vue'
 import type {
+  ControlProp,
+  ControlVModel,
+  FieldMode,
   FieldSchemaExtras,
   FlExtraProps,
+  FormFieldFormless,
+  FormFieldFormlessRaw,
   FormFieldProps,
-  ItemFl,
 } from './field-schema'
 
 describe('FieldSchema extras', () => {
@@ -29,11 +33,22 @@ describe('FieldSchema extras', () => {
     }>()
   })
 
-  it('ItemFl flattens the binding into index-aligned model / prop arrays', () => {
-    expectTypeOf<ItemFl['model']>().toEqualTypeOf<string[]>()
-    expectTypeOf<ItemFl['prop']>().toEqualTypeOf<string[]>()
-    expectTypeOf<ItemFl>().toHaveProperty('getValues')
-    // The host `prop` encoding is the adapter's own work (design.md §20.9).
-    expectTypeOf<ItemFl>().not.toHaveProperty('fieldKey')
+  it('FormFieldFormless is the normalized snapshot: aligned model / prop + resolved field', () => {
+    expectTypeOf<FormFieldFormless['model']>().toEqualTypeOf<(string | undefined)[]>()
+    expectTypeOf<FormFieldFormless['prop']>().toEqualTypeOf<(string | undefined)[] | undefined>()
+    expectTypeOf<FormFieldFormless['field']>().toEqualTypeOf<'wrap' | 'embed' | 'wrap-embed'>()
+    // The host `prop` encoding is the adapter's own work (design.md §20.9); the
+    // kernel ships no identity name and never grew a `getValues`.
+    expectTypeOf<FormFieldFormless>().not.toHaveProperty('fieldKey')
+    expectTypeOf<FormFieldFormless>().not.toHaveProperty('getValues')
+  })
+
+  it('FormFieldFormlessRaw keeps the declared shape optional and stays open', () => {
+    expectTypeOf<FormFieldFormlessRaw['model']>().toEqualTypeOf<ControlVModel | undefined>()
+    expectTypeOf<FormFieldFormlessRaw['prop']>().toEqualTypeOf<ControlProp | undefined>()
+    expectTypeOf<FormFieldFormlessRaw['field']>().toEqualTypeOf<FieldMode | undefined>()
+    expectTypeOf<FormFieldFormlessRaw['component']>().toEqualTypeOf<Component | undefined>()
+    // A raw bag carries keys the kernel never reads (schema preset ⊕ tag attrs).
+    expectTypeOf<FormFieldFormlessRaw['whatever']>().toEqualTypeOf<unknown>()
   })
 })

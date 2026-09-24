@@ -24,12 +24,13 @@ export type { FormFieldComponent, FormFieldSlotProps } from './FormField'
 // --- schema / binding types ------------------------------------------------
 // Only the three a consumer has to name: the module-augmentation target
 // (`FieldSchema`), the control bag that augments it (`ControlFormless`), and
-// the adapter snapshot (`ItemFl`). Their derivations — `FieldSchemaExtras`,
-// `FieldSchemaInput`, `FieldMode`, `ControlProp` / `ControlVModel`, `HostProps`
-// — stay private; `FieldSchema`'s own members are reachable via indexed access.
+// the adapter snapshot (`FormFieldFormless`). Their derivations —
+// `FieldSchemaExtras`, `FieldSchemaInput`, `FieldMode`, `ControlProp` /
+// `ControlVModel`, `HostProps`, `FormFieldFormlessRaw` — stay private;
+// `FieldSchema`'s own members are reachable via indexed access.
 export type {
   ControlFormless,
   FieldSchema,
+  FormFieldFormless,
   FormFieldProps,
-  ItemFl,
 } from './field-schema'

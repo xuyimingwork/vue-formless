@@ -6,7 +6,7 @@ import {
   type PropType,
   type VNodeChild,
 } from 'vue'
-import type { HostProps, ItemFl } from './field-schema'
+import type { FormFieldFormless, FormFieldFormlessRaw, HostProps } from './field-schema'
 
 /** `Component` is a union; JSX needs a constructable host. */
 type JsxHost = new () => { $props: Record<string, unknown> }
@@ -15,9 +15,9 @@ export interface CreateFormItemOptions {
   /** Host Item (e.g. ElFormItem). Omit = only passthrough children. */
   component?: Component
   /** Host Item default props: static, or derived from the field snapshot. */
-  props?: HostProps<ItemFl>
+  props?: HostProps<FormFieldFormless>
   /** This FormView layer's `fl` bag (page default; `fl:item` is the shell switch). Lazy. */
-  fl?: MaybeRefOrGetter<Record<string, unknown>>
+  fl?: MaybeRefOrGetter<FormFieldFormlessRaw>
 }
 
 /**
@@ -33,14 +33,19 @@ export function createFormItem(options: CreateFormItemOptions = {}): Component {
     name: 'FormItem',
     inheritAttrs: false,
     props: {
-      fl: { type: Object as PropType<Record<string, unknown>>, required: true },
+      fl: { type: Object as PropType<FormFieldFormlessRaw>, required: true },
       item: { type: Object as PropType<Record<string, unknown>>, required: true },
     },
     setup(props, { slots }) {
       return (): VNodeChild => {
         if (!Host || !props.fl?.item) return slots.default?.() ?? null
         const HostItem = Host as JsxHost
-        const base = typeof options.props === 'function' ? options.props(props.fl as any) : options.props
+        // `fl` arrives already normalized from `FormFieldCore` (the FormView
+        // wrapper only re-merges `item` into it); FormItem is the last hop and
+        // cannot prove that, so the snapshot type is asserted here.
+        const base = typeof options.props === 'function'
+          ? options.props(props.fl as unknown as FormFieldFormless)
+          : options.props
         return (
           <HostItem
             {...{

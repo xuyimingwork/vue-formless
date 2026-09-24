@@ -5,7 +5,6 @@ import { createFormFields } from './create-form-fields'
 import type { ComponentPublicProps } from './control-props'
 import { createFormView } from './create-form-view'
 import { FormField, FormFieldCore } from './FormField'
-import type { ItemFl } from './field-schema'
 
 describe('createFormFields', () => {
   it('exposes PascalCase components for camelCase field keys', () => {
@@ -337,7 +336,7 @@ describe('createFormFields props overlay', () => {
         props: (fl) => ({
           placeholder: `请填写${String(fl.label)}`,
           // The tag's :fl:prop relocation must reach the props snapshot.
-          located: fl.prop[0],
+          located: fl.prop?.[0],
         }),
       },
     })
@@ -375,9 +374,10 @@ describe('createFormFields props overlay', () => {
         component: DummyItem,
         props: (fl) => {
           props.push({ ...fl })
+          const [location] = fl.prop ?? []
           return {
             label: '区间',
-            prop: fl.prop.length === 1 ? fl.prop[0] : undefined,
+            prop: fl.prop?.length === 1 ? location : undefined,
           }
         },
       },

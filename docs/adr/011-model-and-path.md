@@ -17,6 +17,7 @@
   - 2026-09-10 — **读侧只看自有属性**：`getIn` 的键段经 `hasOwnProperty.call` 读**自有属性**，不穿透原型链——`constructor` / `toString` / `hasOwnProperty` / `__proto__` 等文法合法但并非数据的段读作 `undefined`，与 `setIn` 只写自有键互逆（`{ ...base, [key]: value }` 即自有属性）。`Object.create({ default })` 这类原型默认值不再可读：模型应是纯数据。`Object.prototype.hasOwnProperty` 用 `call` 调用，因 `hasOwnProperty` 本身也是可达键。
   - 2026-09-10 — **通道前缀收敛**：`FormCell` → `FormItem`；`prop` 三义收敛为 `fl:prop`（绑定输入）与 `item:prop`（机械覆盖宿主 Item）；Field 内按口切片改 `fl:model`（**选口，非覆盖身份**）。见 [ADR-021](./021-channel-prefix-and-form-item.md)。
   - 2026-09-24 — **最终收束**（以代码 + [`design.md`](../design.md) 为准）：① `FormItem`（内核格）→ `FormField`；② **标签可写 `fl:model`**：在身份根上它是**声明**，与 `fl:prop` 一样覆盖 schema（工厂壳只锁 `component`）——本文「`model` 锁在 component、标签覆盖=否」按代码作废；在内层切片上它仍是**选口**（在已声明口里选一个）。③ snapshot 即 `ItemFl`：`model` / `prop`（下标对齐）+ `getValues()`（未实现）+ extras，无 `binding` / 身份名。④ 写通道是 `FORM_FIELD_KEY.access(prop)` 给的 `{ value, update }`，不再是 `ctx.update(prop, value)`。
+  - 2026-09-24（补）— `ItemFl` → **`FormFieldFormless`**；未归一化的 `fl` 袋定名 **`FormFieldFormlessRaw`**（`FormField` / `FormItem` 的 `fl` prop）；snapshot 删掉声明了但从未实现的 `getValues()`，`model` 收窄为 `(string | undefined)[]`、`prop` 可为 `undefined`，并补上此前有值无类型的 `field`。§6「内核不发身份名」不变。见 [`design.md`](../design.md) §10.1 / §16.3。
 - **来源**：相对 [ADR-009](./009-controls-as-protagonist.md) §6 的修订
 
 ## 背景

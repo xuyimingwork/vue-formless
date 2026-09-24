@@ -1,5 +1,5 @@
 import { ElCol, ElForm, ElFormItem, ElRow } from 'element-plus'
-import { createFormView, type ItemFl } from 'vue-formless'
+import { createFormView, type FormFieldFormless } from 'vue-formless'
 
 /**
  * Kernel `prop` location → ElFormItem `prop` dot notation.
@@ -24,13 +24,14 @@ function toDotPath(path: string): string | undefined {
  * `resetFields()` skip it and its rules never run (v1 scope). Give such a field
  * its own Item per port (`fl:field="wrap-embed"`) if it must be host-validated.
  */
-export function resolveFormItemProp(prop: ItemFl['prop']): string | undefined {
-  if (prop.length !== 1) return undefined
-  return toDotPath(prop[0]!)
+export function resolveFormItemProp(prop: FormFieldFormless['prop']): string | undefined {
+  if (prop == null || prop.length !== 1) return undefined
+  const [location] = prop
+  return location == null ? undefined : toDotPath(location)
 }
 
 /** Map Item `fl` to ElFormItem props. Host `prop` is this adapter's encoding. */
-export function toEpItemProps(fl: ItemFl): Record<string, unknown> {
+export function toEpItemProps(fl: FormFieldFormless): Record<string, unknown> {
   return {
     label: fl.label,
     prop: resolveFormItemProp(fl.prop),

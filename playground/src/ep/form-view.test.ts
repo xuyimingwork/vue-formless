@@ -2,14 +2,14 @@ import { describe, expect, expectTypeOf, it } from 'vitest'
 import './vue-formless-aug'
 import { resolveFormItemProp, toEpItemProps } from './form-view'
 import { User } from '../demos/formless/user'
-import type { FormFieldProps, ItemFl } from 'vue-formless'
+import type { FormFieldFormless, FormFieldProps } from 'vue-formless'
 
 describe('toEpItemProps', () => {
-  const mobileFl: ItemFl = {
+  const mobileFl: FormFieldFormless = {
     label: '手机',
     model: ['modelValue'],
     prop: ['mobile'],
-    getValues: () => [''],
+    field: 'wrap',
   }
 
   it('maps fl to ElFormItem props', () => {
@@ -59,9 +59,9 @@ describe('resolveFormItemProp', () => {
 })
 
 describe('FieldSchema extras inference', () => {
-  it('lifts label onto ItemFl and fl: tag props', () => {
-    expectTypeOf<ItemFl>().toHaveProperty('label')
-    expectTypeOf<ItemFl['label']>().toEqualTypeOf<string | undefined>()
+  it('lifts label onto FormFieldFormless and fl: tag props', () => {
+    expectTypeOf<FormFieldFormless>().toHaveProperty('label')
+    expectTypeOf<FormFieldFormless['label']>().toEqualTypeOf<string | undefined>()
     expectTypeOf<FormFieldProps>().toHaveProperty('fl:label')
     expectTypeOf<FormFieldProps['fl:label']>().toEqualTypeOf<string | undefined>()
   })
