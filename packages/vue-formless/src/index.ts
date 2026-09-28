@@ -6,20 +6,20 @@
 export { createLayoutView, LayoutItem } from '@vue-formless/layout'
 
 // --- FormView --------------------------------------------------------------
-export { createFormView } from './create-form-view'
+export { createFormView } from './assembly/create-form-view'
 export type {
   CreateFormViewOptions,
   FormViewComponent,
   FormViewProps,
-} from './create-form-view'
+} from './assembly/create-form-view'
 
 // --- createFormFields ------------------------------------------------------
-export { createFormFields } from './create-form-fields'
-export type { NamespacedFields } from './create-form-fields'
+export { createFormFields } from './assembly/create-form-fields'
+export type { NamespacedFields } from './assembly/create-form-fields'
 
 // --- FormField -------------------------------------------------------------
-export { FormField } from './FormField'
-export type { FormFieldComponent, FormFieldSlotProps } from './FormField'
+export { FormField } from './assembly/FormField'
+export type { FormFieldComponent, FormFieldSlotProps } from './assembly/FormField'
 
 // --- schema / binding types ------------------------------------------------
 // Only the three a consumer has to name: the module-augmentation target
@@ -33,4 +33,4 @@ export type {
   FieldSchema,
   FormFieldFormless,
   FormFieldProps,
-} from './field-schema'
+} from './shared/field-schema'

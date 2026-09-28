@@ -6,8 +6,8 @@ import {
   ref,
   useAttrs,
 } from 'vue'
-import { FORM_VIEW_KEY, type FormViewContext } from './injection-keys'
-import { bindPathAccess } from './path-access'
+import { FORM_VIEW_KEY, type FormViewContext } from '../shared/injection-keys'
+import { bindPathAccess } from '../path/path-access'
 
 export const PORT_NAMES = ['modelValue', 'model-value'] as const
 export const PORT_EVENTS = ['onUpdate:modelValue', 'onUpdate:model-value'] as const

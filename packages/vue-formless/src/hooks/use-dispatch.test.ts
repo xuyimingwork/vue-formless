@@ -7,7 +7,7 @@ import {
   VIEW_ATTR_CHANNELS,
   useDispatch,
 } from './use-dispatch'
-import { toCamel } from './utils'
+import { toCamel } from '../shared/utils'
 
 /**
  * Re-declared rather than imported on purpose: `Channel` is derived from

@@ -12,7 +12,7 @@ import {
   type Component,
 } from 'vue'
 import { renderToString } from 'vue/server-renderer'
-import { FORM_VIEW_KEY, type FormViewContext } from './injection-keys'
+import { FORM_VIEW_KEY, type FormViewContext } from '../shared/injection-keys'
 import { useFormViewValue, useValueMeta } from './use-form-view-value'
 
 /**

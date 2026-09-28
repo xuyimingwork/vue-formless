@@ -5,7 +5,7 @@ import {
   type PropType,
   type VNodeChild,
 } from 'vue'
-import type { FormFieldFormless, FormFieldFormlessRaw, HostProps } from './field-schema'
+import type { FormFieldFormless, FormFieldFormlessRaw, HostProps } from '../shared/field-schema'
 
 /** `Component` is a union; JSX needs a constructable host. */
 type JsxHost = new () => { $props: Record<string, unknown> }

@@ -1,5 +1,5 @@
 import { computed, type ComputedRef } from 'vue'
-import { toCamel, upperFirst, type ToCamel } from './utils'
+import { toCamel, upperFirst, type ToCamel } from '../shared/utils'
 
 /**
  * Channel dispatch, both halves (design.md §5.2 / §5.3): the plain primitive

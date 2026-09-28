@@ -14,12 +14,12 @@ import {
 } from 'vue'
 import { createLayoutView } from '@vue-formless/layout'
 import { createFormItem } from './create-form-item'
-import { FORM_FIELD_KEY, FORM_VIEW_KEY, type FormFieldContext } from './injection-keys'
-import { useFormViewValue } from './use-form-view-value'
-import type { FormFieldFormless, HostProps } from './field-schema'
-import { mergeAttrs, resolveProps } from './props-overlay'
-import { omit, getAttrBoolean } from './utils'
-import { VIEW_ATTR_CHANNELS, useDispatch } from './use-dispatch'
+import { FORM_FIELD_KEY, FORM_VIEW_KEY, type FormFieldContext } from '../shared/injection-keys'
+import { useFormViewValue } from '../hooks/use-form-view-value'
+import type { FormFieldFormless, HostProps } from '../shared/field-schema'
+import { mergeAttrs, resolveProps } from '../shared/props-overlay'
+import { omit, getAttrBoolean } from '../shared/utils'
+import { VIEW_ATTR_CHANNELS, useDispatch } from '../hooks/use-dispatch'
 
 /** `Component` is a union; JSX needs a constructable host. */
 type JsxHost = new () => { $props: Record<string, unknown> }

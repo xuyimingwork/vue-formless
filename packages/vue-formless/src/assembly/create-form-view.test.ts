@@ -3,7 +3,7 @@ import { createSSRApp, defineComponent, h, inject, nextTick, type PropType, type
 import { renderToString } from 'vue/server-renderer'
 import { createFormView } from './create-form-view'
 import { FormField } from './FormField'
-import { FORM_VIEW_KEY } from './injection-keys'
+import { FORM_VIEW_KEY } from '../shared/injection-keys'
 
 const Row = defineComponent({
   name: 'DummyRow',

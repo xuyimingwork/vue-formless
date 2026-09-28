@@ -10,10 +10,10 @@ import {
   type VNodeChild,
 } from 'vue'
 import { LayoutItem } from '@vue-formless/layout'
-import { FORM_FIELD_KEY } from './injection-keys'
-import type { FieldFactoryInput, FormFieldFormless, FormFieldFormlessRaw, FormFieldProps, HostProps } from './field-schema'
-import { dispatch, FIELD_SLOT_CHANNELS, FIELD_ATTR_CHANNELS, useDispatch } from './use-dispatch'
-import { getAttrBoolean, toCamel, upperFirst } from './utils'
+import { FORM_FIELD_KEY } from '../shared/injection-keys'
+import type { FieldFactoryInput, FormFieldFormless, FormFieldFormlessRaw, FormFieldProps, HostProps } from '../shared/field-schema'
+import { dispatch, FIELD_SLOT_CHANNELS, FIELD_ATTR_CHANNELS, useDispatch } from '../hooks/use-dispatch'
+import { getAttrBoolean, toCamel, upperFirst } from '../shared/utils'
 
 /** `Component` is a union; JSX needs a constructable host. */
 type JsxHost = new () => { $props: Record<string, unknown> }

@@ -2,7 +2,7 @@ import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { createSSRApp, defineComponent, h, nextTick, type VNode } from 'vue'
 import { renderToString } from 'vue/server-renderer'
 import { createFormFields } from './create-form-fields'
-import type { ComponentPublicProps } from './control-props'
+import type { ComponentPublicProps } from '../shared/control-props'
 import { createFormView } from './create-form-view'
 import { FormField, FormFieldCore } from './FormField'
 
