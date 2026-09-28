@@ -132,6 +132,10 @@ export interface FormFieldFormlessRaw extends FieldSchema {
  * (`model[i] ↔ prop[i]`), never empty and `prop` no longer than `model`. The
  * kernel sends no identity **name**: a host Item `prop` is the adapter's own
  * encoding, so an adapter that cannot encode the field simply leaves it unbound.
+ *
+ * **Only the keys the kernel resolves are declared here** — `model` / `prop` /
+ * `field` / `item`. Every other key (a raw `component`, an unread `props`, the
+ * adapter's extras) rides through verbatim and stays under the index signature.
  */
 export interface FormFieldFormless extends FieldSchemaExtras {
   /**
@@ -143,6 +147,14 @@ export interface FormFieldFormless extends FieldSchemaExtras {
   prop: (string | undefined)[] | undefined
   /** Assembled placement (design.md §8). `'auto'` is resolved away, never sent. */
   field: 'wrap' | 'embed' | 'wrap-embed'
+  /**
+   * Host Item shell switch (design.md §9): the nearest FormView's page `fl:item`
+   * default ← this cell's `fl:item`, near wins; a bare attr (`''`) counts as
+   * `true`. Resolved in one place (`FormFieldCore`), so it is **always a boolean**
+   * and every consumer — the adapter `item.props` and the control `props`
+   * alike — sees the same value.
+   */
+  item: boolean
   /** Anything the adapter put in the raw bag that the kernel does not model. */
   [extra: string]: unknown
 }

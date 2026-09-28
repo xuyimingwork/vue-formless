@@ -3,6 +3,7 @@ import {
   defineComponent,
   inject,
   provide,
+  toValue,
   type Component,
   type DefineComponent,
   type PropType,
@@ -12,7 +13,7 @@ import { LayoutItem } from '@vue-formless/layout'
 import { FORM_FIELD_KEY } from './injection-keys'
 import type { FieldFactoryInput, FormFieldFormless, FormFieldFormlessRaw, FormFieldProps, HostProps } from './field-schema'
 import { dispatch, FIELD_SLOT_CHANNELS, FIELD_ATTR_CHANNELS, useDispatch } from './use-dispatch'
-import { toCamel, upperFirst } from './utils'
+import { getAttrBoolean, toCamel, upperFirst } from './utils'
 
 /** `Component` is a union; JSX needs a constructable host. */
 type JsxHost = new () => { $props: Record<string, unknown> }
@@ -136,12 +137,26 @@ export const FormFieldCore = defineComponent({
       return outer === 'auto' ? 'embed' : outer
     })
 
+    /**
+     * 宿主 Item 壳开关（design.md §9）：页级 `fl:item` 默认 ← 本格 `fl:item`，近的赢；
+     * 裸 attr（`''`）算 `true`，没写跟页，页也没写则 `true`。结果恒为布尔，故
+     * control 的 `props` 与 `item.props` 看到的是**同一个归一化值**。
+     */
+    const item = computed(() =>
+      getAttrBoolean(
+        true,
+        toValue(context?.fl)?.item,
+        propFormless.value?.item,
+      ),
+    )
+
     const formless = computed(() => {
       return {
         ...propFormless.value,
         model: model.value,
         prop: prop.value,
-        field: field.value
+        field: field.value,
+        item: item.value,
       }
     })
 

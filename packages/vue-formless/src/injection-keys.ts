@@ -39,6 +39,22 @@ export interface FormFieldContext {
   FormItem?: Component
   /** 工厂绑定的 LayoutView（wrap-embed 内层窗口；由 FormView 提供，透传）。 */
   LayoutView?: Component
+  /**
+   * 最近 FormView 下行的**页级 `fl`**（惰性），且**只装 FormField 会读的那部分**。
+   * 今天只有一个键 `item`：`fl:layout` / `fl:form` 是 FormView 自己的开关，它已自行消费，
+   * 不下行，所以页桶里其余键对 FormField 没有任何意义。
+   *
+   * 页 `fl:item` 与本格 `fl.item` 的合并因此落在 FormFieldCore 一处（design.md §9 / §16.3），
+   * 格上的 `item` 才是归一化后的布尔。
+   *
+   * 它不是本格物化值：随 `access` / 壳资源一路透传，且只有 FormView 回答——身份根
+   * 重写 `getProp` 时不动它，所以组合体内层格拿到的是同一个页默认。
+   *
+   * 值是**原始 attrs 形态**（裸 `fl:item` 是 `''`），由 FormFieldCore 与格值一起交给
+   * `getAttrBoolean` 归一。类型按项目既有契约写成 `boolean`（同 `FormViewProps['fl:item']` /
+   * `FieldSchema.item` / `FormFieldProps['fl:item']`）；全可选的形状也让 provider 侧无需窄化。
+   */
+  fl?: MaybeRefOrGetter<{ item?: boolean }>
 }
 
 export const FORM_VIEW_KEY: InjectionKey<FormViewContext | null> = Symbol(

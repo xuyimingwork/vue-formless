@@ -2,7 +2,6 @@ import {
   defineComponent,
   markRaw,
   type Component,
-  type MaybeRefOrGetter,
   type PropType,
   type VNodeChild,
 } from 'vue'
@@ -16,15 +15,16 @@ export interface CreateFormItemOptions {
   component?: Component
   /** Host Item default props: static, or derived from the field snapshot. */
   props?: HostProps<FormFieldFormless>
-  /** This FormView layer's `fl` bag (page default; `fl:item` is the shell switch). Lazy. */
-  fl?: MaybeRefOrGetter<FormFieldFormlessRaw>
 }
 
 /**
- * Assemble the host Item once (kernel-private; design.md §16). FormField passes
- * the raw `fl` bag and the `item` channel bucket; this component merges the
- * page-level `fl:item` default and projects `props` onto the host. Unbound →
- * passthrough children.
+ * Assemble the host Item once (kernel-private; design.md §16). FormFieldCore
+ * passes the **already normalized** snapshot plus the `item` channel bucket and
+ * this component projects `props` onto the host. Unbound → passthrough children.
+ *
+ * No page level here: the page `fl:item` default is folded into the snapshot by
+ * `FormFieldCore` (design.md §9), so `props.fl.item` is a plain boolean and both
+ * consumers of the snapshot read the same value.
  */
 export function createFormItem(options: CreateFormItemOptions = {}): Component {
   const Host = options.component ? markRaw(options.component) : undefined
@@ -40,9 +40,8 @@ export function createFormItem(options: CreateFormItemOptions = {}): Component {
       return (): VNodeChild => {
         if (!Host || !props.fl?.item) return slots.default?.() ?? null
         const HostItem = Host as JsxHost
-        // `fl` arrives already normalized from `FormFieldCore` (the FormView
-        // wrapper only re-merges `item` into it); FormItem is the last hop and
-        // cannot prove that, so the snapshot type is asserted here.
+        // `fl` is the normalized snapshot (FormFieldCore hands it down); FormItem
+        // is the last hop and cannot prove that, so the type is asserted here.
         const base = typeof options.props === 'function'
           ? options.props(props.fl as unknown as FormFieldFormless)
           : options.props

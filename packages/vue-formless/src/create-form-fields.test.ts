@@ -473,4 +473,61 @@ describe('createFormFields props overlay', () => {
     expect(spans.filter((s) => s === '24')).toHaveLength(2)
     expect(spans).not.toContain('12')
   })
+
+  it('resolves fl:item once, so control props and Item props agree (design.md §9)', async () => {
+    const controlSnapshots: Record<string, unknown>[] = []
+    const itemSnapshots: Record<string, unknown>[] = []
+    const Controls = defineComponent({
+      inheritAttrs: false,
+      setup: () => () => h('input', { class: 'probe' }),
+    })
+    const Fields = createFormFields({
+      name: {
+        label: '姓名',
+        component: Controls,
+        props: (fl) => {
+          controlSnapshots.push({ ...fl })
+          return {}
+        },
+      },
+    })
+    const View = createFormView({
+      layout: { Row: DummyRow, Col: DummyCol },
+      item: {
+        component: DummyItem,
+        props: (fl) => {
+          itemSnapshots.push({ ...fl })
+          return { label: fl.label }
+        },
+      },
+    })
+
+    // 1. Nothing declared: the page default applies to both.
+    await render(
+      h(View, { modelValue: { name: '' }, 'fl:layout': true }, () => h(Fields.Name)),
+    )
+    expect(controlSnapshots[0]!.item).toBe(true)
+    expect(itemSnapshots[0]!.item).toBe(true)
+
+    // 2. A bare `fl:item` (empty-string attr) also reaches both as a boolean.
+    await render(
+      h(View, { modelValue: { name: '' }, 'fl:layout': true }, () =>
+        h(Fields.Name, { 'fl:item': '' as unknown as boolean }),
+      ),
+    )
+    expect(controlSnapshots[1]!.item).toBe(true)
+    expect(itemSnapshots[1]!.item).toBe(true)
+
+    // 3. The page default reaches the control side too, not just the Item shell.
+    const html = await render(
+      h(View, { modelValue: { name: '' }, 'fl:layout': true, 'fl:item': false }, () =>
+        h(Fields.Name),
+      ),
+    )
+    expect(controlSnapshots[2]!.item).toBe(false)
+    // Item shell skipped, so `item.props` never runs for this field.
+    expect(itemSnapshots).toHaveLength(2)
+    expect(html).not.toContain('class="item"')
+    expect(html).toContain('class="probe"')
+  })
 })

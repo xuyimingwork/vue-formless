@@ -173,15 +173,13 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
             update: (v: string) => setIn(toValue(prop), v)
           }
         },
-        FormItem: (props, { slots }) => (<FormItem {...{
-          ...props,
-          fl: {
-            ...props.fl,
-            item: getAttrBoolean(true, viewFormlessOptions.value.item, props.fl?.item)
-          }
-          
-        }} v-slots={slots} />),
+        // 壳资源直接给出：页级 `fl:item` 默认改由 FormFieldCore 从 `fl` 桶里取
+        // （design.md §9 / §16.3），这里不再为 item 包一层。
+        FormItem: markRaw(FormItem),
         LayoutView: markRaw(LayoutView),
+        // 页级 `fl` 桶：FormFieldCore 唯一的页默认来源。`layout` / `form` 是页自己的
+        // 开关（上面已消费），FormField 只读 `item`，故契约就是 `{ item?: boolean }`。
+        fl: viewFormlessOptions,
       } as FormFieldContext)
 
       return (): VNodeChild => {
