@@ -18,7 +18,7 @@
 |------|------|
 | `FormCell`（内核一格表单 UI） | `FormField`（`FormItem` 一词只留给宿主 ElFormItem） |
 | `LayoutCell` | `LayoutItem` |
-| `cell` 三态 | `fl:field`（值域 `'auto'` / `'embed'` / `'wrap-embed'`；`'wrap'` 类型上仍在，实现按 `'auto'`） |
+| `cell` 三态 | `fl:field`（值域 `'auto'` / `'embed'` / `'wrap-embed'`；`'wrap'` 非写入口径，只是 `'auto'` 解算后的结果） |
 | `:col:span` / `:col:place` | `layout-item:span` / `layout-item:place` |
 | `:row:*` | `layout:*` |
 | `useFormCell(port)` | `fl:model`（在该 Field 已声明口里选一个） |

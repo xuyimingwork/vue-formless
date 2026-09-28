@@ -215,7 +215,7 @@ dispatch(slots, FIELD_SLOT_CHANNELS) → item 桶是宿主 Item 槽，default �
 | `fl:model` | `string \| string[]` | 本格认领的 v-model 口（§7） |
 | `fl:prop` | `string \| string[]` | 绑定位置：FormView 根到叶子的路径（§7） |
 | `fl:item` | `boolean` | 是否渲染 ElFormItem 壳（§9） |
-| `fl:field` | `'auto' \| 'embed' \| 'wrap-embed'`（类型里仍含 `'wrap'`，等价 `'auto'`） | FormField 组装位置（§8） |
+| `fl:field` | `'auto' \| 'embed' \| 'wrap-embed'` | FormField 组装位置（§8） |
 | `fl:component` | `Component` | 本格 control（临场格 / 工厂预设；§7.4） |
 | `fl:layout` | `boolean` | 是否渲染 LayoutView（§9） |
 | `fl:form` | `'auto' \| boolean` | 是否渲染 ElForm（§9） |
@@ -321,7 +321,7 @@ FormField 内部是宿主 ElFormItem 的 default slot 透传，`$` 前缀用于�
 
 组装树由**两根轴**合成，而不是一个枚举：
 
-- **位置**（placement）——`fl:field`，可写 `'auto' | 'embed' | 'wrap-embed'`（类型里仍含 `'wrap'`，实现按 `'auto'` 处理）。schema 与标签按「近的赢」合并（两者都是 use-site）。
+- **位置**（placement）——`fl:field`，可写 `'auto' | 'embed' | 'wrap-embed'`。schema 与标签按「近的赢」合并（两者都是 use-site）。
 - **体**（nature）——control 静态 `formless.field: 'embed'`，只表示「我是组合体：被成格时需要内层窗口」。它**不是**一个合并层：`FormFieldCore` 渲染时读出来，与位置结合，决定渲哪棵树。
 
 `ControlFormless.field` 因此只有可选 `'embed'` 一个值——它说的是**体**，不是位置。`'wrap'` / `'wrap-embed'` 写在 control 上没有意义：近的赢会让标签盖过它，而且它也要求不了内层窗口的密度（密度是标签的 `layout:` 通道）。
@@ -334,7 +334,7 @@ FormField 内部是宿主 ElFormItem 的 default slot 透传，`$` 前缀用于�
 | `'embed'` | `'embed'` | `'embed'` |
 | `'wrap-embed'` | `'wrap-embed'` | `'wrap-embed'` |
 
-`'wrap'`：类型上允许，但外层真值域已排除它，实现把外层 `'wrap'` 当 `'auto'`（叶子 → `'wrap'`、组合体 → `'embed'`）。decision.md「field 渲染场景」明确外层只取 `'auto'` / `'embed'` / `'wrap-embed'`：叶子默认就是 wrap，组合体的 wrap 由 `'wrap-embed'` 表达，`'wrap'` 没有存在必要。
+`'wrap'`：**不是**写入口径——外层真值域只有 `'auto'` / `'embed'` / `'wrap-embed'`（decision.md「field 渲染场景」）。叶子默认就是 wrap，组合体的 wrap 由 `'wrap-embed'` 表达，`'wrap'` 没有存在必要；`'wrap'` 只作为 `'auto'` 解算后的**结果**出现在 `FormFieldFormless.field` 里，`FieldMode` 不收它。
 
 ```text
 wrap:
@@ -561,7 +561,7 @@ interface FieldSchema {
   model?: string | string[]    // v-model 口名（默认 'modelValue'；缺省由 control 静态 formless 兜底；标签 fl:model 可盖，§7.2）
   prop?: string | string[]     // 位置（默认 = 域名表的键；fl:prop 可盖）
   item?: boolean               // 这一格 ElFormItem 开关
-  field?: 'auto' | 'embed' | 'wrap-embed'  // 组装位置（类型仍含 'wrap'，实现按 'auto'）
+  field?: 'auto' | 'embed' | 'wrap-embed'  // 组装位置
   // ...extras（label / validation 等，经 module augmentation 扩展）
 }
 ```
@@ -873,7 +873,7 @@ FormFieldCore（唯一装配点）：
 - `ControlTagProps<Def>`：control 公开 props 剥掉 v-model 口（`LockedVModelKeys`），避免 `<User.Name>` 上写 `modelValue` 覆盖绑定。
 - `ComponentPublicProps<C>`：从 Vue 构造器/函数组件推断 `$props`。
 - `FlExtraProps<T>`：`label` → `'fl:label'` 的可选标签 props。
-- `FieldMode`：`'auto' | 'wrap' | 'embed' | 'wrap-embed'`（写入口径；`'auto'` 省略即跟随 control 的体）。
+- `FieldMode`：`'auto' | 'embed' | 'wrap-embed'`（写入口径；`'auto'` 省略即跟随 control 的体）。解算后的 `'wrap'` 只出现在 `FormFieldFormless.field`。
 - `FormFieldProps`：公开 props 类型（`shared/field-schema.ts`）——内核 `fl:`/`layout:`/`layout-item:` 键 + extras 推导；`FormFieldComponent<ControlTagProps<...>>` 再往上叠 control 的公开 props。
 
 ---

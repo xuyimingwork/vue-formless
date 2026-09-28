@@ -21,7 +21,7 @@ describe('FieldSchema extras', () => {
       'fl:prop'?: string | string[]
       'fl:model'?: string | string[]
       'fl:item'?: boolean
-      'fl:field'?: 'auto' | 'wrap' | 'embed' | 'wrap-embed'
+      'fl:field'?: 'auto' | 'embed' | 'wrap-embed'
       'fl:component'?: Component
       'layout-item:span'?: string | number
       'layout-item:place'?: 'auto' | 'start' | 'end'
@@ -47,6 +47,7 @@ describe('FieldSchema extras', () => {
   })
 
   it('FormFieldFormlessRaw keeps the declared shape optional and stays open', () => {
+    expectTypeOf<FieldMode>().toEqualTypeOf<'auto' | 'embed' | 'wrap-embed'>()
     expectTypeOf<FormFieldFormlessRaw['model']>().toEqualTypeOf<ControlVModel | undefined>()
     expectTypeOf<FormFieldFormlessRaw['prop']>().toEqualTypeOf<ControlProp | undefined>()
     expectTypeOf<FormFieldFormlessRaw['field']>().toEqualTypeOf<FieldMode | undefined>()

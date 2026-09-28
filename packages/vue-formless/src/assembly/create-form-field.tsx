@@ -141,7 +141,7 @@ export const FormFieldCore = defineComponent({
         : propFormless.value?.field === 'wrap-embed'
           ? 'wrap-embed'
           : 'auto'
-      // inner 是 auto，外层是 wrap embed wrap-embed 三种情况
+      // inner 是 auto，外层是 auto embed wrap-embed 三种情况
       if (inner === 'auto') return outer === 'auto' ? 'wrap' : outer 
       // inner 是 embed，外层只有 embed 和 wrap-embed 两种情况
       return outer === 'auto' ? 'embed' : outer

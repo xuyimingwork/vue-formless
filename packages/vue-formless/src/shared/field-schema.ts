@@ -34,10 +34,11 @@ declare module 'vue' {
 }
 
 /**
- * `field` assembly placement (design.md §8) — the four **writable** values.
- * Omit = `'auto'`: defer to the control's static `formless.field`.
+ * `field` assembly placement (design.md §8) — the three **writable** values.
+ * Omit = `'auto'`: defer to the control's static `formless.field`. A leaf
+ * resolves to `'wrap'`, but that value is never writable (see `FormFieldFormless`).
  */
-export type FieldMode = 'auto' | 'wrap' | 'embed' | 'wrap-embed'
+export type FieldMode = 'auto' | 'embed' | 'wrap-embed'
 
 /** Kernel-owned FieldSchema keys. Not extras; tags already have matching `fl:*` where allowed. */
 export type FieldSchemaKernelKey =
