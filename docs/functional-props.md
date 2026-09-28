@@ -97,7 +97,7 @@ export interface FormFieldFormless extends FieldSchemaExtras {
 
 #### 归一化的边界：只有内核解释的键被归一
 
-`FormFieldFormless` 的实现就是一次薄合并（`assembly/FormField.tsx`）：
+`FormFieldFormless` 的实现就是一次薄合并（`assembly/create-form-field.tsx`）：
 
 ```ts
 const formless = computed(() => ({

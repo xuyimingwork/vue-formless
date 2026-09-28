@@ -736,7 +736,7 @@ quoted   := '"' keychar* '"' | "'" keychar* "'"   转义 '\'
 |------|------|
 | `assembly/create-form-view.tsx` | 根：v-model、可选 Form、页级 LayoutView、provide context |
 | `assembly/create-form-item.tsx` | 组装宿主 Item：`createFormItem({ component, props })` → `FormItem`（收 FormFieldCore 的 `fl` / `item` 两个 prop；`props.fl.item` 为假时直接透传 children）。不再合并页级默认——`fl` 到这里已经是定型的快照（§9） |
-| `assembly/FormField.tsx` | 内核装配件 `FormFieldCore` + 工厂壳 `createFormField` + 公开标签 `FormField`：`FormFieldCore` 收 `preset` + 五个通道桶（`fl` / `layoutItem` / `layout` / `item` / `control`）做 LayoutItem + 可选 FormItem + control + `$bindings`、按 `fl:field` 选树、v-model 归集、无条件 provide |
+| `assembly/create-form-field.tsx` | 内核装配件 `FormFieldCore` + 工厂壳 `createFormField` + 公开标签 `FormField`：`FormFieldCore` 收 `preset` + 五个通道桶（`fl` / `layoutItem` / `layout` / `item` / `control`）做 LayoutItem + 可选 FormItem + control + `$bindings`、按 `fl:field` 选树、v-model 归集、无条件 provide |
 | `assembly/create-form-fields.ts` | 域表工厂，产出 PascalCase Field 标签（每项走 `createFormField`） |
 | `shared/injection-keys.ts` | `FORM_VIEW_KEY`、`FORM_FIELD_KEY` |
 | `path/path-access.ts` / `path/path-parse.ts` | 不可变 get/set + 路径解析；`bindPathAccess(source)` 把 get/set 绑到可写源上（`PathAccess` / `WritableSource`，§15） |
@@ -861,7 +861,7 @@ FormFieldCore（唯一装配点）：
 
 当前代码的未完成项（O 记为待办）：
 
-- 公开标签 `FormField` 的 props 类型就是 `FormFieldProps`（定义在 `shared/field-schema.ts`），`assembly/FormField.tsx` 只再叠 `FormFieldComponent` / `FormFieldSlotProps` 两个组件形状的类型。
+- 公开标签 `FormField` 的 props 类型就是 `FormFieldProps`（定义在 `shared/field-schema.ts`），`assembly/create-form-field.tsx` 只再叠 `FormFieldComponent` / `FormFieldSlotProps` 两个组件形状的类型。
 
 `prop` / `bind` / `field` / `formless` 都是 `computed`（懒读）：`fl:prop` 可能被标签重述、`access` 来自祖先 FormView，所以位置与 model 都不能在 setup 拍死——`context?.getProp` / `context?.access` 每次现取。
 
@@ -916,7 +916,7 @@ FormFieldProps, FormFieldComponent, FormFieldSlotProps
 FieldSchema, ControlFormless, FormFieldFormless
 ```
 
-`FormFieldProps` 定义在 `shared/field-schema.ts`（不是 `assembly/FormField.tsx`）。layout 的 props 类型（`CreateLayoutViewOptions` / `LayoutViewProps` / `LayoutItemProps` / `LayoutItemSpan` / `LayoutItemPlace`）不再从本包转出口——需要就 `import type { ... } from '@vue-formless/layout'`。
+`FormFieldProps` 定义在 `shared/field-schema.ts`（不是 `assembly/create-form-field.tsx`）。layout 的 props 类型（`CreateLayoutViewOptions` / `LayoutViewProps` / `LayoutItemProps` / `LayoutItemSpan` / `LayoutItemPlace`）不再从本包转出口——需要就 `import type { ... } from '@vue-formless/layout'`。
 
 - `FormView` / `LayoutView` 是工厂**产物**，不作为独立值导出；`FormViewComponent` 仅为类型。
 - 类型面只留「不给名字就用不了」的那些：`FieldSchema`（module augmentation 目标）、`ControlFormless`（消费者自己的 `ComponentCustomOptions.formless` 增强）、`FormFieldFormless`（适配层 snapshot）、`CreateFormViewOptions` / `NamespacedFields`（工厂入参 / 出参）、以及三个公开组件的 props / slot 契约。派生类型（`FieldSchemaExtras`、`FieldSchemaInput`、`FormFieldFormlessRaw`、`FieldMode`、`ControlProp` / `ControlVModel`、`HostProps`）不导出——`FieldSchema` 的成员可以经索引访问取到，extras 经 augmentation 自动流进 `FormFieldFormless` / `FormFieldProps`。

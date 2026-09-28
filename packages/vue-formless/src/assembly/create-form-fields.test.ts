@@ -4,7 +4,7 @@ import { renderToString } from 'vue/server-renderer'
 import { createFormFields } from './create-form-fields'
 import type { ComponentPublicProps } from '../shared/field-schema'
 import { createFormView } from './create-form-view'
-import { FormField, FormFieldCore } from './FormField'
+import { FormField, FormFieldCore } from './create-form-field'
 
 describe('createFormFields', () => {
   it('exposes PascalCase components for camelCase field keys', () => {

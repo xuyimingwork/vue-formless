@@ -18,8 +18,8 @@ export { createFormFields } from './assembly/create-form-fields'
 export type { NamespacedFields } from './assembly/create-form-fields'
 
 // --- FormField -------------------------------------------------------------
-export { FormField } from './assembly/FormField'
-export type { FormFieldComponent, FormFieldSlotProps } from './assembly/FormField'
+export { FormField } from './assembly/create-form-field'
+export type { FormFieldComponent, FormFieldSlotProps } from './assembly/create-form-field'
 
 // --- schema / binding types ------------------------------------------------
 // Only the three a consumer has to name: the module-augmentation target

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createSSRApp, defineComponent, h, inject, nextTick, type PropType, type VNode } from 'vue'
 import { renderToString } from 'vue/server-renderer'
 import { createFormView } from './create-form-view'
-import { FormField } from './FormField'
+import { FormField } from './create-form-field'
 import { FORM_VIEW_KEY } from '../shared/injection-keys'
 
 const Row = defineComponent({

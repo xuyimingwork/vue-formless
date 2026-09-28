@@ -1,6 +1,6 @@
 import { upperFirst, type UpperFirst } from '../shared/utils'
 import { type FieldSchemaInput, type ControlTagProps } from '../shared/field-schema'
-import { createFormField, type FormFieldComponent } from './FormField'
+import { createFormField, type FormFieldComponent } from './create-form-field'
 
 /**
  * PascalCase field tags. `S` must not be `Record<string, _>` or `keyof` collapses
