@@ -297,7 +297,7 @@ FormField 内部是宿主 ElFormItem 的 default slot 透传，`$` 前缀用于�
 </ElFormItem>
 ```
 
-`$bindings` 是 `FormFieldCore` 的 `bind` computed（见 §14）：对每个 `model[i]`，若口名与 `prop[i]` 都非空，则取最近 FormView 的 `access(prop[i])`，产出 `{ [toCamel(口名)]: access.value.value, ['onUpdate:' + toCamel(口名)]: access.update }`。它此前名为 `field`——本次是**改名 + 加 `$` 前缀**，不是新概念，类型在 `FormFieldSlotProps`。
+`$bindings` 是 `FormFieldCore` 的 `bindings` computed（见 §14）：对每个 `model[i]`，若口名与 `prop[i]` 都非空，则取最近 FormView 的 `access(prop[i])`，产出 `{ [toCamel(口名)]: access.value.value, ['onUpdate:' + toCamel(口名)]: access.update }`。内核把这份数据按 `bind`（`values` / `events` 两半，供 `controlAttrs` 分别处理）组装，再拼成一袋当 `$bindings`。它此前名为 `field`——本次是**改名 + 加 `$` 前缀**，不是新概念，类型在 `FormFieldSlotProps`。
 
 ### 7.4 混用场景
 
@@ -657,7 +657,8 @@ FormFieldCore（setup）
   → model = 标签 fl:model ?? schema.model ?? control 静态 formless.model ?? ['modelValue']
   → prop  = 标签/schema fl:prop ?? 祖先 FORM_FIELD_KEY.getProp(model)
   → 每个口 i：access = FORM_FIELD_KEY.access(prop[i])（access 由最近 FormView 提供）
-  → bind = { [toCamel(口名)]: access.value.value, ['onUpdate:'+toCamel(口名)]: access.update }  // 即 $bindings
+  → bind = { values: { [toCamel(口名)]: access.value.value }, events: { ['onUpdate:'+toCamel(口名)]: access.update } }
+           // $bindings = { ...values, ...events }；controlAttrs 对两半分别处理（§16.3）
   → v-bind 到 control（或经 slot 的 $bindings）
 ```
 
@@ -686,7 +687,7 @@ owner 层的 `bound` 是本层 v-model 口折成的一个 get/set computed：`ge
 
 ### 14.3 多口
 
-`model: ['start','end']` + `prop: ['a','b']` 时，`bind` 产出 `{ start, onUpdate:start, end, onUpdate:end }`。Field 内 `fl:model='start'` 经祖先 `getProp(['start'])` 只取对应下标的位置，形成单口 `$bindings`。
+`model: ['start','end']` + `prop: ['a','b']` 时，`$bindings` 产出 `{ start, onUpdate:start, end, onUpdate:end }`。Field 内 `fl:model='start'` 经祖先 `getProp(['start'])` 只取对应下标的位置，形成单口 `$bindings`。
 
 ---
 
@@ -832,15 +833,18 @@ FormFieldCore（唯一装配点）：
     propFormless = { ...preset.fl, ...fl }      // FormFieldFormlessRaw：schema 预设 ← 标签 fl（标签近的赢，§11.2）
     model = normalizeModel(propFormless.model) || control 静态 formless.model || ['modelValue']
     prop  = normalizeProp(propFormless.prop)  || context?.getProp?.(model)   // 无自有 prop 才按口解析祖先位置
-    bind  = 按口组装 { [toCamel(口名)]: access.value.value, ['onUpdate:'+toCamel(口名)]: access.update }
+    bind  = 按口组装 { values: { [toCamel(口名)]: access.value.value }, events: { ['onUpdate:'+toCamel(口名)]: access.update } }
+    bindings = { ...bind.values, ...bind.events }   // $bindings：供 default 插槽
     provide(FORM_FIELD_KEY, { ...context, getProp })   // 无条件：getProp 本格重写，其余透传
     field = 合成(propFormless.field（外层位置）, control 静态 formless.field === 'embed'（内层体）)   // §8 表
     item  = getAttrBoolean(true, context?.fl?.item（下行的页 fl，只装 item）, propFormless.item)   // 页默认 ← 格值，§9；恒为布尔
     formless = { ...propFormless, model, prop, field, item }   // FormFieldFormless：FormItem 的 fl / 各处 props 函数看到的
   render:
-    controlAttrs = { ...resolveProps(preset.props, formless), ...control, ...bind }  // bind 最后：v-model 覆盖同名裸名
+    controlAttrs = mergeProps(bind.events, { ...preset.props(formless), ...control }, bind.values)
+                   // events 在前：内部写口先跑，外部监听追加其后；values 在最后：数据键覆盖外部
+                   // 外部两层先「覆盖」成一层（§16.3）
     Control = fl.component ? h(fl.component, controlAttrs, controlSlots)
-                           : slots.default?.({ $bindings: bind })      // 无 component 时 slot 手写
+                           : slots.default?.({ $bindings: bindings })      // 无 component 时 slot 手写
     field === 'embed'      → pureControl
     field === 'wrap-embed' → LayoutView({ ...layout }) → pureControl
     其余（'wrap'）         → pureControl
@@ -853,9 +857,10 @@ FormFieldCore（唯一装配点）：
 
 `fl` 这一袋只有两个名字。**`FormFieldFormlessRaw`** 是「声明的 `fl` 袋」：`FormField` 的 `fl` prop、`FormFieldCore.preset.fl`、以及 `FormItem` 的 `fl` prop 都用它——内核键全可选、`model` / `prop` / `field` 仍是声明形态，另开索引签名（预设或标签可以带内核不解释的键）。**`FormFieldFormless`** 是「归一化快照」：`model` / `prop` / `field` / `item` 已定型（这四个在类型里显式声明），`props` 函数与宿主 Item 看到的就是它；其余键逐字透传、只在索引签名下。两者的 extras 都由 `FieldSchema` 经 module augmentation 带进来（§18），而 `FormItem` 是最末一站、没法自证拿到的是归一化那份，因此在调 `item.props` 时断言（`props.fl as unknown as FormFieldFormless`）。
 
+`controlAttrs` 是两层口径：**外部两层仍「覆盖」**（`schema props` ← 标签裸名，同名监听如 `preset.props` 的 `onClick` vs 标签 `@click`，近的赢），先自行合成一层；再把 `bind` 交给 `mergeProps`（`events` 在前、`values` 在最后）——写口监听先跑、外部监听追加其后都触发，数据键覆盖外部。`bind` 因此拆成 `values` / `events` 两半交付，`$bindings` 再把两半拼回一袋（见下方伪码）。
+
 当前代码的未完成项（O 记为待办）：
 
-- `controlAttrs` 里 `bind` 是**整键覆盖**：同名裸事件会被 `onUpdate:xxx` 直接盖掉，尚未与传入事件融合。
 - 公开标签 `FormField` 的 props 类型就是 `FormFieldProps`（定义在 `shared/field-schema.ts`），`assembly/FormField.tsx` 只再叠 `FormFieldComponent` / `FormFieldSlotProps` 两个组件形状的类型。
 
 `prop` / `bind` / `field` / `formless` 都是 `computed`（懒读）：`fl:prop` 可能被标签重述、`access` 来自祖先 FormView，所以位置与 model 都不能在 setup 拍死——`context?.getProp` / `context?.access` 每次现取。

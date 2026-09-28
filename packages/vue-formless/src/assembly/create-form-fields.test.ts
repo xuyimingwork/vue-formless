@@ -288,6 +288,41 @@ describe('createFormFields props overlay', () => {
     expect(emit.mock.calls[0]![0]).toEqual({ fromTime: 'a', toTime: 'z' })
   })
 
+  it('merges the tag write listener with the field port, and lets the port data win', async () => {
+    const seen: Record<string, unknown>[] = []
+    const Control = defineComponent({
+      inheritAttrs: false,
+      setup(_, { attrs }) {
+        seen.push({ ...attrs })
+        return () => h('input')
+      },
+    })
+    const Fields = createFormFields({ name: { component: Control } })
+    const emit = vi.fn()
+    const listener = vi.fn()
+    await render(
+      h(shellView(), { modelValue: { name: 'Ada' }, 'onUpdate:modelValue': emit }, () =>
+        // Both a bare data attr and a write listener on the tag: data is
+        // overridden by the port, the listener is fused with it.
+        h(Fields.Name, { modelValue: 'external', 'onUpdate:modelValue': listener }),
+      ),
+    )
+    expect(seen).toHaveLength(1)
+    // formless's own write is what the control sees, not the tag's data attr.
+    expect(seen[0]!.modelValue).toBe('Ada')
+    // Both handlers survive; formless's own write runs first, the external
+    // listener is appended after it.
+    const merged = seen[0]!['onUpdate:modelValue'] as ((next: unknown) => void)[]
+    expect(Array.isArray(merged)).toBe(true)
+    expect(merged).toContain(listener)
+    expect(merged[merged.length - 1]).toBe(listener)
+    merged.forEach((fn) => fn('Zed'))
+    await nextTick()
+    expect(listener).toHaveBeenCalledWith('Zed')
+    expect(emit).toHaveBeenCalledTimes(1)
+    expect(emit.mock.calls[0]![0]).toEqual({ name: 'Zed' })
+  })
+
   it('renders exactly like a FormField preset with the same attrs', async () => {
     const Control = defineComponent({
       inheritAttrs: false,

@@ -25,6 +25,10 @@
 - ADR-011：引号键段全称化——可承载任意字符串键（空白 / `.` / `[]` / 空串 `[""]`）；「键段禁止空串」收紧为「不加引号的键段禁止空串」，`prop: ''` 仍禁止
 - 内核私有工具归集（`utils.ts`）：`string-case.ts` / `record-utils.ts` 合并，函数按 lodash 命名——`camelToPascal` / `CamelToPascal` → `upperFirst` / `UpperFirst`（`attrs.ts` 里的私有 `capitalize` 是同一实现，一并并入），`omit` / `omitUndefined` 原样迁入
 
+### Fixed
+
+- **field control 的同名监听不再被 v-model 写口盖掉**：`FormFieldCore.controlAttrs` 此前是三层浅展开，`bind`（`$bindings`）最后落地，标签上的 `@update:modelValue`（以及任何 `onUpdate:xxx` 监听）会被 formless 自己的写口**整键覆盖**、根本收不到。现在 `bind` 拆成 `values`（数据键）与 `events`（写口监听）两半，最终 props 用 Vue 的 `mergeProps(bind.events, { ...preset.props, ...control }, bind.values)` 合成——外部两层仍按「覆盖」先合成一层（`preset.props` 的 `onClick` vs 标签 `@click` 近的赢，`class` / `style` 口径也因此不变），写口监听与外部监听**融合**成数组、两个都触发（**写口先跑、外部监听随后**），数据键覆盖外部（与 SFC 编译器 `v-model` + `@update:xxx` 同一实现）。`$bindings` 仍是两半拼回的一袋，插槽契约不变
+
 ## [0.1.1] - 2026-09-02
 
 ### Fixed

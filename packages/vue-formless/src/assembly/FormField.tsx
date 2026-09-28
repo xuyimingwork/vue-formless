@@ -2,6 +2,7 @@ import {
   computed,
   defineComponent,
   inject,
+  mergeProps,
   provide,
   toValue,
   type Component,
@@ -96,20 +97,29 @@ export const FormFieldCore = defineComponent({
         || context?.getProp?.(model.value)
     })
 
-    // 绑定属性
+    /**
+     * 绑定属性（design.md §14）：按口组装，值和写口监听分开。control 上两者的
+     * 合并口径不同——数据键「后者覆盖」，写口监听要和外部监听**融合**（`controlAttrs`），
+     * 所以这里就分开交付，不让两类键挤在一袋里被同一套规则处理。
+     */
     const bind = computed(() => {
-      return Object.assign({}, ...model.value.map((m, i) => {
-        if (typeof m !== 'string' || m.trim() === '') return {}
+      const values: Record<string, unknown> = {}
+      const events: Record<string, unknown> = {}
+      model.value.forEach((m, i) => {
+        if (typeof m !== 'string' || m.trim() === '') return
         const p = prop.value?.[i]
-        if (typeof p !== 'string' || p.trim() === '') return {}
+        if (typeof p !== 'string' || p.trim() === '') return
         const access = context?.access(p)
-        if (!access) return {}
-        return {
-          [toCamel(m)]: access.value.value,
-          [`onUpdate:${toCamel(m)}`]: access.update,
-        }  
-      }))
+        if (!access) return
+        const port = toCamel(m)
+        values[port] = access.value.value
+        events[`onUpdate:${port}`] = access.update
+      })
+      return { values, events }
     })
+
+    /** `$bindings`（design.md §7.3 / §14）：值和写口拼回一袋，供 default 插槽消费。 */
+    const bindings = computed(() => ({ ...bind.value.values, ...bind.value.events }))
 
     // 向下继续提供上下文
     provide(FORM_FIELD_KEY, {
@@ -160,18 +170,28 @@ export const FormFieldCore = defineComponent({
       }
     })
 
+    /**
+     * control 的最终 props（design.md §16.3）。两层口径：
+     *
+     * - **外部两层**（schema `props` ← 标签裸名）仍是「覆盖」：同名监听
+     *   （`preset.props` 的 `onClick` vs 标签 `@click`）近的赢，先自行合成一层；
+     * - `bind` 是 formless 自己的写口：数据键覆盖外部，写口监听（`onUpdate:xxx`）
+     *   与外部监听**融合**成数组，两个都触发——`mergeProps` 对 `on*` 的语义，
+     *   与 SFC 编译器 `v-model` + `@update:xxx` 用的是同一实现。
+     *
+     * 参数顺序即融合顺序：`events` 在最前，外部监听追加其后，于是**内部写口先跑、
+     * 外部监听随后被通知**（写回本身 batch 到 nextTick，两者都拿到同一个值）；
+     * `values` 在最后，数据键照旧覆盖外部。外部先合成一层还顺带保住了
+     * `class` / `style` 的覆盖口径：`mergeProps` 会合并这两键，但外部层内已经
+     * 覆盖完，而 `bind` 不带它们（它是中间层也无从干扰）。
+     */
     const controlAttrs = computed(() => {
-      /**
-       * TODO: 
-       * 1. createFromControl 里的 prop 函数转换需要在此处处理
-       * 2. bind 提供的数据有更高的优先级，需要覆盖；提供的事件需要和传入事件做融合
-       */
       const preset = typeof props.preset?.props === 'function' ? props.preset?.props(formless.value as any) : props.preset?.props
-      return {
-        ...preset,
-        ...props.control,
-        ...bind.value,
-      }
+      return mergeProps(
+        bind.value.events,
+        { ...preset, ...props.control },
+        bind.value.values,
+      )
     })
 
     return (): VNodeChild => {
@@ -180,7 +200,7 @@ export const FormFieldCore = defineComponent({
 
       const pureControl: VNodeChild = Control
         ? <Control {...controlAttrs.value} v-slots={controlSlots} />
-        : slots.default?.({ $bindings: bind.value }) ?? null
+        : slots.default?.({ $bindings: bindings.value }) ?? null
 
       if (field.value === 'embed') return pureControl
 

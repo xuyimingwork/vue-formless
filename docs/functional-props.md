@@ -227,13 +227,13 @@ const User = createFormFields({
 - 形参：`FormFieldFormless`（含本格合并后的 `model` / `prop` / `field` / `item` 与 extras）。
 - 投影：本格 control 的 props（输入组件的默认 props）。
 - 求值在 `FormFieldCore` 内、**看到快照之后**（`preset.props(formless)`）；不能在工厂创建期求值。`item` 与 `item.props` 侧同值（§3.3），所以「这一格是否挂宿主 Item」可以直接读 `fl.item === false`。
-- control props 的完整覆盖顺序（`FormFieldCore.controlAttrs`）：
+- control props 的完整合并（`FormFieldCore.controlAttrs`）：
 
 ```text
-{ ...preset.props(formless),  ...裸名 control 桶,  ...bind ($bindings) }
+mergeProps(bind.events,  { ...preset.props(formless),  ...裸名 control 桶 },  bind.values)
 ```
 
-其中 `bind`（`$bindings` 的 `modelValue` / `onUpdate:xxx`）最后落地，**同名裸名会被 v-model 绑定覆盖**（当前实现是整键覆盖，尚未与传入事件融合）。
+参数顺序即融合顺序。外部两层（schema `props` ← 标签裸名）先按「覆盖」合成一层——同名监听如 `preset.props` 的 `onClick` vs 标签 `@click`，近的赢；`bind` 再交给 Vue 的 `mergeProps`（`events` 在前、`values` 在最后）：**写口监听（`onUpdate:xxx`）先跑、外部监听追加其后**，两个都触发；**数据键（`modelValue` 等）覆盖外部**（与 SFC 编译器 `v-model` + `@update:xxx` 同一实现）。
 
 ### 4.6 `FormFieldCore` 的 `preset.props` / `control`（内核私有）
 
