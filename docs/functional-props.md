@@ -6,7 +6,7 @@
 
 ## 1. 唯一载体：`HostProps<T>`
 
-所有函数式 props 都由同一个类型承载（`field-schema.ts`）：
+所有函数式 props 都由同一个类型承载（`shared/field-schema.ts`）：
 
 ```ts
 export type HostProps<TFl> =
@@ -16,7 +16,7 @@ export type HostProps<TFl> =
 
 即**同一配置位既可以写静态对象，也可以写「快照 → 宿主 props」的纯函数**。函数是映射器（mapper）：无副作用、按需重算，把 formless 归一化后的快照投影成某一层宿主组件要的 props。
 
-统一求值入口 `resolveProps(spec, fl)`（`props-overlay.ts`）：
+统一求值入口 `resolveProps(spec, fl)`（`shared/props-overlay.ts`）：
 
 ```ts
 if (spec == null) return {}
@@ -107,7 +107,7 @@ export interface FormFieldFormless extends FieldSchemaExtras {
 
 #### 归一化的边界：只有内核解释的键被归一
 
-`FormFieldFormless` 的实现就是一次薄合并（`FormField.tsx`）：
+`FormFieldFormless` 的实现就是一次薄合并（`assembly/FormField.tsx`）：
 
 ```ts
 const formless = computed(() => ({
@@ -162,7 +162,7 @@ createFormView({
 
 - 形参：`LayoutFl`。
 - 投影：LayoutView 的 props（`disabled` 除外）。
-- 覆盖顺序（`create-form-view.tsx`）：
+- 覆盖顺序（`assembly/create-form-view.tsx`）：
 
 ```text
 mergeAttrs(resolveProps(layout.props, { layout }), 页 layout:* 桶)
