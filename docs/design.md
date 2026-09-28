@@ -417,11 +417,11 @@ interface CreateFormViewOptions {
   layout?: {
     Row: Component
     Col: Component
-    props?: (fl: LayoutFl) => Record<string, unknown>   // 传给 LayoutView
+    props?: Record<string, unknown>   // 传给 LayoutView（仅静态；密度等默认值）
   }
   form?: {
     component: Component
-    props?: (fl: FormFl) => Record<string, unknown>      // 传给 ElForm
+    props?: Record<string, unknown>   // 传给宿主 Form（仅静态；写口经裸名 modelValue 透传）
   }
   item?: {
     component: Component
@@ -441,11 +441,9 @@ interface CreateFormItemOptions {
 
 - `component` / `props` 是工厂规格。FormView 把组装件**原样**挂到 `FORM_FIELD_KEY.FormItem`（不再包一层）；页级默认的合并点是 `FormFieldCore`，故这里不需要惰性页袋。
 
-三个 `props` **统一为函数形式**（映射器：`snapshot → 宿主 props`，纯函数、无副作用）。snapshot 类型：
+只有 `item.props` **（以及 `createFormItem.props` / `FieldSchema.props`）是函数形式**（映射器：`snapshot → 宿主 props`，纯函数、无副作用）；`layout.props` / `form.props` 都是**静态对象**（无 snapshot）。snapshot 类型：
 
 ```ts
-type LayoutFl = { layout: boolean }              // 是否启用栅格（未翻转前的语义侧）
-type FormFl   = { modelValue: unknown }          // 写口数据
 type FormFieldFormless = {                       // 归一化快照：内核 wiring + extras（§16.3）
   model: (string | undefined)[]                  // 本格 v-model 口；非字符串口留 undefined 占位
   prop: (string | undefined)[] | undefined       // 本格位置；没被任何一层绑定时整体 undefined
@@ -456,13 +454,13 @@ type FormFieldFormless = {                       // 归一化快照：内核 wir
 
 `FormFieldFormless.model` / `.prop` 是**本格合并结果的归一化数组**（下标即配对，§7.1）——`binding` 不再进 snapshot，适配器按 `model[i] ↔ prop[i]` 自己对齐。**只有内核解释的键进这个定型集**（`model` / `prop` / `field` / `item`），其余键（`component`、内核不读的 `props`、extras）逐字透传、只经索引签名可达。该类型此前叫 `ItemFl`；**未归一化**的那一袋（`FormField` / `FormItem` 的 `fl`）叫 `FormFieldFormlessRaw`，见 §16.3。
 
-各自 snapshot：
+只有 `item.props` 有 snapshot：
 
 | `props` 函数 | snapshot（形参） | 投影到 |
 |-------------|-----------------|-------|
-| `layout.props` | `{ layout: boolean }` | LayoutView（formless 自己，`disabled` 名字固定） |
-| `form.props` | `{ modelValue }` | ElForm（host，`modelValue → model` 随库变） |
 | `item.props` | `FormFieldFormless`：`{ model, prop, field, item, ...extras }` | ElFormItem（host，`label → label`、`prop → prop` 随库变） |
+
+`layout.props` / `form.props` **没有 snapshot，只能是静态对象**：前者只是 LayoutView 的默认值（密度等），后者是宿主 Form 的静态默认值——FormView 的写口按 no-prefix 规则以裸名 `modelValue` 落到宿主 Form，不需要映射函数。宿主的口名与之不同（如 ElForm 的 `model`）时，适配层包一层 `MyForm`——声明 `modelValue`、转发给宿主，并把宿主实例方法透出给 FormView 的 ref 代理。
 
 - `layout.column` 退场，密度改在 `layout.props` 里声明（或经标签 `:layout:column` 覆盖）。
 - `layout.props` 只是 LayoutView 的默认值（密度等）；`disabled` 由内核固定为 `!fl:layout`，永远覆盖 `layout.props` 的产出（近的赢）。
@@ -476,10 +474,8 @@ export const FormView = createFormView({
     Col: ElCol,
     props: { column: 2 },
   },
-  form: {
-    component: ElForm,
-    props: (fl) => ({ model: fl.modelValue }),
-  },
+  // 适配层：ElForm 的 model 口叫 `model`，用 MyForm 承接裸名 modelValue 并转发
+  form: { component: MyForm },
   item: {
     component: ElFormItem,
     props: (fl) => ({
@@ -497,7 +493,7 @@ export const FormView = createFormView({
 
 ```ts
 interface FormViewProps {
-  modelValue?: unknown          // 写口（声明 prop，不落宿主 Form）
+  modelValue?: unknown          // 写口（裸名落到宿主 Form；onUpdate 监听也被读取并照落宿主）
   'fl:layout'?: boolean
   'layout:column'?: number      // 本页 LayoutView 密度
   'fl:form'?: 'auto' | boolean
@@ -505,7 +501,7 @@ interface FormViewProps {
 }
 ```
 
-- `modelValue` 是声明 prop；`onUpdate:modelValue` 监听从 attrs 读取，二者**都不落到宿主 Form**。
+- `modelValue` **不是**声明 prop：裸名 `modelValue` 留在 `attrs` 里，按 no-prefix 规则一并落到宿主 Form（宿主若要读它，自行声明 `modelValue`，如 `MyForm`）。`onUpdate:modelValue` 监听被 FormView 读取以推进写口，同时也照落到宿主 Form（不再从宿主 props 剥掉）。
 - 其它 `:layout:*`（如 gutter）走 attrs 落到宿主 Row。
 - FormView `expose` 一个 Proxy，把宿主 Form 实例的方法透出（`validate` 等）。
 
@@ -517,7 +513,7 @@ FormView 同时 provide **两个键**：`FORM_VIEW_KEY`（只给嵌套 FormView 
 
 | 字段 | 含义 | 消费方 |
 |------|------|--------|
-| `value: ComputedRef<unknown>` | 当前 FormView 的 `modelValue`（父快照，勿改） | 嵌套 FormView（继承读源 / 拼 `fl.modelValue`） |
+| `value: ComputedRef<unknown>` | 当前 FormView 的 `modelValue`（父快照，勿改） | 嵌套 FormView（继承读源 / 重建子路径） |
 | `getIn(path)` | 相对本源的位置读 | 嵌套 FormView |
 | `setIn(path, value)` | 相对本源的位置写（唯一写通道，终点在 owner 层） | 嵌套 FormView（转发到祖先 `setIn`） |
 
@@ -591,13 +587,14 @@ schema 预设层（键 → fl:* 预设） < 标签（template attrs）
 
 ### 12.1 overlay 链
 
-每层宿主的最终 props 由 `mergeAttrs(...layers)` 叠加，**后面的层赢、`undefined` 不覆盖、空字符串是值**：
+每层宿主的最终 props 都是**一次浅合并**（当前直接展开各层、后面的层赢）；`props-overlay` 的 `mergeAttrs` / `resolveProps` 待重构：
 
 ```text
-FormView:   mergeAttrs(form.props(snapshot), hostAttrs（剥掉 v-model 端口）)
+FormView（LayoutView）: { ...layout.props（静态对象）, ...页 layout:* 桶 }   // disabled 内核固定覆盖
+FormView（宿主 Form）:   { ...form.props（静态对象）, ...hostAttrs（裸名 modelValue 与监听都照落宿主） }
 FormField（绑定面）: 有 fl:prop → 身份根；否则 prop = 祖先 getProp(model)（§7.2）
-FormField（宿主 Item 壳）: mergeAttrs(item.props(snapshot), itemAttrs)   // itemAttrs = item 桶：props 与监听同一袋；裸名不进 Item（§5.2）
-FormField（control）:      mergeAttrs(preset props（在 FormFieldCore 里就着 FormFieldFormless 求值）, controlAttrs（裸名）, bindings)
+FormField（宿主 Item 壳）: { ...item.props(snapshot), ...itemAttrs }   // itemAttrs = item 桶：props 与监听同一袋；裸名不进 Item（§5.2）
+FormField（control）:      { ...preset props（在 FormFieldCore 里就着 FormFieldFormless 求值）, ...controlAttrs（裸名）, ...bindings }
 ```
 
 `FieldSchema.props` 可能是**快照函数**，attrs 只能装平值，所以它经工厂壳的 `preset` 带进 `FormFieldCore`，由 core 就着自己算出的快照（`model` / `prop` / `field` / extras，§16.3）求值——求值口径因此与 `item.props` 一致（§16.3）。
@@ -948,7 +945,7 @@ FieldSchema, ControlFormless, FormFieldFormless
 4. `injection-keys.ts`：`FORM_FIELD_KEY` 值改为 `FormFieldContext`；`FormField.tsx` 只 inject `FORM_FIELD_KEY`、无条件 provide；工厂壳改为纯「schema → `fl:*` 预设 attrs」，无私有参数。（后修订：装配件抽成 `FormFieldCore`，收 `preset` + 五个通道桶；工厂壳不再预求值 `props`，改由 core 就着同一份快照求值——见 §16.3。再后修订：`field-identity.ts` 退场，身份 / 快照逻辑并入 `FormFieldCore`；`FormFieldContext` 收敛为 `access` / `getProp?` / 壳资源；`getModelBinding` / `getPropBinding` 两名作废——见 §16.2。）
 5. **裸名口径对齐 §5.2**：FormField 的宿主 Item 不再吃裸名（`item:*` 才有），工厂求出的 control props 因此不会漏到 ElFormItem 上；`fl:label` 走快照 → 适配 Item `label`。
 6. `field-schema.ts`：`FormFieldFormless`（原 `ItemFl`）拆平（去掉 `binding`，暴露 `model` / `prop`），后定名 `FormFieldFormless` 并补 `field` / `FormFieldFormlessRaw`、删从未实现的 `getValues`；适配器 `props` 函数跟进（playground `toEpItemProps`）。（已落地）
-7. `create-form-view.ts`：`layout.column` → `layout.props`（函数形式）。
+7. `create-form-view.ts`：`layout.column` → `layout.props`（静态对象）。
 8. `FormField.tsx`：`switch(tree)` 键名跟进（已落地）。
 9. layout 包：`LayoutCell` → `LayoutItem`。
 10. 测试 / playground / README / 旧 ADR 交叉标注。

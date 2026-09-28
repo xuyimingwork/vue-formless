@@ -17,6 +17,7 @@
   - 2026-09-14 — **Item snapshot 去掉 `fieldKey`**（内核不发身份名，见 [ADR-011](./011-model-and-path.md) 修订）：snapshot 只余 extras + `binding` + `getValues()`（+ `fl:` 面上不再有 `fl:key`）。
   - 2026-09-15 — `:col:take` 已否（[ADR-018](./018-col-take-rest.md)）：格上不再有 `take`，行内占用保持 `:col:place` 单轴。§1 表已去掉该键。
   - 2026-09-24 — **词表最终收束**（以代码 + [`design.md`](../design.md) 为准）：`FormCell` / 内核 `FormItem` → `FormField`；`LayoutCell` → `LayoutItem`；`cell:` → `layout-item:`；`fl:cell` / `fl:tree` → `fl:field`（值域 `'auto'` / `'embed'` / `'wrap-embed'`）；`fl:grid` 未落地（开关仍写 `fl:layout`）；`useFormCell(port)` 退场，按口切片改 `fl:model`（标签可写、可覆盖 schema）；工厂壳只锁 `component`。§1 表 / §2 / §3 已按此改写。
+  - 2026-09-28 — `form.props` / `layout.props` 都收敛为**静态对象**（无 snapshot、不接受函数）：FormView 写口按 no-prefix 规则以裸名 `modelValue` 落到宿主 Form，口名不同由适配层 `MyForm` 映射；布局密度默认值直接写对象，标签 `:layout:*` 仍 overlay。§1 的 `FormView mergeAttrs(form.props(snapshot), …)` 与 Form snapshot 说法作废。见 [ADR-016](./016-fl-project-and-overlay.md)。
 - **来源**：[ADR-008](./008-form-view-vmodel-and-grid-gcd.md) / [ADR-011](./011-model-and-path.md) / [ADR-012](./012-input-item-and-rule-compile.md) / [ADR-013](./013-one-control-multiple-items.md) / [ADR-020](./020-form-view-cell-field.md) / [ADR-021](./021-channel-prefix-and-form-item.md)。本文钉 **配置怎么写、进哪一层**。不改 `component` 不含 Item、不改写口、不改按口切片吃口名（前缀与词表见 021）。
 
 ## 决策
@@ -30,10 +31,10 @@
 | `<User.Xxx>` / 临场 `<FormField>` | → control | `prop` / `model` / boolean `item` / `field` / `component` + extras | `layout-item:span` `layout-item:place`；`wrap-embed` 上 `layout:column` `layout:gutter` | `:item:` / `@item:` / `#item:` → 宿主 Item |
 | `FormView` | → 适配 Form | 组树 `layout`(boolean) / `form` / `item` | `layout:column` `layout:gutter` | **`v-model` 是 FormView 写口** |
 
-内核走两处 host 装配：FormView `mergeAttrs(form.props(snapshot), 宿主 Form attrs)`；`FormFieldCore` 的 control 面 `mergeAttrs(resolveProps(preset.props, 快照), control 桶, $bindings)`，宿主 Item 面由 `FormItem` 做 `mergeAttrs(resolveProps(item.props, 快照), item 桶)`。Snapshot 只进 `props` 函数，不是宿主 prop。
+内核走两处 host 装配：FormView `{ ...form.props（静态对象）, ...宿主 Form attrs }`；`FormFieldCore` 的 control 面 `{ ...resolveProps(preset.props, 快照), ...control 桶, ...$bindings }`，宿主 Item 面由 `FormItem` 做 `{ ...resolveProps(item.props, 快照), ...item 桶 }`。Snapshot 只进 `props` 函数（`item.props` / `FieldSchema.props`），不是宿主 prop。
 
-- **Form snapshot**：`{ layout, form, item, modelValue }`。`form` 是 boolean（auto 已在内核解开）。`modelValue` 是 FormView 写口数据；映射到宿主 `model` 是 `form.props` 的默认值。
-- **Item snapshot（`ItemFl`）**：extras + 本格归一化的 `model` / `prop`（下标对齐）+ `getValues()`（当前尚未实现，见 `design.md` §16.3）。**不要**放 widget 的原始口名列表，也不放外层已消费的 `item` / `field` 壳开关，也不放整表数据。
+- **Form**：没有 snapshot，`form.props` 是静态对象。FormView 写口 `modelValue` 按 no-prefix 规则以裸名落到宿主 Form；口名不同（ElForm `model`）由适配层 `MyForm` 映射。
+- **Item snapshot（`FormFieldFormless`）**：extras + 本格归一化的 `model` / `prop`（下标对齐）+ `field` / `item`。**不要**放 widget 的原始口名列表，也不放外层已消费的壳开关，也不放整表数据。
 
 ### 2. 页开 Item；格跟 LayoutView
 
@@ -79,7 +80,7 @@ formless: {
 
 ### 6. 内核与适配分工
 
-- 内核读核心键：`component`、`model`、`props`、`prop`、`item`、`field`。其余 schema 键与 `fl:*` extras **不解释**，进 Item/control 转化函数的 snapshot。extras 只扩 `FieldSchema`；`ItemFl` / `FormFieldProps` 从 extras 推导（`label` → snapshot `label` 与 `:fl:label`）。内核不预声明 `label` / `validate`。见 [ADR-016](./016-fl-project-and-overlay.md)。
+- 内核读核心键：`component`、`model`、`props`、`prop`、`item`、`field`。其余 schema 键与 `fl:*` extras **不解释**，进 Item/control 转化函数的 snapshot。extras 只扩 `FieldSchema`；`FormFieldFormless` / `FormFieldProps` 从 extras 推导（`label` → snapshot `label` 与 `:fl:label`）。内核不预声明 `label` / `validate`。见 [ADR-016](./016-fl-project-and-overlay.md)。
 - 内核 **删除 `identity-rules`**。`validation` / `validate` 是不透明 extras；默认 `'optional'` 和编 `rules` 都在适配（playground `toEpRules`）。
 - Col 只吃内核算出的数字 `span`；Row 只吃该层 LayoutView 的 `gutter`。`fl:span` 丢掉（开发态 warn）。
 - 布局模块导出 `createLayoutView` / `LayoutItem`。否：`place="center"`、开放 Col 透传、`layout-item:justify`。

@@ -29,27 +29,30 @@ const Item = defineComponent({
   },
 })
 
-function makeForm(onSetup?: (props: { model?: unknown; fl?: unknown }) => void) {
+/**
+ * Host Form shim. ElForm names its model port `model`, so the adapter wraps it
+ * and declares `modelValue` — the formless write model reaches the host as the
+ * bare `modelValue` attr (no-prefix rule, design.md §10.1). There is no
+ * functional `form.props` to map it any more.
+ */
+function makeForm(onSetup?: (props: { modelValue?: unknown }) => void) {
   return defineComponent({
     name: 'DummyForm',
     inheritAttrs: false,
     props: {
-      model: { type: [Object, Array] as PropType<unknown>, default: undefined },
+      modelValue: { type: [Object, Array] as PropType<unknown>, default: undefined },
     },
-    setup(props, { slots, attrs }) {
-      onSetup?.({ model: props.model, fl: attrs.fl })
+    setup(props, { slots }) {
+      onSetup?.({ modelValue: props.modelValue })
       return () => h('form', slots.default?.())
     },
   })
 }
 
-function View(onForm?: (props: { model?: unknown; fl?: unknown }) => void) {
+function View(onForm?: (props: { modelValue?: unknown }) => void) {
   return createFormView({
     layout: { Row, Col },
-    form: {
-      component: makeForm(onForm),
-      props: (fl) => ({ model: fl.modelValue }),
-    },
+    form: { component: makeForm(onForm) },
     item: { component: Item },
   })
 }
@@ -131,7 +134,7 @@ describe('createFormView', () => {
       ),
     )
     expect(forms).toHaveLength(1)
-    expect(forms[0]).toMatchObject({ fl: undefined, model: {} })
+    expect(forms[0]).toMatchObject({ modelValue: {} })
   })
 
   it('still wraps Form when nested :fl:form="true"', async () => {
@@ -145,7 +148,21 @@ describe('createFormView', () => {
       ),
     )
     expect(forms).toHaveLength(2)
-    expect(forms[1]).toMatchObject({ fl: undefined })
+    expect(forms[1]).toMatchObject({ modelValue: undefined })
+  })
+
+  it('treats an explicit :fl:form="auto" as the default (root on, nested off)', async () => {
+    const forms: unknown[] = []
+    const FormView = View((props) => {
+      forms.push(props)
+    })
+    await render(
+      h(FormView, { modelValue: {}, 'fl:form': 'auto' }, () =>
+        h(FormView, { 'fl:form': 'auto', 'fl:layout': true }, () => h(Writer())),
+      ),
+    )
+    // 'auto' must not be read as a truthy string: root wraps, nested does not.
+    expect(forms).toHaveLength(1)
   })
 
   it('does not wrap Form when root :fl:form="false"', async () => {
@@ -238,35 +255,37 @@ describe('createFormView', () => {
     expect(emit.mock.calls[0]![0]).toEqual({ name: 'Bob' })
   })
 
-  it('maps form.props from fl.modelValue and lets tag attrs overlay', async () => {
-    const seen: unknown[] = []
+  it('passes static form.props to the host and lets tag attrs overlay', async () => {
+    const seen: Array<Record<string, unknown>> = []
     const Form = defineComponent({
       inheritAttrs: false,
       props: {
-        model: { type: [Object, Array] as PropType<unknown>, default: undefined },
         labelWidth: { type: String, default: undefined },
         extra: { type: String, default: undefined },
       },
-      setup(props, { slots }) {
-        seen.push({ model: props.model, labelWidth: props.labelWidth, extra: props.extra })
+      setup(props, { attrs, slots }) {
+        seen.push({ labelWidth: props.labelWidth, extra: props.extra, ...attrs })
         return () => h('form', slots.default?.())
       },
     })
     const FormView = createFormView({
       layout: { Row, Col },
-      form: {
-        component: Form,
-        props: (fl) => ({ model: fl.modelValue, extra: 'from-fl', labelWidth: '80px' }),
-      },
+      form: { component: Form, props: { extra: 'from-factory', labelWidth: '80px' } },
     })
     await render(
       h(FormView, { modelValue: { name: 'Ada' }, labelWidth: '96px' }, () => h(Writer())),
     )
     expect(seen).toHaveLength(1)
-    expect(seen[0]).toEqual({ model: { name: 'Ada' }, labelWidth: '96px', extra: 'from-fl' })
+    // Tag attr wins over the static factory default; the write model reaches the
+    // host as the bare `modelValue` attr, not as a `form.props` projection.
+    expect(seen[0]).toEqual({
+      labelWidth: '96px',
+      extra: 'from-factory',
+      modelValue: { name: 'Ada' },
+    })
   })
 
-  it('lets an explicit :model overlay form.props', async () => {
+  it('lets an explicit tag attr overlay a static form.props default', async () => {
     const seen: unknown[] = []
     const Form = defineComponent({
       inheritAttrs: false,
@@ -280,15 +299,32 @@ describe('createFormView', () => {
     })
     const FormView = createFormView({
       layout: { Row, Col },
-      form: {
-        component: Form,
-        props: (fl) => ({ model: fl.modelValue }),
+      form: { component: Form, props: { model: { from: 'factory' } } },
+    })
+    const b = { name: 'Bob' }
+    await render(h(FormView, { modelValue: { name: 'Ada' }, model: b }, () => h(Writer())))
+    expect(seen).toEqual([b])
+  })
+
+  it('does not strip v-model listeners off the host Form', async () => {
+    const seen: Array<Record<string, unknown>> = []
+    const Form = defineComponent({
+      inheritAttrs: false,
+      props: {
+        modelValue: { type: [Object, Array] as PropType<unknown>, default: undefined },
+      },
+      setup(_, { attrs, slots }) {
+        seen.push({ ...attrs })
+        return () => h('form', slots.default?.())
       },
     })
-    const a = { name: 'Ada' }
-    const b = { name: 'Bob' }
-    await render(h(FormView, { modelValue: a, model: b }, () => h(Writer())))
-    expect(seen).toEqual([b])
+    const FormView = createFormView({ layout: { Row, Col }, form: { component: Form } })
+    const emit = vi.fn()
+    await render(
+      h(FormView, { modelValue: { name: 'Ada' }, 'onUpdate:modelValue': emit }, () => h(Writer())),
+    )
+    expect(seen).toHaveLength(1)
+    expect(seen[0]).toMatchObject({ 'onUpdate:modelValue': emit })
   })
 
   it('uses column 1 when factory omits column', async () => {
@@ -312,28 +348,6 @@ describe('createFormView', () => {
       ),
     )
     expect(html).toContain('gutter="16"')
-    expect(html).toContain('span="8"')
-  })
-
-  it('resolves factory layout.props from the { layout } snapshot', async () => {
-    const seen: Array<{ layout: boolean }> = []
-    const FormView = createFormView({
-      layout: {
-        Row,
-        Col,
-        props: (fl) => {
-          seen.push({ layout: fl.layout })
-          return { column: fl.layout ? 3 : 1 }
-        },
-      },
-      item: { component: Item },
-    })
-    const html = await render(
-      h(FormView, { modelValue: {}, 'fl:layout': true }, () =>
-        h(FormField, { 'fl:prop': 'name' }),
-      ),
-    )
-    expect(seen).toContainEqual({ layout: true })
     expect(html).toContain('span="8"')
   })
 
@@ -390,7 +404,7 @@ describe('createFormView', () => {
     })
     const FormView = createFormView({
       layout: { Row, Col },
-      form: { component: ProbeForm, props: (fl) => ({ model: fl.modelValue }) },
+      form: { component: ProbeForm },
     })
     await render(
       h(

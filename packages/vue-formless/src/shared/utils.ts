@@ -12,8 +12,13 @@ export function upperFirst(s: string): string {
 }
 
 /**
- * Vue attr / boolean-attr → boolean.
- * `true` / `''` (bare attr) → true; `false` / `'false'` → false; missing → `defaultValue`.
+ * Vue attr / boolean-attr → boolean. The last argument that is not `undefined`
+ * wins; `''` (a bare attr) is `true`, everything else is its truthiness — so the
+ * string `'false'` is `true`, matching Vue's own attr coercion. Returns
+ * `undefined` only when every argument is `undefined`.
+ *
+ * Not for three-way switches: `fl:form`'s `'auto'` cannot ride this (it would
+ * read as `true`); FormView resolves that in its own `form` computed.
  */
 export function getAttrBoolean(...values: unknown[]): boolean | undefined {
   const resolve = (value: unknown) => {

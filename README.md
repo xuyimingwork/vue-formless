@@ -25,6 +25,7 @@ peer：`vue` ^3.3。
 
 ```ts
 import { ElCol, ElForm, ElFormItem, ElInput, ElRow } from 'element-plus'
+import { defineComponent, h, ref, type PropType } from 'vue'
 import { createFormFields, createFormView, type FormFieldFormless } from 'vue-formless'
 
 declare module 'vue-formless' {
@@ -45,12 +46,30 @@ function toItemProp(prop: FormFieldFormless['prop']): string | undefined {
   return dotted
 }
 
+// 无前缀的写口 `modelValue` 按 no-prefix 规则透传到宿主 Form，而 ElForm 的 model
+// 口叫 `model`：适配层用一个 MyForm 包住 ElForm 完成映射，并把 ElForm 实例的
+// validate / resetFields 透出给 FormView 的 ref 代理。工厂不再接受 form.props 函数。
+const MyForm = defineComponent({
+  inheritAttrs: false,
+  props: { modelValue: { type: [Object, Array] as PropType<unknown>, default: undefined } },
+  setup(props, { attrs, slots, expose }) {
+    const form = ref<Record<string, unknown> | null>(null)
+    expose(new Proxy({}, {
+      get: (_, key) => {
+        const inner = form.value
+        if (inner == null) return undefined
+        const value = Reflect.get(inner, key, inner)
+        return typeof value === 'function' ? value.bind(inner) : value
+      },
+      has: (_, key) => form.value != null && key in form.value,
+    }))
+    return () => h(ElForm, { ...attrs, ref: form, model: props.modelValue }, slots)
+  },
+})
+
 export const FormView = createFormView({
   layout: { Row: ElRow, Col: ElCol, props: { column: 2 } },
-  form: {
-    component: ElForm,
-    props: (fl) => ({ model: fl.modelValue }),
-  },
+  form: { component: MyForm },
   item: {
     component: ElFormItem,
     props: (fl: FormFieldFormless) => ({

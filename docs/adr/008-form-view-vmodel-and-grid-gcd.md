@@ -21,6 +21,7 @@
   - 2026-09-04 — 格占用 `:col:take="'rest'"` 见 [ADR-018](./018-col-take-rest.md)；Layout 行窗口 `:row:row` 见 [ADR-019](./019-layout-row-window.md)。
   - 2026-09-15 — `:col:take` 已否（[ADR-018](./018-col-take-rest.md)）：行内占用保持 `:col:place` 单轴；§2 该句已改写。
   - 2026-09-24 — **最终收束**：`:row:*` → `layout:*`、`:col:span` / `:col:place` → `layout-item:span` / `layout-item:place`；页密度从工厂 `layout.column` / `layout.gutter` 改为 `layout.props`；`LayoutView` 仍然只有 `disabled` / `column`（ADR-019 的 `row` 窗口与 `layout-item:show` **未落地**）；Context 的写入缝是 `FORM_VIEW_KEY`（`value` / `getIn` / `setIn`），FormField 只 inject `FORM_FIELD_KEY`（`access(prop).update` / `getProp` / 壳资源）；`'self'` 已废（[ADR-017](./017-composite-item-self.md)），单格关壳写 `fl:item="false"`，组合体只写体 `formless.field: 'embed'`。
+  - 2026-09-28 — `form.props` 收敛为**静态对象**（无 snapshot；写口裸名 `modelValue` 落宿主 Form，口名不同由适配层 `MyForm` 映射），`layout.props` 收敛为**静态对象**（`LayoutFl` 函数快照删除）。ADR-016 修订同日记。
 - **来源**：相对 [ADR-004](./004-form-layout-and-context.md) / [ADR-007](./007-layout-adapter-and-span-priority.md) 的后续澄清（命名、数据口、适配面与占位策略）
 
 ## 背景
@@ -104,7 +105,7 @@ createFormView({
 })
 ```
 
-项目密度写在工厂 `layout.props`（对象或 `(fl) =>` 函数）。实例覆盖：`layout:column` / `layout:gutter`（FormView 认领 `layout` 通道，`disabled` 由内核固定为 `!fl:layout`）。
+项目密度写在工厂 `layout.props`（**仅静态对象**；函数形态已删）。实例覆盖：`layout:column` / `layout:gutter`（FormView 认领 `layout` 通道，`disabled` 由内核固定为 `!fl:layout`）。
 
 | 写法 | 含义 |
 |------|------|

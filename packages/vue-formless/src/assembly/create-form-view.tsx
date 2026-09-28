@@ -7,7 +7,6 @@ import {
   toValue,
   type Component,
   type DefineComponent,
-  type PropType,
   type VNodeChild,
   type MaybeRefOrGetter,
   computed,
@@ -17,42 +16,52 @@ import { createFormItem } from './create-form-item'
 import { FORM_FIELD_KEY, FORM_VIEW_KEY, type FormFieldContext } from '../shared/injection-keys'
 import { useFormViewValue } from '../hooks/use-form-view-value'
 import type { FormFieldFormless, HostProps } from '../shared/field-schema'
-import { mergeAttrs, resolveProps } from '../shared/props-overlay'
-import { omit, getAttrBoolean } from '../shared/utils'
+import { getAttrBoolean } from '../shared/utils'
 import { VIEW_ATTR_CHANNELS, useDispatch } from '../hooks/use-dispatch'
 
 /** `Component` is a union; JSX needs a constructable host. */
 type JsxHost = new () => { $props: Record<string, unknown> }
 
-/** `layout.props` snapshot (design.md §10.1): grid enabled, before the `disabled` flip. */
-export type LayoutFl = {
-  /** Tag `:fl:layout` for **this** page LayoutView. Density lives in `layout.props`. */
-  layout: boolean
-}
-
 export interface FormViewLayoutBind {
   Row: Component
   Col: Component
   /**
-   * Default LayoutView props (density etc.): static object, or derived from the
-   * `{ layout }` snapshot. Tag `:layout:*` overlays them (near wins).
-   * `disabled` stays kernel-owned: always the `fl:layout` polarity flip.
+   * Default LayoutView props (density etc.): a static object. Tag `:layout:*`
+   * overlays them (near wins). `disabled` stays kernel-owned: always the
+   * `fl:layout` polarity flip.
    */
-  props?: HostProps<LayoutFl>
+  props?: Record<string, unknown>
 }
 
-export interface FormViewHostBind<TFl> {
+/**
+ * Host item shell. `props` are defaults, static or mapped from the field
+ * snapshot (`HostProps<FormFieldFormless>`); `createFormItem` does the
+ * projection.
+ */
+export interface FormViewItemBind {
   component: Component
-  props?: HostProps<TFl>
+  props?: HostProps<FormFieldFormless>
+}
+
+/**
+ * Host Form shell. `props` are **static** defaults: formless has no form-level
+ * snapshot to project from — the write model reaches the host as the bare
+ * `modelValue` attr (no-prefix rule, design.md §10.1). A library whose model
+ * port is named differently (`ElForm` → `model`) wraps the host in its own
+ * component that declares `modelValue` and forwards it (`MyForm`).
+ */
+export interface FormViewFormBind {
+  component: Component
+  props?: Record<string, unknown>
 }
 
 export interface CreateFormViewOptions {
   /** Row + Col for the hosted grid, plus optional LayoutView props (density etc.). */
   layout?: FormViewLayoutBind
   /** Host form shell. Omit or `:fl:form="false"` skips wrapping. */
-  form?: FormViewHostBind<FormFl>
+  form?: FormViewFormBind
   /** Host item shell. `props` are defaults (static or from the field snapshot). */
-  item?: FormViewHostBind<FormFieldFormless>
+  item?: FormViewItemBind
 }
 
 /** FormView `:fl:layout` is a boolean switch. Density is factory `layout.props` / `:layout:*`. */
@@ -60,15 +69,13 @@ export type FormLayoutProp = boolean
 
 export type FormFormProp = boolean | 'auto'
 
-/** v-model fallthrough listeners; FormView owns them, not the host Form. */
-const V_MODEL_PORT_KEYS = ['onUpdate:modelValue', 'onUpdate:model-value'] as const
-
 export interface FormViewProps {
   /**
-   * FormView write model (the DTO). Declared as a real prop so the value
-   * never falls through into the host Form's fallthrough bag. The
-   * `onUpdate:modelValue` listener is read from `attrs` by
-   * `useFormViewModelValue` and is stripped off the host Form props.
+   * FormView write model (the DTO). It is **not** a declared prop: the bare key
+   * stays in `attrs` and, per the no-prefix rule, also reaches the host Form — a
+   * host that wants it declares `modelValue` itself (wrap ElForm in a `MyForm`;
+   * design.md §10.1). The `onUpdate:modelValue` listener is read here
+   * (`useFormViewValue`) and also rides through to the host Form.
    */
   modelValue?: unknown
   /**
@@ -85,16 +92,6 @@ export interface FormViewProps {
   'fl:form'?: FormFormProp
   /** Wrap the factory `item` per field (default `true` when `item.component` is bound). */
   'fl:item'?: boolean
-}
-
-export interface FormFl {
-  /**
-   * FormView write model (the DTO). `form.props` maps it to the host's model
-   * source (e.g. `{ model: fl.modelValue }`). Function `props` receive only
-   * this today; a per-field shape for host projection is deferred — add
-   * members here when it lands.
-   */
-  modelValue: unknown
 }
 
 function proxyExpose(host: { value: object | null }): object {
@@ -123,7 +120,7 @@ function proxyExpose(host: { value: object | null }): object {
  * ```ts
  * export const FormView = createFormView({
  *   layout: { Row: ElRow, Col: ElCol, props: { column: 2 } },
- *   form: { component: ElForm, props: (fl) => ({ model: fl.modelValue }) },
+ *   form: { component: MyForm }, // MyForm declares `modelValue` → ElForm `model`
  *   item: { component: ElFormItem, props: toEpItemProps },
  * })
  * ```
@@ -136,10 +133,6 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
   const Form = options.form?.component ? markRaw(options.form.component) : undefined
   // 表单项组件
   const FormItem: any = createFormItem(options.item)
-
-  const layoutPropsSpec = options.layout?.props
-  
-  const formProps = typeof options.form?.props === 'function' ? options.form?.props : () => options.form?.props  
 
   return defineComponent({
     name: 'FormView',
@@ -163,8 +156,23 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
         default: viewFormAttrs,
       } = useDispatch(attrs as Record<string, unknown>, VIEW_ATTR_CHANNELS)
 
+      /**
+       * Page shell switches, resolved once (design.md §9). `fl:layout` is a plain
+       * boolean attr. `fl:form` is a three-way switch, not a Vue boolean attr, so
+       * it cannot ride `getAttrBoolean`: `'auto'` (and absent) defer to nesting —
+       * the root wraps, a nested FormView does not — while an explicit value
+       * wins; a bare `fl:form` arrives as `''` and counts as `true`.
+       */
+      const layout = computed(() => getAttrBoolean(false, viewFormlessOptions.value.layout))
+      const form = computed(() => {
+        const value = viewFormlessOptions.value.form
+        if (value === undefined || value === 'auto') return !nested
+        if (value === '') return true
+        return !!value
+      })
+
       // 处理 FormView 的值
-      const { value, getIn, setIn } = useFormViewValue()
+      const { getIn, setIn } = useFormViewValue()
       
       provide(FORM_FIELD_KEY, {
         access(prop: MaybeRefOrGetter<string>) {
@@ -184,31 +192,27 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
 
       return (): VNodeChild => {
         const HostLayoutView = LayoutView as JsxHost
-        const layout = getAttrBoolean(false, viewFormlessOptions.value.layout)
-        // Factory layout.props(fl) sets LayoutView defaults; tag :layout:* overlays (near wins).
+        // Factory layout.props sets LayoutView defaults; tag :layout:* overlays (near wins).
         // `disabled` is kernel-owned: fl:layout flips polarity (design.md §10.1).
         const body = (
           <HostLayoutView
-            {...mergeAttrs(resolveProps(layoutPropsSpec, { layout: !!layout }), viewLayoutAttrs.value)}
-            disabled={!layout}
+            {...{ ...options.layout?.props, ...viewLayoutAttrs.value }}
+            disabled={!layout.value}
             v-slots={{ default: slots.default }}
           />
         )
 
         if (!Form) return body
-        if (!getAttrBoolean(!nested, viewFormlessOptions.value.form)) return body
+        if (!form.value) return body
 
         const HostForm = Form as JsxHost
-        // Factory form.props(fl) sets host defaults; tag host attrs overlay (near wins).
-        // The v-model value is a declared prop and its update:modelValue listener
-        // is owned by useFormViewModelValue — neither lands on the host Form.
+        // Factory form.props sets host defaults; tag host attrs overlay (near wins).
+        // The bare `modelValue` stays in the default bucket and reaches the host
+        // (no-prefix rule); its listener rides along too, on purpose.
         return (
           <HostForm
             ref={formRef}
-            {...mergeAttrs(
-              formProps({ modelValue: toValue(value) }) as any,
-              omit(viewFormAttrs.value, V_MODEL_PORT_KEYS),
-            )}
+            {...{ ...options.form?.props, ...viewFormAttrs.value }}
             v-slots={{ default: () => body }}
           />
         )

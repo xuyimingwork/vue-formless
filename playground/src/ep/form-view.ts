@@ -1,4 +1,5 @@
 import { ElCol, ElForm, ElFormItem, ElRow } from 'element-plus'
+import { defineComponent, h, ref, type PropType } from 'vue'
 import { createFormView, type FormFieldFormless } from 'vue-formless'
 
 /**
@@ -38,12 +39,44 @@ export function toEpItemProps(fl: FormFieldFormless): Record<string, unknown> {
   }
 }
 
+/**
+ * Host-Form shim. The formless write model reaches the host as the bare
+ * `modelValue` attr (no-prefix rule, design.md §10.1), but ElForm names its
+ * model port `model`. The factory no longer takes functional `form.props`, so
+ * the adapter owns the mapping by wrapping the host — and forwards ElForm's
+ * exposed instance methods (`validate` / `resetFields` / …) up through FormView.
+ */
+const MyForm = defineComponent({
+  name: 'MyForm',
+  inheritAttrs: false,
+  props: {
+    modelValue: { type: [Object, Array] as PropType<unknown>, default: undefined },
+  },
+  setup(props, { attrs, slots, expose }) {
+    const formRef = ref<Record<string, unknown> | null>(null)
+    expose(
+      new Proxy(
+        {},
+        {
+          get(_target, key) {
+            const inner = formRef.value
+            if (inner == null) return undefined
+            const value = Reflect.get(inner, key, inner)
+            return typeof value === 'function' ? value.bind(inner) : value
+          },
+          has(_target, key) {
+            return formRef.value != null && key in formRef.value
+          },
+        },
+      ),
+    )
+    return () => h(ElForm, { ...attrs, ref: formRef, model: props.modelValue }, slots)
+  },
+})
+
 /** Playground bind: Element Row/Col/Form/Item. Not a published adapter. */
 export const FormView = createFormView({
   layout: { Row: ElRow, Col: ElCol, props: { column: 2 } },
-  form: {
-    component: ElForm,
-    props: (fl) => ({ model: fl.modelValue }),
-  },
+  form: { component: MyForm },
   item: { component: ElFormItem, props: toEpItemProps },
 })
