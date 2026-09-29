@@ -243,6 +243,15 @@ button {
   width: 100%;
 }
 
+/*
+ * wrap-embed 内层 LayoutView：`el-form-item__content` 是 flex 容器，
+ * `el-row` 作为 flex item 默认 `flex: 0 1 auto`、无宽度，会按内容收缩。
+ * 给它 flex-grow: 1 才能占满 FormItem 的可用空间。
+ */
+.el-form-item__content > .el-row {
+  flex-grow: 1;
+}
+
 .pg-range-one {
   display: flex;
   align-items: center;

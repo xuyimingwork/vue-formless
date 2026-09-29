@@ -45,7 +45,7 @@ function onReset() {
     <User.Mobile />
     <Range.DateRangeOne layout-item:span="16" />
     <User.Email />
-    <Range.DateRangeTwo :fl:field="'wrap-embed'" layout-item:span="max" />
+    <Range.DateRangeTwo layout-item:span="max" :layout:column="2" />
     <User.IdCard />
     <User.Address />
     <FormField :fl:prop="'remark'" fl:label="备注" layout-item:span="max" v-slot="{ $bindings }">
