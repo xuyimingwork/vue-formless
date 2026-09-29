@@ -30,7 +30,7 @@
 | `FieldSchemaExtras` / `FieldSchemaKernelKey` | 退场：extras 域即锚点 `FormFieldCustomOptions` 本身，内核键直接写在 `CreateFormFieldOptions` 上（见 [ADR-022](./022-type-taxonomy.md) §3） |
 | `FieldMode` | `FormFieldFormlessFieldRaw`（归一态 `FormFieldFormlessField`） |
 | `ControlVModel` / `ControlProp` | `FormFieldVModelRaw` / `FormFieldPropRaw`（归一态 `FormFieldVModel` / `FormFieldProp`） |
-| `ControlFormless` / `ControlTagProps` / `FlExtraProps` | `FormControlFormless` / `FormControlProps` / `FormFieldCustomTagProps`（旧名 `FormFieldCustomOptions<T>`，见 [ADR-022](./022-type-taxonomy.md) ②） |
+| `ControlFormless` / `ControlTagProps` / `FlExtraProps` | `FormControlFormless` / `FormControlProps` / `ToFormlessProps`（旧名 `FormFieldCustomOptions<T>` / `FormFieldCustomTagProps<T>`，见 [ADR-022](./022-type-taxonomy.md) ②） |
 
 > **`FormControl*` 是类型名前缀约定**（[ADR-022](./022-type-taxonomy.md)），**概念词仍是 `control`**（= 被 FormField 渲染或包含的输入组件）。注意 [ADR-015](./015-formless-config-groups.md) / [ADR-017](./017-composite-item-self.md) 正文里的历史 `FormControlProps` 指的是内核字段自己的 props（= 今日 `FormFieldProps`），与今日同名的 control 标签公开 props 不是一回事。
 

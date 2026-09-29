@@ -1,4 +1,5 @@
 import type { Component } from 'vue'
+import type { LayoutItemProps, LayoutViewProps } from '@vue-formless/layout'
 
 /** Static host props, or derived from that layer's snapshot. */
 export type HostProps<TFl> =
@@ -168,9 +169,18 @@ export interface FormFieldFormless extends FormFieldCustomOptions {
 
 // --- tag props -------------------------------------------------------------
 
-/** Extras bag → its optional `fl:*` tag props (`label` → `'fl:label'`). Always optional (override, not required). */
-export type FormFieldCustomTagProps<T> = {
-  [K in keyof T as K extends string ? `fl:${K}` : never]+?: T[K]
+/**
+ * Any declaration bag → its optional tag props under `Prefix` (`label` →
+ * `'fl:label'` under the default prefix). Always optional (override, not
+ * required).
+ *
+ * The prefix is the kernel channel the keys land on: `fl:` for the field
+ * declaration, `layout:` / `layout-item:` for the layout package's prop bags.
+ * One mapper therefore produces every prefixed tag key space instead of each
+ * one being retyped.
+ */
+export type ToFormlessProps<T, Prefix extends string = 'fl:'> = {
+  [K in keyof T as K extends string ? `${Prefix}${K}` : never]+?: T[K]
 }
 
 /**
@@ -179,18 +189,32 @@ export type FormFieldCustomTagProps<T> = {
  * Schema extras are prefixed automatically.
  * `fl:model` declares the v-model ports at the identity root and selects one declared port inside it.
  * `layout:column` is formless density; other `layout:*` (e.g. gutter) stay attrs and fall through to LayoutView → Row.
+ *
+ * The declaration's own keys are **mapped**, not retyped: every core key has a
+ * matching `fl:` tag key (design.md §6), so the tag cannot drift from
+ * `CreateFormFieldOptions`. Two keys stay off the tag — `props` (it may be a
+ * snapshot function, which cannot ride in an attr: it enters as the first
+ * `control` layer instead, §16.3) and `name` (factory-private). `component` is
+ * the one key whose *type* changes: the declaration keeps `unknown` so a field
+ * table can pass any control, while the tag supplies a real `Component`
+ * (ad-hoc field / factory preset, §7.4). Extras need no separate term — they
+ * are part of the declaration, so the same mapper prefixes them.
+ *
+ * The `layout:` / `layout-item:` keys are not retyped either: they are mapped
+ * from `@vue-formless/layout`'s own prop bags by the same `ToFormlessProps` —
+ * `LayoutViewProps` under `'layout:'` and `LayoutItemProps` under
+ * `'layout-item:'` — so density and placement have a single source and cannot
+ * drift from the layout package. Nothing is `Omit`-ed: the kernel overrides
+ * `layout:disabled` at the page it forwards the bag to (spread first, then
+ * `disabled={!fl:layout}`), not by dropping it from the channel.
  */
-export type FormFieldProps = {
-  'fl:prop'?: FormFieldPropRaw
-  'fl:model'?: FormFieldVModelRaw
-  'fl:item'?: boolean
-  'fl:field'?: FormFieldFormlessFieldRaw
-  /** Ad-hoc control (page `<FormField>`): the component to render + bind. */
-  'fl:component'?: Component
-  'layout-item:span'?: string | number
-  'layout-item:place'?: 'auto' | 'start' | 'end'
-  'layout:column'?: number
-} & FormFieldCustomTagProps<FormFieldCustomOptions>
+export type FormFieldProps = ToFormlessProps<
+  Omit<CreateFormFieldOptions, 'props' | 'name' | 'component'> & {
+    component?: Component
+  }
+> &
+  ToFormlessProps<LayoutViewProps, 'layout:'> &
+  ToFormlessProps<LayoutItemProps, 'layout-item:'>
 
 // --- control tag props -----------------------------------------------------
 // `FormControlProps` derives from `CreateFormFieldOptions` / `FormFieldVModelRaw`

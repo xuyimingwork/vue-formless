@@ -23,11 +23,11 @@
 |-------|-----------|-----|
 | `FormView` | `FormView*` | `FormViewProps` / `FormViewComponent` / `CreateFormViewOptions` / `FormViewLayoutProp`（私有） / `FormViewFormProp`（私有） / `FormViewContext` |
 | `FormItem` | `FormItem*` | `FormItemProps` / `FormItemComponent` / `CreateFormItemOptions` / `FormFieldContext.FormItem` |
-| `FormField` | `FormField*` | `FormFieldProps` / `FormFieldComponent` / `FormFieldSlotProps` / `FormFieldContext` / `FormFieldFormless(Raw)` / `FormFieldFormlessField(Raw)` / `FormFieldVModel(Raw)` / `FormFieldProp(Raw)` / `FormFieldCustomOptions`（锚点，也是 extras 域本身）/ `FormFieldCustomTagProps`（extras → `fl:*`） |
+| `FormField` | `FormField*` | `FormFieldProps` / `FormFieldComponent` / `FormFieldSlotProps` / `FormFieldContext` / `FormFieldFormless(Raw)` / `FormFieldFormlessField(Raw)` / `FormFieldVModel(Raw)` / `FormFieldProp(Raw)` / `FormFieldCustomOptions`（锚点，也是 extras 域本身） |
 | `FormControl` | `FormControl*` | `FormControlFormless` / `FormControlProps` |
 | `Formless` | `HostProps` 等通用 | `HostProps` / `Channel` 全家 / path 全家 / `ValueSource` 全家 |
 
-通用推断（`ComponentPublicProps` / `LockedVModelKeys`）与 FormControl 无关，保持原名。
+通用推断 / 映射（`ComponentPublicProps` / `LockedVModelKeys` / `ToFormlessProps`）不挂 Scope 前缀——它们作用的对象与 FormControl 无关，属通用工具类型，保持原名。`ToFormlessProps<T, Prefix extends string = 'fl:'>`（任意声明袋 → 可选「`Prefix` + 键名」标签 props）就是这一类：它不专属于 `FormField`，只是被 `FormFieldProps` 用了一次（`fl:` 与 `layout:` / `layout-item:` 三个键空间共用它），故不走 `Scope + Role` 命名。
 
 ### 2. Raw 判据的来源：代码里的解析点
 
@@ -73,7 +73,8 @@ export interface CreateFormFieldOptions extends FormFieldCustomOptions {
 }
 ```
 
-- `FormFieldCustomOptions` 是**唯一的 `declare module 'vue-formless'` 锚点**（只放 extras），**同时也是 extras 域本身**：消费者在它上面声明 `label` / `validation`，`CreateFormFieldOptions extends` 把 extras 并进工厂入参的形状；而 `FormFieldFormless` 直接 `extends FormFieldCustomOptions`、标签 props 直接 `FormFieldCustomTagProps<FormFieldCustomOptions>`——extras 不经任何中间别名。`extends` 能吸纳全局增强成员，与 `ComponentOptionsBase extends ComponentCustomOptions` 是同一手法。
+- `FormFieldCustomOptions` 是**唯一的 `declare module 'vue-formless'` 锚点**（只放 extras），**同时也是 extras 域本身**：消费者在它上面声明 `label` / `validation`，`CreateFormFieldOptions extends` 把 extras 并进工厂入参的形状；而 `FormFieldFormless` 直接 `extends FormFieldCustomOptions`。`extends` 能吸纳全局增强成员，与 `ComponentOptionsBase extends ComponentCustomOptions` 是同一手法。
+- **标签 props 是声明本身映射出来的，不手抄一遍**（design.md §6）：`FormFieldProps = ToFormlessProps<Omit<CreateFormFieldOptions, 'props' | 'name' | 'component'> & { component?: Component }>` + `layout:column` / `layout-item:span` / `layout-item:place` 三键；这三个 layout 键也不字面重写，而是 `ToFormlessProps` 用在 `@vue-formless/layout` 自己的 props 袋上——`LayoutViewProps` 配 `'layout:'` 前缀、`LayoutItemProps` 配 `'layout-item:'` 前缀，原样收下不 `Omit`（`layout:disabled` 同样在键面上；运行期对它的处置是「先铺桶、再 `disabled={!fl:layout}` 覆盖」，并非从通道剔除）。三个例外各有理由、就地写明——`props` 可能是快照函数、装不进 attrs（改走 `control` 通道第一层，§16.3），`name` 是工厂私有，`component` 在标签侧要的是真组件（声明侧保持 `unknown` 以便域表透传任意输入）。extras 因为本就是声明的一部分，被同一张映射顺手带上——**不需要再写一个 `ToFormlessProps<FormFieldCustomOptions>` 项**，也没有第二处 extras 别名。加内核键只改 `CreateFormFieldOptions`，标签自动跟上。
 - extras 域**不另起名字**（这是 §1 命名法第 2 条「解析前后同型的概念不新增名字」的直接推论）：`FormFieldCustomOptions` 与 `CreateFormFieldOptions` 解析前后同型的那部分就是 extras 本身。曾经的 `FormFieldExtras = Omit<CreateFormFieldOptions, FormFieldKernelKeys>`（及 `FormFieldKernelKeys`）与 `CreateFormFieldOptions` 的键集靠手工同步——加内核键却漏改 `FormFieldKernelKeys` 时，该键会**静默**漏进快照与 `fl:*` 标签 props；合并后这类漂移不可能发生。
 - `CreateFormFieldOptions` 是 `createFormField` / `createFormFields` 每一项的入参（内核键 + 锚点带来的 extras）。
 - `component` 保持 `unknown`（而非 `Component`）：域表要能透传任意输入，并让标签侧推断出该输入自己的公开 props。
@@ -120,7 +121,7 @@ export type FormControlProps<Def> = Def extends { component?: infer C }
 
 两者名字里的 `CustomOptions` 与「空接口 + 增强」的手法都是刻意对齐（一个扩 control，一个扩 field），但作用域不同：一个挂在 Vue 组件选项上，一个挂在字段声明上。
 
-extras → `fl:*` 的**键名映射**是另一个（私有）类型 `FormFieldCustomTagProps<T>`（`label` → `'fl:label'`，原 `FormFieldCustomOptions<T>`）——它与锚点同域，但职责是「映射」而非「增强」，故不再叫 `CustomOptions`。
+extras → `fl:*` 的**键名映射**是另一个（私有）类型 `ToFormlessProps<T>`（`label` → `'fl:label'`，原 `FlExtraProps<T>` / `FormFieldCustomOptions<T>` / `FormFieldCustomTagProps<T>`）——它与锚点同域，但职责是「映射」而非「增强」，故不再叫 `CustomOptions`；又因为它作用在**任意**声明袋上、只是「袋 → formless props」这一转换，与具体 Scope 无关，故也摘掉 `FormFieldCustom` 前缀，改用通用工具名（§1 末段）。它作用在**整个声明袋**上（内核键与 extras 同一张映射），extras 不再单独摊一次。
 
 ### ③ `FormControl*` 只作类型前缀
 
@@ -135,7 +136,7 @@ flowchart LR
   Options --> Raw
   Custom --> Snap["FormFieldFormless (normalized)"]
   Raw --> Snap
-  Custom --> TagProps["FormControlProps on the field tag"]
+  Options --> TagProps["FormFieldProps (fl:* on the field tag)"]
   Raw --> FieldRaw["field: FormFieldFormlessFieldRaw"]
   Snap --> Field["field: FormFieldFormlessField"]
   Snap --> VModel["model: FormFieldVModel"]
@@ -146,8 +147,8 @@ flowchart LR
 
 ## 后果
 
-- **公开 breaking**（0.x）：module augmentation 锚点从 `CreateFormFieldOptions` 改为 **`FormFieldCustomOptions`**（`CreateFormFieldOptions` 仍是工厂入参，但改由 `extends FormFieldCustomOptions` 获得 extras）；`FieldSchema` / `FieldSchemaInput` / `FieldFactoryInput` 三合一为 `CreateFormFieldOptions`；旧泛型映射 `FormFieldCustomOptions<T>`（原 `FlExtraProps<T>`）改名 `FormFieldCustomTagProps<T>`；`ControlFormless` → `FormControlFormless`；且 `FormFieldVModel*` 放宽为 `string | readonly string[]`（`as const` 数组现在可直接写入 `model` / `prop` / `fl:model` / `fl:prop`）。
-- 类型面只导出「不给名字就用不了」的那些（见 [`design.md`](../design.md) §19）：`FormFieldCustomOptions`（augmentation 锚点，也是 extras 域）/ `CreateFormFieldOptions` / `FormControlFormless` / `FormFieldFormless` + 组件 props 契约；派生类型（`FormFieldFormlessRaw`、`FormFieldFormlessFieldRaw` / `FormFieldFormlessField`、`FormFieldVModelRaw` / `FormFieldVModel`、`FormFieldPropRaw` / `FormFieldProp`、`FormFieldCustomTagProps`、`HostProps`）保持私有，经索引访问可达。
+- **公开 breaking**（0.x）：module augmentation 锚点从 `CreateFormFieldOptions` 改为 **`FormFieldCustomOptions`**（`CreateFormFieldOptions` 仍是工厂入参，但改由 `extends FormFieldCustomOptions` 获得 extras）；`FieldSchema` / `FieldSchemaInput` / `FieldFactoryInput` 三合一为 `CreateFormFieldOptions`；旧泛型映射 `FlExtraProps<T>`（一度 `FormFieldCustomOptions<T>` / `FormFieldCustomTagProps<T>`）定名 **`ToFormlessProps<T>`**；`ControlFormless` → `FormControlFormless`；且 `FormFieldVModel*` 放宽为 `string | readonly string[]`（`as const` 数组现在可直接写入 `model` / `prop` / `fl:model` / `fl:prop`）。
+- 类型面只导出「不给名字就用不了」的那些（见 [`design.md`](../design.md) §19）：`FormFieldCustomOptions`（augmentation 锚点，也是 extras 域）/ `CreateFormFieldOptions` / `FormControlFormless` / `FormFieldFormless` + 组件 props 契约；派生类型（`FormFieldFormlessRaw`、`FormFieldFormlessFieldRaw` / `FormFieldFormlessField`、`FormFieldVModelRaw` / `FormFieldVModel`、`FormFieldPropRaw` / `FormFieldProp`、`ToFormlessProps`、`HostProps`）保持私有，经索引访问可达。
 - `FormFieldExtras` / `FormFieldKernelKeys` 退场——两者从未公开，无公开影响。extras 域由锚点 `FormFieldCustomOptions` 直接承担（§3），`CreateFormFieldOptions` 只留内核键；`field-schema.test.ts` 里原来的 `expectTypeOf<FormFieldExtras>().toEqualTypeOf<{}>()` 改判锚点（未增强时为空）。
 - 快照交接不再靠断言；`field` / `model` / `prop` 的两态边界由 `field-schema.test.ts` 的编译期断言钉住（`'auto'` 只在 Raw 侧；`FormFieldFormlessRaw['model']` ≠ `FormFieldFormless['model']`）。
 - `create-form-fields` / `create-form-view` 的公开签名不变；`NamespacedFields<S>` 的条目类型随锚点改名。

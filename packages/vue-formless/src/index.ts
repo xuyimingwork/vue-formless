@@ -28,7 +28,7 @@ export type { FormFieldComponent, FormFieldSlotProps } from './assembly/create-f
 // augments Vue's `ComponentCustomOptions` (`FormControlFormless`), and the
 // adapter snapshot (`FormFieldFormless`). Their derivations —
 // `FormFieldFormlessRaw`, `FormFieldFormlessField(Raw)`, `FormFieldVModel(Raw)` /
-// `FormFieldProp(Raw)`, `FormFieldCustomTagProps`, `HostProps` — stay private;
+// `FormFieldProp(Raw)`, `ToFormlessProps`, `HostProps` — stay private;
 // the declaration's own members are reachable via indexed access.
 export type {
   CreateFormFieldOptions,

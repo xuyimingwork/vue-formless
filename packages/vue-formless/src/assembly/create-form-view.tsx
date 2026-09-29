@@ -11,7 +11,7 @@ import {
   type MaybeRefOrGetter,
   computed,
 } from 'vue'
-import { createLayoutView } from '@vue-formless/layout'
+import { createLayoutView, type LayoutViewProps } from '@vue-formless/layout'
 import { createFormItem } from './create-form-item'
 import { FORM_FIELD_KEY, FORM_VIEW_KEY, type FormFieldContext } from '../shared/injection-keys'
 import { useFormViewValue } from '../hooks/use-form-view-value'
@@ -81,7 +81,7 @@ export interface FormViewProps {
    * wrap-embed inner LayoutView inherits neither. Other `:layout:*` fall through to the host Row.
    */
   'fl:layout'?: FormViewLayoutProp
-  'layout:column'?: number
+  'layout:column'?: LayoutViewProps['column']
   /**
    * Wrap the factory `form`. Default `'auto'`: on at the root, off when nested.
    * Explicit `true` / `false` win.

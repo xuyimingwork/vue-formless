@@ -1,10 +1,11 @@
 import { describe, expectTypeOf, it } from 'vitest'
 import { defineComponent, type Component } from 'vue'
+import type { LayoutItemPlace, LayoutItemProps, LayoutItemSpan, LayoutViewProps } from '@vue-formless/layout'
 import type {
   ComponentPublicProps,
   FormControlProps,
   FormFieldCustomOptions,
-  FormFieldCustomTagProps,
+  ToFormlessProps,
   FormFieldFormless,
   FormFieldFormlessField,
   FormFieldFormlessFieldRaw,
@@ -26,16 +27,28 @@ describe('CreateFormFieldOptions extras', () => {
       'fl:item'?: boolean
       'fl:field'?: 'auto' | 'embed' | 'wrap-embed'
       'fl:component'?: Component
-      'layout-item:span'?: string | number
-      'layout-item:place'?: 'auto' | 'start' | 'end'
-      'layout:column'?: number
+      'layout-item:span'?: LayoutItemSpan
+      'layout-item:place'?: LayoutItemPlace
+      'layout:disabled'?: boolean
+      'layout:column'?: LayoutViewProps['column']
     }>()
   })
 
   it('prefixes extra keys as optional fl: tag props', () => {
-    expectTypeOf<FormFieldCustomTagProps<{ label?: string; count: number }>>().toEqualTypeOf<{
+    expectTypeOf<ToFormlessProps<{ label?: string; count: number }>>().toEqualTypeOf<{
       'fl:label'?: string
       'fl:count'?: number
+    }>()
+  })
+
+  it('maps a bag onto an arbitrary tag prefix', () => {
+    expectTypeOf<ToFormlessProps<LayoutItemProps, 'layout-item:'>>().toEqualTypeOf<{
+      'layout-item:span'?: LayoutItemSpan
+      'layout-item:place'?: LayoutItemPlace
+    }>()
+    expectTypeOf<ToFormlessProps<LayoutViewProps, 'layout:'>>().toEqualTypeOf<{
+      'layout:disabled'?: boolean
+      'layout:column'?: number
     }>()
   })
 })
