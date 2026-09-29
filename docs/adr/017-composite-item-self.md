@@ -8,6 +8,7 @@
   - 2026-09-01 — 收掉控件 / 格级 boolean `layout`。Col 只跟 FormView `:fl:layout`；第 4 档内层 Row 同此。
   - 2026-09-01 — 第 4 档内层改为控件自挂 `LayoutView`（同一颗 `createLayoutView`）。宽 `:col:span`；内层密度 `:row:*`。
   - 2026-09-03 — 公开 `LayoutItem`；仍不公开 `FormView.Layout`。
+  - 2026-09-29 — 第 133 行提到的 `FormControlProps` 是**历史名**：它指内核字段自己的 props（= 今日 `FormFieldProps`）。今日的 `FormControlProps` 是 control 标签公开 props，词义不同；见 [ADR-022](./022-type-taxonomy.md)。
 - **来源**：[ADR-012](./012-input-item-and-rule-compile.md) / [ADR-013](./013-one-control-multiple-items.md) / [ADR-015](./015-formless-config-groups.md)。013 的「一颗 control、N 格 Item」仍成立；关壳与合并顺序以本文为准。
 
 > **最终状态（2026-09 收束）**：本篇整体被 [ADR-020](./020-form-view-cell-field.md) 废止，其后词表又被 [`design.md`](../design.md) 收束。历史推演保留；当前代码里的对应关系：

@@ -21,16 +21,19 @@ export type { NamespacedFields } from './assembly/create-form-fields'
 export { FormField } from './assembly/create-form-field'
 export type { FormFieldComponent, FormFieldSlotProps } from './assembly/create-form-field'
 
-// --- schema / binding types ------------------------------------------------
-// Only the three a consumer has to name: the module-augmentation target
-// (`FieldSchema`), the control bag that augments it (`ControlFormless`), and
-// the adapter snapshot (`FormFieldFormless`). Their derivations —
-// `FieldSchemaExtras`, `FieldSchemaInput`, `FieldMode`, `ControlProp` /
-// `ControlVModel`, `HostProps`, `FormFieldFormlessRaw` — stay private;
-// `FieldSchema`'s own members are reachable via indexed access.
+// --- declaration / binding types -------------------------------------------
+// The types a consumer has to name: the module-augmentation anchor
+// (`FormFieldCustomOptions`), the factory input it feeds (`CreateFormFieldOptions`),
+// the control bag that augments Vue's `ComponentCustomOptions`
+// (`FormControlFormless`), and the adapter snapshot (`FormFieldFormless`). Their
+// derivations — `FormFieldExtras`, `FormFieldKernelKeys`, `FormFieldFormlessRaw`,
+// `FormFieldFormlessField(Raw)`, `FormFieldVModel(Raw)` / `FormFieldProp(Raw)`,
+// `FormFieldCustomTagProps`, `HostProps` — stay private; the declaration's own
+// members are reachable via indexed access.
 export type {
-  ControlFormless,
-  FieldSchema,
+  CreateFormFieldOptions,
+  FormFieldCustomOptions,
+  FormControlFormless,
   FormFieldFormless,
   FormFieldProps,
 } from './shared/field-schema'

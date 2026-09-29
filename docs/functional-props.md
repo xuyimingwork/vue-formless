@@ -16,7 +16,7 @@ export type HostProps<TFl> =
 
 即**同一配置位既可以写静态对象，也可以写「快照 → 宿主 props」的纯函数**。函数是映射器（mapper）：无副作用、按需重算，把 formless 归一化后的快照投影成某一层宿主组件要的 props。（`layout.props` 与 `form.props` 是例外：二者都没有 snapshot，只能是静态对象，见 §3.1 / §3.2。）
 
-求值口径（`shared/props-overlay.ts` 的 `resolveProps`；`FormField` / `FormItem` 现内联同一逻辑）：
+求值口径（原先 `shared/props-overlay.ts` 的 `resolveProps`，该文件无调用点已删除；`FormField` / `FormItem` 现内联同一逻辑）：
 
 ```ts
 if (spec == null) return {}
@@ -28,7 +28,7 @@ return omitUndefined(spec)
 - 返回值里值为 `undefined` 的键**被剔除**（`omitUndefined`），因此不会经 overlay 覆盖下层。
 - 静态对象同样过一遍 `omitUndefined`。
 
-叠加是**一层浅合并**（`{ ...默认, ...覆盖 }`，后面的层赢）。`props-overlay` 的 `mergeAttrs`（含「`undefined` 不覆盖」口径）与 `resolveProps` 待重构，当前各调用点直接展开各层。
+叠加是**一层浅合并**（`{ ...默认, ...覆盖 }`，后面的层赢）。原先 `props-overlay` 的 `mergeAttrs`（含「`undefined` 不覆盖」口径）与 `resolveProps` 因无调用点已删除，各调用点直接展开各层。
 
 ---
 
@@ -40,14 +40,14 @@ return omitUndefined(spec)
 | 2 | `createFormView({ form: { props } })` | `Record<string, unknown>`（仅静态，**不支持函数**） | —（无 snapshot） | 宿主 Form（ElForm…） | FormView 每次 render |
 | 3 | `createFormView({ item: { props } })` | `HostProps<FormFieldFormless>` | `FormFieldFormless` | 宿主 Item（ElFormItem…） | FormItem 每次 render |
 | 4 | `createFormItem({ props })`（内核私有，被 #3 使用） | `HostProps<FormFieldFormless>` | `FormFieldFormless` | 宿主 Item | FormItem 每次 render |
-| 5 | `createFormFields({ 字段: { props } })`（即 `FieldSchema.props`） | `HostProps<FormFieldFormless>` | `FormFieldFormless` | control（本格输入组件） | `FormFieldCore` 每次 render |
+| 5 | `createFormFields({ 字段: { props } })`（即 `CreateFormFieldOptions.props`） | `HostProps<FormFieldFormless>` | `FormFieldFormless` | control（本格输入组件） | `FormFieldCore` 每次 render |
 | 6 | `FormFieldCore` 的 `preset.props` / `control`（内核私有，由 #5 经工厂壳带入） | `HostProps<FormFieldFormless>` | `FormFieldFormless` | control | `FormFieldCore` 每次 render |
 
 要点：
 
 - #3 与 #4 是同一实现（`createFormView` 内部调 `createFormItem(options.item)`）。
-- #5 与 #6 是同一实现：`FieldSchema.props` 由工厂壳作为 `preset.props` 传给 `FormFieldCore`，由 core 就着自己算出的快照求值。
-- **只有这几处**；其中 `layout.props` / `form.props` 都是静态对象，不是函数位（`layout.props` 没有可投影的快照；写口按 no-prefix 规则以裸名 `modelValue` 落到宿主 Form，也没有快照）。`createLayoutView` 没有 `props` 配置位（它只有 `Row` / `Col` / `column`）；`layout.column` 已退场（密度改在 `layout.props` 里声明）。control 的静态 `formless`（`ControlFormless`）是**对象**，不是函数。
+- #5 与 #6 是同一实现：`CreateFormFieldOptions.props` 由工厂壳作为 `preset.props` 传给 `FormFieldCore`，由 core 就着自己算出的快照求值。
+- **只有这几处**；其中 `layout.props` / `form.props` 都是静态对象，不是函数位（`layout.props` 没有可投影的快照；写口按 no-prefix 规则以裸名 `modelValue` 落到宿主 Form，也没有快照）。`createLayoutView` 没有 `props` 配置位（它只有 `Row` / `Col` / `column`）；`layout.column` 已退场（密度改在 `layout.props` 里声明）。control 的静态 `formless`（`FormControlFormless`）是**对象**，不是函数。
 
 ---
 
@@ -74,13 +74,13 @@ createFormView({ layout: { Row, Col, props: { column: 2, gutter: 16 } } })
 **归一化后的每格快照**：内核 wiring + extras。
 
 ```ts
-export interface FormFieldFormless extends FieldSchemaExtras {
+export interface FormFieldFormless extends FormFieldExtras {
   /** 本格 v-model 口，下标与 prop 对齐；非字符串口留 undefined 占位 */
-  model: (string | undefined)[]
+  model: FormFieldVModel
   /** 本格位置，下标与 model 对齐；没有任何一层绑定时整体为 undefined */
-  prop: (string | undefined)[] | undefined
+  prop: FormFieldProp | undefined
   /** 组装位置（§8）；'auto' 已被解掉，只会是这三种之一 */
-  field: 'wrap' | 'embed' | 'wrap-embed'
+  field: FormFieldFormlessField
   /** 宿主 Item 壳开关（§9）：页默认 ← 格值，裸 attr 算 true，恒为布尔 */
   item: boolean
   /** extras：adapter 经 module augmentation 声明的键，如 label / validation */
@@ -91,7 +91,7 @@ export interface FormFieldFormless extends FieldSchemaExtras {
 - `model` / `prop` 是**本格合并结果的归一化数组**（`schema` 预设 ← 标签 `fl:*`，标签近的赢）。
 - `prop` 数量不超过 `model`；多口一格在宿主 Item `prop` 装不下时，适配层自己决定不绑（`undefined`）。
 - `item` 把「页级 `:fl:item` 默认 + 格上 `fl:item`」解成一个布尔，无论谁读快照都拿到同一个值（下方「归一化的边界」）。
-- extras 由 `FieldSchema` 经 `declare module 'vue-formless'` 增强进来（`label` 等），所以快照里 `fl.label` 可用，标签上 `:fl:label` 也自动可用。
+- extras 由 `FormFieldCustomOptions` 经 `declare module 'vue-formless'` 增强进来（`label` 等），`CreateFormFieldOptions extends FormFieldCustomOptions` 把它并进工厂入参的形状，所以快照里 `fl.label` 可用，标签上 `:fl:label` 也自动可用。
 
 > `FormFieldFormlessRaw` 是**未归一化**的 `fl` 袋（声明形态），不是这里的函数形参；它是 `FormField` / `FormItem` 的 `fl` prop 与 `FormFieldCore.preset.fl` 的输入。
 
@@ -206,7 +206,7 @@ createFormView({
 
 `createFormView` 内部用它组装 Item；与 #4.3 完全同型。`CreateFormItemOptions` 只有 `component` / `props` 两项——页级 `fl:item` 默认不在这一层，由 `FormFieldCore` 从 `FORM_FIELD_KEY.fl`（下行的页 `fl`，只有 `item`）取页默认后合并（§3.3）。
 
-### 4.5 `createFormFields` / `FieldSchema.props` → control
+### 4.5 `createFormFields` / `CreateFormFieldOptions.props` → control
 
 ```ts
 const User = createFormFields({
@@ -258,7 +258,7 @@ props: {
 | 快照来源 | `FormFieldFormless` 由 `FormFieldCore` 合并 `preset.fl` 与标签 `fl` 后现算（`model` / `prop` / `field` 均为 computed，懒读）；`layout.props` / `form.props` 无 snapshot |
 | 快照形态 | `FormFieldFormless` 的 `model` / `prop` / `field` / `item` 是归一化的（这四者在类型里显式声明）；其余键（`component` / 内核不读的 `props` / extras）逐字透传，只经索引签名可达。`fl.item` 的页默认来源是 `FORM_FIELD_KEY.fl`——只装 `FormField` 会读的部分（`{ item?: boolean }`）（§3.3） |
 | 返回值 | `Record<string, unknown> | undefined`；`undefined` 键被剔除，不参与覆盖 |
-| overlay | 一层浅合并（`{ ...默认, ...覆盖 }`，后面的层赢）；`props-overlay` 的 `mergeAttrs` / `resolveProps` 待重构，当前 FormView / FormField / FormItem 都直接展开各层 |
+| overlay | 一层浅合并（`{ ...默认, ...覆盖 }`，后面的层赢）；原先 `props-overlay` 的 `mergeAttrs` / `resolveProps` 因无调用点已删除，当前 FormView / FormField / FormItem 都直接展开各层 |
 | 语义源 vs 机械覆盖 | `fl:*` 是语义源（改它触发派生重算），`item:` / `layout-item:` / `layout:` / 裸名是机械值（直接落地）；二者共存是 source vs override，不是冲突 |
 | 惰性输入 | `FormViewContext.access` 的 `access(prop)` 与 `FormFieldContext.fl` 接受 `MaybeRefOrGetter`（getter/ref/值），这是**惰性输入**而非「函数式 props」，不要与 `HostProps` 混淆 |
 
@@ -271,7 +271,7 @@ import { ElCol, ElForm, ElFormItem, ElInput, ElRow } from 'element-plus'
 import { createFormFields, createFormView, type FormFieldFormless } from 'vue-formless'
 
 declare module 'vue-formless' {
-  interface FieldSchema {
+  interface FormFieldCustomOptions {
     label?: string
   }
 }
@@ -327,7 +327,7 @@ type HostProps<T> = Record<string, unknown> | ((fl: T) => Record<string, unknown
 | `createFormView.form.props` | 静态对象（无 snapshot；不支持函数） |
 | `createFormView.item.props` | `(fl: FormFieldFormless) => props` |
 | `createFormItem.props`（私有） | `(fl: FormFieldFormless) => props` |
-| `FieldSchema.props` / `createFormFields({ x: { props } })` | `(fl: FormFieldFormless) => props` |
+| `CreateFormFieldOptions.props` / `createFormFields({ x: { props } })` | `(fl: FormFieldFormless) => props` |
 | `FormFieldCore.preset.props` / `control`（私有） | `(fl: FormFieldFormless) => props` |
 
 两条口径提醒：

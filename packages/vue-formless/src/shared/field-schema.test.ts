@@ -2,24 +2,26 @@ import { describe, expectTypeOf, it } from 'vitest'
 import { defineComponent, type Component } from 'vue'
 import type {
   ComponentPublicProps,
-  ControlProp,
-  ControlTagProps,
-  ControlVModel,
-  FieldMode,
-  FieldSchemaExtras,
-  FlExtraProps,
+  FormControlProps,
+  FormFieldCustomTagProps,
+  FormFieldExtras,
   FormFieldFormless,
+  FormFieldFormlessField,
+  FormFieldFormlessFieldRaw,
   FormFieldFormlessRaw,
   FormFieldProps,
+  FormFieldPropRaw,
+  FormFieldVModel,
+  FormFieldVModelRaw,
   LockedVModelKeys,
 } from './field-schema'
 
-describe('FieldSchema extras', () => {
+describe('CreateFormFieldOptions extras', () => {
   it('kernel FormFieldProps are only the fl / layout keys', () => {
-    expectTypeOf<FieldSchemaExtras>().toEqualTypeOf<{}>()
+    expectTypeOf<FormFieldExtras>().toEqualTypeOf<{}>()
     expectTypeOf<FormFieldProps>().toEqualTypeOf<{
-      'fl:prop'?: string | string[]
-      'fl:model'?: string | string[]
+      'fl:prop'?: string | readonly string[]
+      'fl:model'?: string | readonly string[]
       'fl:item'?: boolean
       'fl:field'?: 'auto' | 'embed' | 'wrap-embed'
       'fl:component'?: Component
@@ -30,13 +32,36 @@ describe('FieldSchema extras', () => {
   })
 
   it('prefixes extra keys as optional fl: tag props', () => {
-    expectTypeOf<FlExtraProps<{ label?: string; count: number }>>().toEqualTypeOf<{
+    expectTypeOf<FormFieldCustomTagProps<{ label?: string; count: number }>>().toEqualTypeOf<{
       'fl:label'?: string
       'fl:count'?: number
     }>()
   })
+})
 
-  it('FormFieldFormless is the normalized snapshot: aligned model / prop + resolved field', () => {
+describe('two-state pairs (declared vs normalized)', () => {
+  it('`field` loses `auto` once assembled', () => {
+    expectTypeOf<Extract<FormFieldFormlessFieldRaw, 'auto'>>().toEqualTypeOf<'auto'>()
+    expectTypeOf<Extract<FormFieldFormlessField, 'auto'>>().toEqualTypeOf<never>()
+    expectTypeOf<FormFieldFormlessRaw['field']>().toEqualTypeOf<FormFieldFormlessFieldRaw | undefined>()
+    expectTypeOf<FormFieldFormless['field']>().toEqualTypeOf<FormFieldFormlessField>()
+  })
+
+  it('`model` / `prop` become aligned arrays once normalized', () => {
+    expectTypeOf<FormFieldFormlessRaw['model']>().toEqualTypeOf<FormFieldVModelRaw | undefined>()
+    expectTypeOf<FormFieldFormlessRaw['prop']>().toEqualTypeOf<FormFieldPropRaw | undefined>()
+    expectTypeOf<FormFieldFormless['model']>().toEqualTypeOf<FormFieldVModel>()
+    expectTypeOf<FormFieldFormless['prop']>().toEqualTypeOf<FormFieldVModel | undefined>()
+  })
+
+  it('`item` has no second state: the declaration already says boolean', () => {
+    expectTypeOf<FormFieldFormlessRaw['item']>().toEqualTypeOf<boolean | undefined>()
+    expectTypeOf<FormFieldFormless['item']>().toEqualTypeOf<boolean>()
+  })
+})
+
+describe('FormFieldFormless snapshot', () => {
+  it('is the normalized snapshot: aligned model / prop + resolved field', () => {
     expectTypeOf<FormFieldFormless['model']>().toEqualTypeOf<(string | undefined)[]>()
     expectTypeOf<FormFieldFormless['prop']>().toEqualTypeOf<(string | undefined)[] | undefined>()
     expectTypeOf<FormFieldFormless['field']>().toEqualTypeOf<'wrap' | 'embed' | 'wrap-embed'>()
@@ -47,11 +72,14 @@ describe('FieldSchema extras', () => {
   })
 
   it('FormFieldFormlessRaw keeps the declared shape optional and stays open', () => {
-    expectTypeOf<FieldMode>().toEqualTypeOf<'auto' | 'embed' | 'wrap-embed'>()
-    expectTypeOf<FormFieldFormlessRaw['model']>().toEqualTypeOf<ControlVModel | undefined>()
-    expectTypeOf<FormFieldFormlessRaw['prop']>().toEqualTypeOf<ControlProp | undefined>()
-    expectTypeOf<FormFieldFormlessRaw['field']>().toEqualTypeOf<FieldMode | undefined>()
-    expectTypeOf<FormFieldFormlessRaw['component']>().toEqualTypeOf<Component | undefined>()
+    expectTypeOf<FormFieldFormlessRaw['model']>().toEqualTypeOf<FormFieldVModelRaw | undefined>()
+    expectTypeOf<FormFieldFormlessRaw['prop']>().toEqualTypeOf<FormFieldPropRaw | undefined>()
+    expectTypeOf<FormFieldFormlessRaw['field']>().toEqualTypeOf<FormFieldFormlessFieldRaw | undefined>()
+    // `component` stays loose on the declaration so a field table can pass any
+    // control and let the tag infer its public props.
+    expectTypeOf<FormFieldFormlessRaw['component']>().toEqualTypeOf<unknown>()
+    // `name` is factory-only and never enters the bag.
+    expectTypeOf<FormFieldFormlessRaw>().not.toHaveProperty('name')
     // A raw bag carries keys the kernel never reads (schema preset ⊕ tag attrs).
     expectTypeOf<FormFieldFormlessRaw['whatever']>().toEqualTypeOf<unknown>()
   })
@@ -100,7 +128,7 @@ describe('ComponentPublicProps', () => {
   })
 })
 
-describe('ControlTagProps', () => {
+describe('FormControlProps', () => {
   const Control = defineComponent({
     props: {
       placeholder: { type: String, default: '' },
@@ -111,7 +139,7 @@ describe('ControlTagProps', () => {
   })
 
   it('keeps control props and strips the default v-model port', () => {
-    type Props = ControlTagProps<{ component: typeof Control }>
+    type Props = FormControlProps<{ component: typeof Control }>
     expectTypeOf<Props>().toHaveProperty('placeholder')
     expectTypeOf<Props>().toHaveProperty('rows')
     expectTypeOf<Props>().not.toHaveProperty('modelValue')
@@ -127,7 +155,7 @@ describe('ControlTagProps', () => {
       },
       setup: () => () => null,
     })
-    type Props = ControlTagProps<{
+    type Props = FormControlProps<{
       component: typeof Range
       model: ['start', 'end']
     }>
@@ -137,6 +165,6 @@ describe('ControlTagProps', () => {
   })
 
   it('is empty when component is omitted', () => {
-    expectTypeOf<ControlTagProps<{ label: string }>>().toEqualTypeOf<{}>()
+    expectTypeOf<FormControlProps<{ label: string }>>().toEqualTypeOf<{}>()
   })
 })

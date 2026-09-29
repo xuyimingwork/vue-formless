@@ -1,4 +1,5 @@
 import type { Component, ComputedRef, InjectionKey, MaybeRefOrGetter } from 'vue'
+import type { FormItemComponent } from '../assembly/create-form-item'
 
 /**
  * `FORM_VIEW_KEY`：只供嵌套 FormView 继承（读/写源 + nested 判定）。
@@ -36,7 +37,7 @@ export interface FormFieldContext {
    */
   access(prop?: MaybeRefOrGetter<string>): { value: ComputedRef, update: (v: unknown) => void }
   /** 组装好的宿主 Item（由 FormView 提供，FormField 身份根透传）。 */
-  FormItem?: Component
+  FormItem?: FormItemComponent
   /** 工厂绑定的 LayoutView（wrap-embed 内层窗口；由 FormView 提供，透传）。 */
   LayoutView?: Component
   /**
@@ -52,7 +53,7 @@ export interface FormFieldContext {
    *
    * 值是**原始 attrs 形态**（裸 `fl:item` 是 `''`），由 FormFieldCore 与格值一起交给
    * `getAttrBoolean` 归一。类型按项目既有契约写成 `boolean`（同 `FormViewProps['fl:item']` /
-   * `FieldSchema.item` / `FormFieldProps['fl:item']`）；全可选的形状也让 provider 侧无需窄化。
+   * `CreateFormFieldOptions.item` / `FormFieldProps['fl:item']`）；全可选的形状也让 provider 侧无需窄化。
    */
   fl?: MaybeRefOrGetter<{ item?: boolean }>
 }

@@ -10,6 +10,7 @@
   - 2026-09-28 — `form.props` 收敛为**静态对象**：FormView 写口 `modelValue` 不再是声明 prop，按 no-prefix 规则以裸名落到宿主 Form，故 `form.props` 无 snapshot、不再接受函数（`FormFl` 删除）；宿主口名不同（ElForm `model`）时由适配层 `MyForm` 映射。`fl:form` 的 `'auto'` 改由独立解析（`resolveFormShell`）。§1 的 `form.props: (fl) => …` 写法作废。
   - 2026-09-28（补）— `layout.props` 收敛为**静态对象**：去掉函数形态（`LayoutFl` 快照删除），密度默认值直接写对象，标签 `:layout:*` 仍 overlay 其上。§1 的「一层里二选一 / 密度写 `layout.props`」函数写法作废。
   - 2026-09-28（补）— field control 的最终 props 改由 Vue `mergeProps` 合成：外部两层（模板裸名 > `schema.props`）仍「覆盖」，同名监听近的赢；`bind` 拆成 `events` / `values` 两半，`mergeProps(events, 外部层, values)` 里**写口监听先跑、外部监听追加其后**（不再整键盖掉），`values` 的**数据键覆盖**同名外部键。§2 的「`$bindings` 覆盖同名裸名」按此收窄。
+  - 2026-09-29 — 类型名收敛（[ADR-022](./022-type-taxonomy.md)）：extras 的增强锚点 `FieldSchema` / `CreateFormFieldOptions` → **`FormFieldCustomOptions`**（`CreateFormFieldOptions extends FormFieldCustomOptions`，`FormFieldFormless` / `FormFieldProps` 仍从它经 `extends` 推导）；`FieldMode` → 两态 `FormFieldFormlessFieldRaw` / `FormFieldFormlessField`。另：`props-overlay.ts` 因本文 §2 描述的 `resolveProps` / `mergeAttrs` 已无调用点而删除，各调用点改为就地在 FormFieldCore / FormItem 内展开。
 - **来源**：[ADR-012](./012-input-item-and-rule-compile.md) / [ADR-015](./015-formless-config-groups.md)。本文钉 **转化与覆盖**：`fl` 如何变成 Form / Item / Input 的 props，以及谁赢。
 
 ## 背景

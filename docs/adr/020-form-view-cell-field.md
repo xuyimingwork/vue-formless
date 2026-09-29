@@ -6,6 +6,7 @@
   - 2026-09-10 — 词表重写：`FormCell` → `FormItem`（名字 = 主宿主，`cell` 让给 `LayoutCell`）；`cell` 三态改 `fl:tree`；`useFormCell(port)` 退场改 `fl:model`；通道前缀 = 目标组件。见 [ADR-021](./021-channel-prefix-and-form-item.md)。
   - 2026-09-14 — §1 词表里的 `controlKey → fieldKey` **再作废**：内核不发身份名（改 `fieldIdentityKey` / `fl:key` / `ItemFl.fieldKey` 均已删，见 [ADR-011](./011-model-and-path.md) 修订）；宿主 `Item.prop` 由适配层自行编码，多口一格不绑宿主。
   - 2026-09-24 — 词表被 [`docs/design.md`](../design.md) **再收束**：`FormCell`（内核格）→ `FormField`；`LayoutCell` → `LayoutItem`；`cell` 三态 → `fl:field`；`:col:*` → `layout-item:*`、`:row:*` → `layout:*`；`useFormCell` → `fl:model`。见下「最终状态」。
+  - 2026-09-29 — **类型名收敛**（[ADR-022](./022-type-taxonomy.md)）：本文 §1 改名表里的 `ControlSchema → FieldSchema` 两跳都作废——该锚点此后由 `FieldSchema` 再收为 **`CreateFormFieldOptions`**；「`FormControl` 一词退场」只针对**组合件**这个角色，与今日作为**类型 scope 前缀**（`FormControlFormless` / `FormControlProps` / `FormControlVModel` 等，指被 FormField 渲染/包含的输入组件）的 `FormControl` 不是一回事。§5 提到的 `FieldSchemaInput` / `FieldFactoryInput` 已并入 `CreateFormFieldOptions`；同段列为「纯函数保留」的 `props-overlay`（`mergeAttrs` / `resolveProps`）因无调用点已删除。
 - **来源**：layout 抽离之后 formless 结构对照；相对 [009](./009-controls-as-protagonist.md) / [012](./012-input-item-and-rule-compile.md) / [013](./013-one-control-multiple-items.md) / [017](./017-composite-item-self.md) 的词表与壳模型重写。
 - **废止**：[017](./017-composite-item-self.md)（`item: 'self'`、`wrapCol` / `extraRow`、四档壳表）。013「一颗身份、N 格」仍成立，组装改由本文 `cell` 三态表达。
 - **库尚未发 1.0**：词汇准确优先于兼容；允许整表更名。

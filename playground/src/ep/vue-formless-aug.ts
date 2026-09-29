@@ -1,5 +1,5 @@
 declare module 'vue-formless' {
-  interface FieldSchema {
+  interface FormFieldCustomOptions {
     label?: string
   }
 }

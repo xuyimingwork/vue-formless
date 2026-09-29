@@ -16,11 +16,8 @@ import { createFormItem } from './create-form-item'
 import { FORM_FIELD_KEY, FORM_VIEW_KEY, type FormFieldContext } from '../shared/injection-keys'
 import { useFormViewValue } from '../hooks/use-form-view-value'
 import type { FormFieldFormless, HostProps } from '../shared/field-schema'
-import { getAttrBoolean } from '../shared/utils'
+import { getAttrBoolean, type JsxHost } from '../shared/utils'
 import { VIEW_ATTR_CHANNELS, useDispatch } from '../hooks/use-dispatch'
-
-/** `Component` is a union; JSX needs a constructable host. */
-type JsxHost = new () => { $props: Record<string, unknown> }
 
 export interface FormViewLayoutBind {
   Row: Component
@@ -65,9 +62,9 @@ export interface CreateFormViewOptions {
 }
 
 /** FormView `:fl:layout` is a boolean switch. Density is factory `layout.props` / `:layout:*`. */
-export type FormLayoutProp = boolean
+export type FormViewLayoutProp = boolean
 
-export type FormFormProp = boolean | 'auto'
+export type FormViewFormProp = boolean | 'auto'
 
 export interface FormViewProps {
   /**
@@ -83,13 +80,13 @@ export interface FormViewProps {
    * Density: factory `layout.props` plus `:layout:*` for **this** page LayoutView only.
    * wrap-embed inner LayoutView inherits neither. Other `:layout:*` fall through to the host Row.
    */
-  'fl:layout'?: FormLayoutProp
+  'fl:layout'?: FormViewLayoutProp
   'layout:column'?: number
   /**
    * Wrap the factory `form`. Default `'auto'`: on at the root, off when nested.
    * Explicit `true` / `false` win.
    */
-  'fl:form'?: FormFormProp
+  'fl:form'?: FormViewFormProp
   /** Wrap the factory `item` per field (default `true` when `item.component` is bound). */
   'fl:item'?: boolean
 }
@@ -132,7 +129,7 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
   // 表单组件
   const Form = options.form?.component ? markRaw(options.form.component) : undefined
   // 表单项组件
-  const FormItem: any = createFormItem(options.item)
+  const FormItem = createFormItem(options.item)
 
   return defineComponent({
     name: 'FormView',

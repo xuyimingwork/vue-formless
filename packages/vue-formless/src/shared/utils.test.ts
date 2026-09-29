@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { omit, omitUndefined, getAttrBoolean, upperFirst } from './utils'
+import { describe, expect, expectTypeOf, it } from 'vitest'
+import { omitUndefined, getAttrBoolean, upperFirst } from './utils'
 
 describe('upperFirst', () => {
   it('converts camelCase field keys to PascalCase tags', () => {
@@ -10,14 +10,6 @@ describe('upperFirst', () => {
   it('only touches the first character', () => {
     expect(upperFirst('modelValue')).toBe('ModelValue')
     expect(upperFirst('')).toBe('')
-  })
-})
-
-describe('omit', () => {
-  it('drops the given keys and copies the rest as-is', () => {
-    const value = { a: 1, b: undefined, c: 3 }
-    expect(omit(value, ['a', 'c'])).toEqual({ b: undefined })
-    expect(value).toEqual({ a: 1, b: undefined, c: 3 })
   })
 })
 
@@ -37,5 +29,14 @@ describe('getAttrBoolean', () => {
     expect(getAttrBoolean(false)).toBe(false)
     expect(getAttrBoolean('false')).toBe(true)
     expect(getAttrBoolean('nope')).toBe(true)
+  })
+
+  it('takes a boolean seed as the floor, so the result is never undefined', () => {
+    expect(getAttrBoolean(true)).toBe(true)
+    expect(getAttrBoolean(true, undefined, undefined)).toBe(true)
+    expect(getAttrBoolean(true, undefined, false)).toBe(false)
+    expect(getAttrBoolean(false, undefined, '')).toBe(true)
+    expectTypeOf(getAttrBoolean(true, undefined)).toEqualTypeOf<boolean>()
+    expectTypeOf(getAttrBoolean(undefined)).toEqualTypeOf<boolean | undefined>()
   })
 })

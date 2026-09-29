@@ -58,7 +58,7 @@ describe('resolveFormItemProp', () => {
   })
 })
 
-describe('FieldSchema extras inference', () => {
+describe('CreateFormFieldOptions extras inference', () => {
   it('lifts label onto FormFieldFormless and fl: tag props', () => {
     expectTypeOf<FormFieldFormless>().toHaveProperty('label')
     expectTypeOf<FormFieldFormless['label']>().toEqualTypeOf<string | undefined>()

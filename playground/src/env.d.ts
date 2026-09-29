@@ -10,6 +10,6 @@ declare module '*.vue' {
 
 declare module 'vue' {
   interface ComponentCustomOptions {
-    formless?: import('vue-formless').ControlFormless
+    formless?: import('vue-formless').FormControlFormless
   }
 }

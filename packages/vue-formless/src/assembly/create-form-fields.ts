@@ -1,5 +1,5 @@
 import { upperFirst, type UpperFirst } from '../shared/utils'
-import { type FieldSchemaInput, type ControlTagProps } from '../shared/field-schema'
+import { type CreateFormFieldOptions, type FormControlProps } from '../shared/field-schema'
 import { createFormField, type FormFieldComponent } from './create-form-field'
 
 /**
@@ -8,14 +8,14 @@ import { createFormField, type FormFieldComponent } from './create-form-field'
  * Tag props are `fl:*` plus the control's public props (v-model ports locked).
  */
 export type NamespacedFields<S> = {
-  [K in keyof S & string as UpperFirst<K>]: FormFieldComponent<ControlTagProps<S[K]>>
+  [K in keyof S & string as UpperFirst<K>]: FormFieldComponent<FormControlProps<S[K]>>
 }
 
 /**
  * Build a static namespaced field table (design.md §11).
  * Schema keys are camelCase field names → `<User.TimeRange />`.
  */
-export function createFormFields<const S extends { [K in keyof S]: FieldSchemaInput }>(
+export function createFormFields<const S extends { [K in keyof S]: CreateFormFieldOptions }>(
   schema: S,
 ): NamespacedFields<S> {
   const result = {} as NamespacedFields<S>

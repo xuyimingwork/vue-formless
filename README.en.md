@@ -29,7 +29,7 @@ import { defineComponent, h, ref, type PropType } from 'vue'
 import { createFormFields, createFormView, type FormFieldFormless } from 'vue-formless'
 
 declare module 'vue-formless' {
-  interface FieldSchema {
+  interface FormFieldCustomOptions {
     label?: string
   }
 }

@@ -5,19 +5,29 @@ export type HostProps<TFl> =
   | Record<string, unknown>
   | ((fl: TFl) => Record<string, unknown> | undefined)
 
+// --- binding domains: declared vs normalized -------------------------------
+
 /**
  * Field binding (design.md §7.1):
  * - `model` — v-model names on the control (identity). Default `'modelValue'`.
- * - `prop`  — location(s) from FormView root (`name`, `buyers[0].name`). Default: the schema key.
+ * - `prop`  — location(s) from FormView root (`name`, `buyers[0].name`).
+ *
  * `prop` array pairs with `model` (prefix-aligned). Extra model ports are unbound.
  */
-export type ControlVModel = string | readonly string[]
-export type ControlProp = string | readonly string[]
+export type FormFieldVModelRaw = string | readonly string[]
+export type FormFieldPropRaw = string | readonly string[]
+
+/**
+ * The **normalized** binding arrays. A port that is not a string stays as an
+ * `undefined` placeholder so the `model[i] ↔ prop[i]` alignment survives.
+ */
+export type FormFieldVModel = (string | undefined)[]
+export type FormFieldProp = (string | undefined)[]
 
 /** Static `formless` bag a control may declare on `ComponentCustomOptions`. */
-export interface ControlFormless {
+export interface FormControlFormless {
   /** v-model ports on the control (design.md §7.1). */
-  model?: string | string[]
+  model?: FormFieldVModelRaw
   /**
    * Composite marker (design.md §8): "my inner `<FormField>`s need an inner
    * LayoutView whenever this field is boxed". Only `'embed'` is meaningful —
@@ -29,49 +39,70 @@ export interface ControlFormless {
 
 declare module 'vue' {
   interface ComponentCustomOptions {
-    formless?: ControlFormless
+    formless?: FormControlFormless
   }
 }
 
-/**
- * `field` assembly placement (design.md §8) — the three **writable** values.
- * Omit = `'auto'`: defer to the control's static `formless.field`. A leaf
- * resolves to `'wrap'`, but that value is never writable (see `FormFieldFormless`).
- */
-export type FieldMode = 'auto' | 'embed' | 'wrap-embed'
+// --- `field` assembly placement (design.md §8) -----------------------------
 
-/** Kernel-owned FieldSchema keys. Not extras; tags already have matching `fl:*` where allowed. */
-export type FieldSchemaKernelKey =
+/**
+ * The **written** placement — the three writable values. Omit = `'auto'`: defer
+ * to the control's static `formless.field`. A leaf resolves to `'wrap'`, but
+ * that value is never writable.
+ */
+export type FormFieldFormlessFieldRaw = 'auto' | 'embed' | 'wrap-embed'
+
+/** The **assembled** placement. `'auto'` is resolved away, never sent. */
+export type FormFieldFormlessField = 'wrap' | 'embed' | 'wrap-embed'
+
+// --- the field declaration -------------------------------------------------
+
+/** Kernel-owned keys. Not extras; each has a matching `fl:*` where allowed, except `name`. */
+export type FormFieldKernelKeys =
   | 'component'
   | 'props'
   | 'model'
   | 'prop'
   | 'item'
   | 'field'
+  | 'name'
 
 /**
- * Field identity. Adapter extras (e.g. `label`) via `declare module 'vue-formless'`.
- * Extra keys become `FormFieldFormless` keys and optional `fl:*` tag props.
+ * The single module-augmentation anchor for field extras (design.md §18).
+ * Mirrors Vue's `ComponentCustomOptions`: declare `label` / `validation` here,
+ * and the kernel lifts them into `CreateFormFieldOptions`, the
+ * `FormFieldFormless` snapshot, and the `fl:*` tag props.
  */
-export interface FieldSchema {
+export interface FormFieldCustomOptions {}
+
+/**
+ * One field's declaration: the input of `createFormField` / each entry of
+ * `createFormFields` (design.md §11). It extends the augmentable
+ * `FormFieldCustomOptions`, so a consumer's `label` / `validation` joins the
+ * same shape and flows into `FormFieldExtras`.
+ *
+ * `component` stays `unknown` on purpose: a field table can pass any control
+ * and let the tag infer that control's public props.
+ */
+export interface CreateFormFieldOptions extends FormFieldCustomOptions {
   /**
    * The control only (no host Item). Receives v-model bindings from formless.
    * A control may also declare static `formless: { model, item, field }`.
    */
-  component?: Component
+  component?: unknown
   /** Control defaults: static object, or derived from the field snapshot. */
   props?: HostProps<FormFieldFormless>
   /**
    * v-model names on the control (design.md §7.1). Default `'modelValue'`.
    * Locked with the component; tag cannot override. Prefer control `formless.model`.
    */
-  model?: ControlVModel
+  model?: FormFieldVModelRaw
   /**
    * Location(s) from FormView root (design.md §7.1). Default: field key.
    * Overridable via `:fl:prop`. Empty string is illegal.
    * Nested: `buyers[0].name`, `` `buyers[${$index}].name` ``.
    */
-  prop?: ControlProp
+  prop?: FormFieldPropRaw
   /**
    * Host Item shell for this field: FormView default, then this, then tag `:fl:item`.
    * Boolean only (design.md §9). Not “skip FormField”.
@@ -82,41 +113,26 @@ export interface FieldSchema {
    * Schema and tag merge by nearest-wins; the control is **not** a merge layer —
    * its static `formless.field` is read at render and folded in (`auto`).
    */
-  field?: FieldMode
-}
-
-/** Adapter fields on FieldSchema (everything except kernel keys). */
-export type FieldSchemaExtras = Omit<FieldSchema, FieldSchemaKernelKey>
-
-/**
- * FieldSchema widened for owner-supplied controls: `component` stays loose so a
- * field table can pass any control and let the tag infer its public props.
- */
-export type FieldSchemaInput = Omit<FieldSchema, 'component'> & {
-  component?: unknown
-}
-
-/** One field-table entry: the schema plus an optional debug-only tag name. */
-export type FieldFactoryInput = FieldSchemaInput & {
-  /** Debug-only component name; omit when the schema always declares `prop`. */
+  field?: FormFieldFormlessFieldRaw
+  /** Debug-only component name; `createFormFields` injects the table key. */
   name?: string
 }
 
-/** Tag attrs: `label?: string` → `'fl:label'?: string`. Always optional (override, not required). */
-export type FlExtraProps<T> = {
-  [K in keyof T as K extends string ? `fl:${K}` : never]+?: T[K]
-}
+/** Adapter fields on the declaration (everything except kernel keys). */
+export type FormFieldExtras = Omit<CreateFormFieldOptions, FormFieldKernelKeys>
 
 /**
  * The **raw** formless bag of one field: its `fl` values as declared, before
- * `model` / `prop` / `field` are normalized. Same key space as `FieldSchema`
+ * `model` / `prop` / `field` are normalized. Same key space as the declaration
  * (kernel keys + adapter extras), plus an index signature — a schema preset or a
  * tag may carry keys the kernel never reads.
+ *
+ * `name` is factory-only and never enters the bag, so it is omitted here.
  *
  * This is what `FormField`'s / `FormItem`'s `fl` prop and `FormFieldCore`'s
  * `preset.fl` carry; `FormFieldCore` turns it into `FormFieldFormless`.
  */
-export interface FormFieldFormlessRaw extends FieldSchema {
+export interface FormFieldFormlessRaw extends Omit<CreateFormFieldOptions, 'name'> {
   [extra: string]: unknown
 }
 
@@ -125,9 +141,9 @@ export interface FormFieldFormlessRaw extends FieldSchema {
  * `item.props` / field `props` functions receive, and what `FormField` hands
  * down to its host `FormItem`. Not passed as a host component prop.
  *
- * Adapters declare their extras once, on `FieldSchema` (module augmentation,
- * design.md §18); `extends FieldSchemaExtras` pulls them in, so a declared
- * `label` is `fl.label` in the snapshot **and** `:fl:label` on the tag.
+ * Adapters declare their extras once, on `FormFieldCustomOptions` (module
+ * augmentation, design.md §18); `extends FormFieldExtras` pulls them in, so a
+ * declared `label` is `fl.label` in the snapshot **and** `:fl:label` on the tag.
  *
  * `model` / `prop` are this field's **normalized** binding arrays — index-aligned
  * (`model[i] ↔ prop[i]`), never empty and `prop` no longer than `model`. The
@@ -138,16 +154,13 @@ export interface FormFieldFormlessRaw extends FieldSchema {
  * `field` / `item`. Every other key (a raw `component`, an unread `props`, the
  * adapter's extras) rides through verbatim and stays under the index signature.
  */
-export interface FormFieldFormless extends FieldSchemaExtras {
-  /**
-   * This field's v-model ports, index-aligned with `prop`. A port that is not a
-   * string stays as an `undefined` placeholder so the alignment survives.
-   */
-  model: (string | undefined)[]
+export interface FormFieldFormless extends FormFieldExtras {
+  /** This field's v-model ports, index-aligned with `prop`. */
+  model: FormFieldVModel
   /** This field's locations, index-aligned with `model`; `undefined` when nothing bound them. */
-  prop: (string | undefined)[] | undefined
+  prop: FormFieldProp | undefined
   /** Assembled placement (design.md §8). `'auto'` is resolved away, never sent. */
-  field: 'wrap' | 'embed' | 'wrap-embed'
+  field: FormFieldFormlessField
   /**
    * Host Item shell switch (design.md §9): the nearest FormView's page `fl:item`
    * default ← this cell's `fl:item`, near wins; a bare attr (`''`) counts as
@@ -160,6 +173,13 @@ export interface FormFieldFormless extends FieldSchemaExtras {
   [extra: string]: unknown
 }
 
+// --- tag props -------------------------------------------------------------
+
+/** Extras bag → its optional `fl:*` tag props (`label` → `'fl:label'`). Always optional (override, not required). */
+export type FormFieldCustomTagProps<T> = {
+  [K in keyof T as K extends string ? `fl:${K}` : never]+?: T[K]
+}
+
 /**
  * Public props of `<FormField>` / `<User.Xxx />`. Kernel `fl:` / `item:` /
  * `layout:` / `layout-item:` keys on `<FormField>` / `<User.Xxx />`.
@@ -168,20 +188,21 @@ export interface FormFieldFormless extends FieldSchemaExtras {
  * `layout:column` is formless density; other `layout:*` (e.g. gutter) stay attrs and fall through to LayoutView → Row.
  */
 export type FormFieldProps = {
-  'fl:prop'?: string | string[]
-  'fl:model'?: string | string[]
+  'fl:prop'?: FormFieldPropRaw
+  'fl:model'?: FormFieldVModelRaw
   'fl:item'?: boolean
-  'fl:field'?: FieldMode
+  'fl:field'?: FormFieldFormlessFieldRaw
   /** Ad-hoc control (page `<FormField>`): the component to render + bind. */
   'fl:component'?: Component
   'layout-item:span'?: string | number
   'layout-item:place'?: 'auto' | 'start' | 'end'
   'layout:column'?: number
-} & FlExtraProps<FieldSchemaExtras>
+} & FormFieldCustomTagProps<FormFieldExtras>
 
 // --- control tag props -----------------------------------------------------
-// `ControlTagProps` derives from `FieldSchema` / `ControlVModel` above, so it
-// lives here rather than in a module of its own (former `control-props.ts`).
+// `FormControlProps` derives from `CreateFormFieldOptions` / `FormFieldVModelRaw`
+// above, so it lives here rather than in a module of its own (former
+// `control-props.ts`).
 
 /**
  * Public `$props` of a Vue constructor, functional component, or SFC.
@@ -214,16 +235,16 @@ type ModelPortNames<M> = [M] extends [undefined]
       ? F | ModelPortNames<R>
       : 'modelValue'
 
-export type LockedVModelKeys<M extends ControlVModel | undefined> =
+export type LockedVModelKeys<M extends FormFieldVModelRaw | undefined> =
   | ModelPortNames<M>
   | `onUpdate:${ModelPortNames<M>}`
 
 type LockedKeysForDef<Def> = LockedVModelKeys<
-  SchemaModel<Def> extends ControlVModel | undefined ? SchemaModel<Def> : undefined
+  SchemaModel<Def> extends FormFieldVModelRaw | undefined ? SchemaModel<Def> : undefined
 >
 
 /** Control props that may appear on `<User.Xxx />` (v-model ports stripped). */
-export type ControlTagProps<Def> = Def extends { component?: infer C }
+export type FormControlProps<Def> = Def extends { component?: infer C }
   ? [Exclude<C, undefined>] extends [never]
     ? {}
     : Omit<ComponentPublicProps<Exclude<C, undefined>>, LockedKeysForDef<Def>>

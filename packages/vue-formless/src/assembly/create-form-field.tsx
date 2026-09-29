@@ -12,12 +12,16 @@ import {
 } from 'vue'
 import { LayoutItem } from '@vue-formless/layout'
 import { FORM_FIELD_KEY } from '../shared/injection-keys'
-import type { FieldFactoryInput, FormFieldFormless, FormFieldFormlessRaw, FormFieldProps, HostProps } from '../shared/field-schema'
+import type {
+  CreateFormFieldOptions,
+  FormFieldFormless,
+  FormFieldFormlessField,
+  FormFieldFormlessRaw,
+  FormFieldProps,
+  HostProps,
+} from '../shared/field-schema'
 import { dispatch, FIELD_SLOT_CHANNELS, FIELD_ATTR_CHANNELS, useDispatch } from '../hooks/use-dispatch'
-import { getAttrBoolean, toCamel, upperFirst } from '../shared/utils'
-
-/** `Component` is a union; JSX needs a constructable host. */
-type JsxHost = new () => { $props: Record<string, unknown> }
+import { getAttrBoolean, toCamel, upperFirst, type JsxHost } from '../shared/utils'
 
 export interface FormFieldSlotProps {
   $bindings: Record<string, unknown>
@@ -134,7 +138,7 @@ export const FormFieldCore = defineComponent({
     })
 
     // FormField 的渲染方式
-    const field = computed<"wrap" | "embed" | "wrap-embed">(() => {
+    const field = computed<FormFieldFormlessField>(() => {
       const inner = controlFormless.value?.field === 'embed' ? 'embed' : 'auto'
       const outer = propFormless.value?.field === 'embed' 
         ? 'embed'
@@ -160,7 +164,7 @@ export const FormFieldCore = defineComponent({
       ),
     )
 
-    const formless = computed(() => {
+    const formless = computed<FormFieldFormless>(() => {
       return {
         ...propFormless.value,
         model: model.value,
@@ -186,7 +190,7 @@ export const FormFieldCore = defineComponent({
      * 覆盖完，而 `bind` 不带它们（它是中间层也无从干扰）。
      */
     const controlAttrs = computed(() => {
-      const preset = typeof props.preset?.props === 'function' ? props.preset?.props(formless.value as any) : props.preset?.props
+      const preset = typeof props.preset?.props === 'function' ? props.preset?.props(formless.value) : props.preset?.props
       return mergeProps(
         bind.value.events,
         { ...preset, ...props.control },
@@ -228,7 +232,7 @@ export const FormFieldCore = defineComponent({
  * tag's `fl:component` / `fl:model` are its own declaration (design.md §7.2);
  * locking those to a schema is the factory shell's job, not this one's.
  */
-export function createFormField(options: FieldFactoryInput = {}) {
+export function createFormField(options: CreateFormFieldOptions = {}) {
   const { name, component, props, ...preset } = options
 
   return defineComponent({

@@ -25,6 +25,14 @@
 | `use-form-view-model.ts` | `use-form-view-value.ts` |
 | `field-identity.ts` / `fl-keys.ts` | 退场（逻辑并入 `FormFieldCore`；`SHELL_KEYS` 随 `fl-keys.ts` 删除） |
 | `FormCellProps` / `FormCellTagProps` / `FormCellSlotProps` | `FormFieldProps`（前两者合并） / `FormFieldSlotProps` |
+| `FieldSchema` / `FieldSchemaInput` / `FieldFactoryInput` | `CreateFormFieldOptions`（三合一，见 [ADR-022](./022-type-taxonomy.md)） |
+| module augmentation 锚点（`FieldSchema` 的角色） | `FormFieldCustomOptions`（`CreateFormFieldOptions extends` 它；与 Vue 原生 `ComponentCustomOptions` 同形） |
+| `FieldSchemaExtras` / `FieldSchemaKernelKey` | `FormFieldExtras` / `FormFieldKernelKeys` |
+| `FieldMode` | `FormFieldFormlessFieldRaw`（归一态 `FormFieldFormlessField`） |
+| `ControlVModel` / `ControlProp` | `FormFieldVModelRaw` / `FormFieldPropRaw`（归一态 `FormFieldVModel` / `FormFieldProp`） |
+| `ControlFormless` / `ControlTagProps` / `FlExtraProps` | `FormControlFormless` / `FormControlProps` / `FormFieldCustomTagProps`（旧名 `FormFieldCustomOptions<T>`，见 [ADR-022](./022-type-taxonomy.md) ②） |
+
+> **`FormControl*` 是类型名前缀约定**（[ADR-022](./022-type-taxonomy.md)），**概念词仍是 `control`**（= 被 FormField 渲染或包含的输入组件）。注意 [ADR-015](./015-formless-config-groups.md) / [ADR-017](./017-composite-item-self.md) 正文里的历史 `FormControlProps` 指的是内核字段自己的 props（= 今日 `FormFieldProps`），与今日同名的 control 标签公开 props 不是一回事。
 
 布局侧：`span` / `place` 走 `layout-item:`；ADR-019 的 `show` 与 LayoutView `row` 窗口**尚未落地**。
 
@@ -55,6 +63,7 @@
 | [019](./019-layout-row-window.md) | LayoutView `row` 窗口与必展示 / 自动 | 待定（通道改 `layout:` 见 021；**未落地**） |
 | [020](./020-form-view-cell-field.md) | FormView / FormCell / FormField 与 `cell` 三态 | Accepted（修订；词表被 `design.md` 收束为 FormField / LayoutItem / `fl:field`） |
 | [021](./021-channel-prefix-and-form-item.md) | 通道前缀 = 目标组件（FormCell → FormItem） | Accepted（修订；最终通道为 `fl` / `layout-item` / `layout` / `item`） |
+| [022](./022-type-taxonomy.md) | 类型体系：Scope 词表、Raw 两态与 `FormControl*` 前缀 | Accepted |
 
 ## 决策关系（简图）
 
