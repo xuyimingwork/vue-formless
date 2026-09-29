@@ -51,7 +51,8 @@ export type UpperFirst<S extends string> = S extends `${infer F}${infer R}`
 
 /**
  * `layout-item` → `layoutItem`. Kebab-case only; segments before the last one
- * are left as they are (`fl` → `fl`). Used for channel names and bucket names.
+ * are left as they are (`fl` → `fl`). Used for channel names, bucket names, and
+ * domain-table keys (`createFormFields` normalizes kebab keys to camelCase).
  */
 export function toCamel(s: string): string {
   return s.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())
@@ -61,14 +62,3 @@ export function toCamel(s: string): string {
 export type ToCamel<S extends string> = S extends `${infer Head}-${infer Tail}`
   ? `${Head}${Capitalize<ToCamel<Tail>>}`
   : S
-
-/** The `undefined`-valued entries dropped. Roughly lodash `omitBy(_, isUndefined)`. */
-export function omitUndefined(
-  record: Record<string, unknown>,
-): Record<string, unknown> {
-  const out: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(record)) {
-    if (value !== undefined) out[key] = value
-  }
-  return out
-}

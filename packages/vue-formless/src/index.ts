@@ -15,7 +15,7 @@ export type {
 
 // --- createFormFields ------------------------------------------------------
 export { createFormFields } from './assembly/create-form-fields'
-export type { NamespacedFields } from './assembly/create-form-fields'
+export type { FormFields } from './assembly/create-form-fields'
 
 // --- FormField -------------------------------------------------------------
 export { FormField } from './assembly/create-form-field'
@@ -23,13 +23,13 @@ export type { FormFieldComponent, FormFieldSlotProps } from './assembly/create-f
 
 // --- declaration / binding types -------------------------------------------
 // The types a consumer has to name: the module-augmentation anchor
-// (`FormFieldCustomOptions`), the factory input it feeds (`CreateFormFieldOptions`),
-// the control bag that augments Vue's `ComponentCustomOptions`
-// (`FormControlFormless`), and the adapter snapshot (`FormFieldFormless`). Their
-// derivations — `FormFieldExtras`, `FormFieldKernelKeys`, `FormFieldFormlessRaw`,
-// `FormFieldFormlessField(Raw)`, `FormFieldVModel(Raw)` / `FormFieldProp(Raw)`,
-// `FormFieldCustomTagProps`, `HostProps` — stay private; the declaration's own
-// members are reachable via indexed access.
+// (`FormFieldCustomOptions`, which is also the extras domain itself), the
+// factory input it feeds (`CreateFormFieldOptions`), the control bag that
+// augments Vue's `ComponentCustomOptions` (`FormControlFormless`), and the
+// adapter snapshot (`FormFieldFormless`). Their derivations —
+// `FormFieldFormlessRaw`, `FormFieldFormlessField(Raw)`, `FormFieldVModel(Raw)` /
+// `FormFieldProp(Raw)`, `FormFieldCustomTagProps`, `HostProps` — stay private;
+// the declaration's own members are reachable via indexed access.
 export type {
   CreateFormFieldOptions,
   FormFieldCustomOptions,

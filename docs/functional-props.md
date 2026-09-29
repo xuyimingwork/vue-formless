@@ -16,19 +16,16 @@ export type HostProps<TFl> =
 
 即**同一配置位既可以写静态对象，也可以写「快照 → 宿主 props」的纯函数**。函数是映射器（mapper）：无副作用、按需重算，把 formless 归一化后的快照投影成某一层宿主组件要的 props。（`layout.props` 与 `form.props` 是例外：二者都没有 snapshot，只能是静态对象，见 §3.1 / §3.2。）
 
-求值口径（原先 `shared/props-overlay.ts` 的 `resolveProps`，该文件无调用点已删除；`FormField` / `FormItem` 现内联同一逻辑）：
+求值口径（原先 `shared/props-overlay.ts` 的 `resolveProps`，该文件无调用点已删除；`FormField` / `FormItem` 现就地求值）：
 
 ```ts
-if (spec == null) return {}
-if (typeof spec === 'function') return omitUndefined(spec(fl) ?? {})
-return omitUndefined(spec)
+const base = typeof spec === 'function' ? spec(fl) : spec
 ```
 
-- 函数返回 `undefined` / `null` 视为空对象。
-- 返回值里值为 `undefined` 的键**被剔除**（`omitUndefined`），因此不会经 overlay 覆盖下层。
-- 静态对象同样过一遍 `omitUndefined`。
+- 函数返回 `undefined` / `null` 视为空对象（展开时自然为空）。
+- 求值结果原样展开，`undefined` 值不再被剔除。
 
-叠加是**一层浅合并**（`{ ...默认, ...覆盖 }`，后面的层赢）。原先 `props-overlay` 的 `mergeAttrs`（含「`undefined` 不覆盖」口径）与 `resolveProps` 因无调用点已删除，各调用点直接展开各层。
+叠加是**一层浅合并**（`{ ...默认, ...覆盖 }`，后面的层赢）。原先 `props-overlay` 的 `mergeAttrs` / `resolveProps` 因无调用点已删除，各调用点直接展开各层。
 
 ---
 
@@ -74,7 +71,7 @@ createFormView({ layout: { Row, Col, props: { column: 2, gutter: 16 } } })
 **归一化后的每格快照**：内核 wiring + extras。
 
 ```ts
-export interface FormFieldFormless extends FormFieldExtras {
+export interface FormFieldFormless extends FormFieldCustomOptions {
   /** 本格 v-model 口，下标与 prop 对齐；非字符串口留 undefined 占位 */
   model: FormFieldVModel
   /** 本格位置，下标与 model 对齐；没有任何一层绑定时整体为 undefined */
@@ -83,8 +80,6 @@ export interface FormFieldFormless extends FormFieldExtras {
   field: FormFieldFormlessField
   /** 宿主 Item 壳开关（§9）：页默认 ← 格值，裸 attr 算 true，恒为布尔 */
   item: boolean
-  /** extras：adapter 经 module augmentation 声明的键，如 label / validation */
-  [extra: string]: unknown
 }
 ```
 
@@ -109,7 +104,7 @@ const formless = computed(() => ({
 }))
 ```
 
-即：**四个内核键被归一化**（`model` / `prop` / `field` / `item`），这四个在类型里也显式声明；其余键（`component`、内核不读的 `props`、适配层 extras）**逐字透传**，只经索引签名 `[extra: string]: unknown` 可达。
+即：**四个内核键被归一化**（`model` / `prop` / `field` / `item`），这四个在类型里也显式声明；extras 则经 `FormFieldCustomOptions`（augmentation 锚点）声明后才进快照类型。`component` / 内核不读的 `props` 运行时逐字透传，但**不在快照类型里**——快照是封闭形状，读未声明的键直接编译报错（只有声明态 `FormFieldFormlessRaw` 开索引签名）。
 
 `item` 的归一化口径（`design.md` §9）：
 
@@ -256,8 +251,8 @@ props: {
 |------|------|
 | 求值时机 | 都在**渲染期**（FormView / FormItem / FormFieldCore 的 render 或对应 computed）按当前快照求值，非创建期一次性 |
 | 快照来源 | `FormFieldFormless` 由 `FormFieldCore` 合并 `preset.fl` 与标签 `fl` 后现算（`model` / `prop` / `field` 均为 computed，懒读）；`layout.props` / `form.props` 无 snapshot |
-| 快照形态 | `FormFieldFormless` 的 `model` / `prop` / `field` / `item` 是归一化的（这四者在类型里显式声明）；其余键（`component` / 内核不读的 `props` / extras）逐字透传，只经索引签名可达。`fl.item` 的页默认来源是 `FORM_FIELD_KEY.fl`——只装 `FormField` 会读的部分（`{ item?: boolean }`）（§3.3） |
-| 返回值 | `Record<string, unknown> | undefined`；`undefined` 键被剔除，不参与覆盖 |
+| 快照形态 | `FormFieldFormless` 的 `model` / `prop` / `field` / `item` 是归一化的（这四者在类型里显式声明），再加经 `FormFieldCustomOptions` augmentation 声明的 extras；raw 袋里的 `component` / 内核不读的 `props` 运行时照样透传，但**不进快照类型**（要读它们请从声明态 `FormFieldFormlessRaw` 那侧取）。`fl.item` 的页默认来源是 `FORM_FIELD_KEY.fl`——只装 `FormField` 会读的部分（`{ item?: boolean }`）（§3.3） |
+| 返回值 | `Record<string, unknown> | undefined`；`undefined` / `null` 视为空对象，值为 `undefined` 的键原样带过 |
 | overlay | 一层浅合并（`{ ...默认, ...覆盖 }`，后面的层赢）；原先 `props-overlay` 的 `mergeAttrs` / `resolveProps` 因无调用点已删除，当前 FormView / FormField / FormItem 都直接展开各层 |
 | 语义源 vs 机械覆盖 | `fl:*` 是语义源（改它触发派生重算），`item:` / `layout-item:` / `layout:` / 裸名是机械值（直接落地）；二者共存是 source vs override，不是冲突 |
 | 惰性输入 | `FormViewContext.access` 的 `access(prop)` 与 `FormFieldContext.fl` 接受 `MaybeRefOrGetter`（getter/ref/值），这是**惰性输入**而非「函数式 props」，不要与 `HostProps` 混淆 |
@@ -332,5 +327,5 @@ type HostProps<T> = Record<string, unknown> | ((fl: T) => Record<string, unknown
 
 两条口径提醒：
 
-- `FormFieldFormless` 类型里显式声明的是**内核归一化的四个键**（`model` / `prop` / `field` / `item`）；`component` / 内核不读的 `props` 只在索引签名下，类型是 `unknown`，需要自己窄化。
+- `FormFieldFormless` 类型里显式声明的是**内核归一化的四个键**（`model` / `prop` / `field` / `item`）+ 经锚点声明的 extras；`component` / 内核不读的 `props` 不在快照类型里（要读请从声明态 `FormFieldFormlessRaw` 取）。
 - `item` 已在 `FormFieldCore` 归一到布尔（页默认 ← 格值，裸 attr 算 `true`），**control 侧与 Item 侧同值**——不再有「两处口径不同」这一说。详见 §3.3。

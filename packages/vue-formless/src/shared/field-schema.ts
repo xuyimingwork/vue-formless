@@ -57,21 +57,14 @@ export type FormFieldFormlessField = 'wrap' | 'embed' | 'wrap-embed'
 
 // --- the field declaration -------------------------------------------------
 
-/** Kernel-owned keys. Not extras; each has a matching `fl:*` where allowed, except `name`. */
-export type FormFieldKernelKeys =
-  | 'component'
-  | 'props'
-  | 'model'
-  | 'prop'
-  | 'item'
-  | 'field'
-  | 'name'
-
 /**
- * The single module-augmentation anchor for field extras (design.md §18).
- * Mirrors Vue's `ComponentCustomOptions`: declare `label` / `validation` here,
- * and the kernel lifts them into `CreateFormFieldOptions`, the
- * `FormFieldFormless` snapshot, and the `fl:*` tag props.
+ * The single module-augmentation anchor for field extras (design.md §18), and
+ * the extras domain itself: `CreateFormFieldOptions` extends it, and both the
+ * `FormFieldFormless` snapshot and the `fl:*` tag props take their extras
+ * straight from it. Mirrors Vue's `ComponentCustomOptions`: declare `label` /
+ * `validation` here, and they land on the factory input, the snapshot, and the
+ * tag props. There is no separate `Omit`-derived "extras" alias — kernel keys
+ * live on `CreateFormFieldOptions` only.
  */
 export interface FormFieldCustomOptions {}
 
@@ -79,7 +72,8 @@ export interface FormFieldCustomOptions {}
  * One field's declaration: the input of `createFormField` / each entry of
  * `createFormFields` (design.md §11). It extends the augmentable
  * `FormFieldCustomOptions`, so a consumer's `label` / `validation` joins the
- * same shape and flows into `FormFieldExtras`.
+ * same shape and flows into the `FormFieldFormless` snapshot and the `fl:*` tag
+ * props.
  *
  * `component` stays `unknown` on purpose: a field table can pass any control
  * and let the tag infer that control's public props.
@@ -118,9 +112,6 @@ export interface CreateFormFieldOptions extends FormFieldCustomOptions {
   name?: string
 }
 
-/** Adapter fields on the declaration (everything except kernel keys). */
-export type FormFieldExtras = Omit<CreateFormFieldOptions, FormFieldKernelKeys>
-
 /**
  * The **raw** formless bag of one field: its `fl` values as declared, before
  * `model` / `prop` / `field` are normalized. Same key space as the declaration
@@ -142,8 +133,9 @@ export interface FormFieldFormlessRaw extends Omit<CreateFormFieldOptions, 'name
  * down to its host `FormItem`. Not passed as a host component prop.
  *
  * Adapters declare their extras once, on `FormFieldCustomOptions` (module
- * augmentation, design.md §18); `extends FormFieldExtras` pulls them in, so a
- * declared `label` is `fl.label` in the snapshot **and** `:fl:label` on the tag.
+ * augmentation, design.md §18); `extends FormFieldCustomOptions` pulls them in,
+ * so a declared `label` is `fl.label` in the snapshot **and** `:fl:label` on the
+ * tag.
  *
  * `model` / `prop` are this field's **normalized** binding arrays — index-aligned
  * (`model[i] ↔ prop[i]`), never empty and `prop` no longer than `model`. The
@@ -151,10 +143,13 @@ export interface FormFieldFormlessRaw extends Omit<CreateFormFieldOptions, 'name
  * encoding, so an adapter that cannot encode the field simply leaves it unbound.
  *
  * **Only the keys the kernel resolves are declared here** — `model` / `prop` /
- * `field` / `item`. Every other key (a raw `component`, an unread `props`, the
- * adapter's extras) rides through verbatim and stays under the index signature.
+ * `field` / `item` — plus the consumer's declared extras, pulled in by
+ * `extends FormFieldCustomOptions`. The raw bag's other keys (a raw `component`,
+ * an unread `props`) still ride through at runtime, but they are **not** part of
+ * this type: the snapshot is a closed shape, so reading an undeclared key is a
+ * compile error rather than a silent `unknown`.
  */
-export interface FormFieldFormless extends FormFieldExtras {
+export interface FormFieldFormless extends FormFieldCustomOptions {
   /** This field's v-model ports, index-aligned with `prop`. */
   model: FormFieldVModel
   /** This field's locations, index-aligned with `model`; `undefined` when nothing bound them. */
@@ -169,8 +164,6 @@ export interface FormFieldFormless extends FormFieldExtras {
    * alike — sees the same value.
    */
   item: boolean
-  /** Anything the adapter put in the raw bag that the kernel does not model. */
-  [extra: string]: unknown
 }
 
 // --- tag props -------------------------------------------------------------
@@ -197,7 +190,7 @@ export type FormFieldProps = {
   'layout-item:span'?: string | number
   'layout-item:place'?: 'auto' | 'start' | 'end'
   'layout:column'?: number
-} & FormFieldCustomTagProps<FormFieldExtras>
+} & FormFieldCustomTagProps<FormFieldCustomOptions>
 
 // --- control tag props -----------------------------------------------------
 // `FormControlProps` derives from `CreateFormFieldOptions` / `FormFieldVModelRaw`

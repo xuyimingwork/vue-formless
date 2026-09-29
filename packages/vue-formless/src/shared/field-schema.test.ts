@@ -3,8 +3,8 @@ import { defineComponent, type Component } from 'vue'
 import type {
   ComponentPublicProps,
   FormControlProps,
+  FormFieldCustomOptions,
   FormFieldCustomTagProps,
-  FormFieldExtras,
   FormFieldFormless,
   FormFieldFormlessField,
   FormFieldFormlessFieldRaw,
@@ -17,8 +17,9 @@ import type {
 } from './field-schema'
 
 describe('CreateFormFieldOptions extras', () => {
-  it('kernel FormFieldProps are only the fl / layout keys', () => {
-    expectTypeOf<FormFieldExtras>().toEqualTypeOf<{}>()
+  it('the extras anchor is empty until augmented; FormFieldProps are only the fl / layout keys', () => {
+    // The anchor *is* the extras domain: no `Omit` alias can leak a kernel key in.
+    expectTypeOf<FormFieldCustomOptions>().toEqualTypeOf<{}>()
     expectTypeOf<FormFieldProps>().toEqualTypeOf<{
       'fl:prop'?: string | readonly string[]
       'fl:model'?: string | readonly string[]

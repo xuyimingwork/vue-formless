@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, it } from 'vitest'
-import { omitUndefined, getAttrBoolean, upperFirst } from './utils'
+import { getAttrBoolean, upperFirst } from './utils'
 
 describe('upperFirst', () => {
   it('converts camelCase field keys to PascalCase tags', () => {
@@ -10,12 +10,6 @@ describe('upperFirst', () => {
   it('only touches the first character', () => {
     expect(upperFirst('modelValue')).toBe('ModelValue')
     expect(upperFirst('')).toBe('')
-  })
-})
-
-describe('omitUndefined', () => {
-  it('drops undefined-valued entries only', () => {
-    expect(omitUndefined({ a: undefined, b: null, c: 0 })).toEqual({ b: null, c: 0 })
   })
 })
 

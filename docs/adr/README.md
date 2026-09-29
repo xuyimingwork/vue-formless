@@ -27,7 +27,7 @@
 | `FormCellProps` / `FormCellTagProps` / `FormCellSlotProps` | `FormFieldProps`（前两者合并） / `FormFieldSlotProps` |
 | `FieldSchema` / `FieldSchemaInput` / `FieldFactoryInput` | `CreateFormFieldOptions`（三合一，见 [ADR-022](./022-type-taxonomy.md)） |
 | module augmentation 锚点（`FieldSchema` 的角色） | `FormFieldCustomOptions`（`CreateFormFieldOptions extends` 它；与 Vue 原生 `ComponentCustomOptions` 同形） |
-| `FieldSchemaExtras` / `FieldSchemaKernelKey` | `FormFieldExtras` / `FormFieldKernelKeys` |
+| `FieldSchemaExtras` / `FieldSchemaKernelKey` | 退场：extras 域即锚点 `FormFieldCustomOptions` 本身，内核键直接写在 `CreateFormFieldOptions` 上（见 [ADR-022](./022-type-taxonomy.md) §3） |
 | `FieldMode` | `FormFieldFormlessFieldRaw`（归一态 `FormFieldFormlessField`） |
 | `ControlVModel` / `ControlProp` | `FormFieldVModelRaw` / `FormFieldPropRaw`（归一态 `FormFieldVModel` / `FormFieldProp`） |
 | `ControlFormless` / `ControlTagProps` / `FlExtraProps` | `FormControlFormless` / `FormControlProps` / `FormFieldCustomTagProps`（旧名 `FormFieldCustomOptions<T>`，见 [ADR-022](./022-type-taxonomy.md) ②） |

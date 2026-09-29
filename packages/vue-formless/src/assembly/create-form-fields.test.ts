@@ -2,9 +2,12 @@ import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { createSSRApp, defineComponent, h, nextTick, type VNode } from 'vue'
 import { renderToString } from 'vue/server-renderer'
 import { createFormFields } from './create-form-fields'
-import type { ComponentPublicProps } from '../shared/field-schema'
+import type { ComponentPublicProps, FormFieldFormless } from '../shared/field-schema'
 import { createFormView } from './create-form-view'
 import { FormField, FormFieldCore } from './create-form-field'
+
+/** The kernel ships no extras; tests that read one widen the snapshot locally. */
+type TestFl = FormFieldFormless & { label?: string }
 
 describe('createFormFields', () => {
   it('exposes PascalCase components for camelCase field keys', () => {
@@ -28,6 +31,28 @@ describe('createFormFields', () => {
       idCard: {},
     })
     expectTypeOf(User).toHaveProperty('Name')
+    expectTypeOf(User).toHaveProperty('IdCard')
+  })
+
+  it('normalizes kebab-case keys to the same PascalCase tags', () => {
+    const User = createFormFields({
+      name: {},
+      'time-range': {
+        model: ['start', 'end'],
+        prop: ['startTime', 'endTime'],
+      },
+    })
+
+    expect(User.Name).toBeTruthy()
+    expect(User.TimeRange).toBeTruthy()
+    expect(Object.keys(User).sort()).toEqual(['Name', 'TimeRange'])
+    expect((User as Record<string, unknown>)['time-range']).toBeUndefined()
+  })
+
+  it('types kebab-case keys as their PascalCase tags', () => {
+    const User = createFormFields({
+      'id-card': {},
+    })
     expectTypeOf(User).toHaveProperty('IdCard')
   })
 
@@ -122,7 +147,7 @@ describe('createFormFields props overlay', () => {
   function shellView() {
     return createFormView({
       layout: { Row: DummyRow, Col: DummyCol },
-      item: { component: DummyItem, props: (fl) => ({ label: fl.label }) },
+      item: { component: DummyItem, props: (fl: TestFl) => ({ label: fl.label }) },
     })
   }
 
@@ -139,7 +164,7 @@ describe('createFormFields props overlay', () => {
       name: {
         label: '姓名',
         component: Control,
-        props: (fl) => ({
+        props: (fl: TestFl) => ({
           placeholder: typeof fl.label === 'string' ? `请填写${fl.label}` : undefined,
         }),
       },
@@ -164,6 +189,39 @@ describe('createFormFields props overlay', () => {
     expect(seen[0]).toMatchObject({ placeholder: '请填写姓名' })
     expect(seen[1]).toMatchObject({ placeholder: '11 位手机号' })
     expect(seen[2]).toMatchObject({ placeholder: '姓名' })
+  })
+
+  it('keeps the raw key as the default prop, so a kebab key needs an explicit fl:prop', async () => {
+    const snapshots: Record<string, unknown>[] = []
+    const seen: Record<string, unknown>[] = []
+    const Control = defineComponent({
+      inheritAttrs: false,
+      setup(_, { attrs }) {
+        seen.push({ ...attrs })
+        return () => h('input')
+      },
+    })
+    const Fields = createFormFields({
+      'user-name': {
+        component: Control,
+        props: (fl) => {
+          snapshots.push({ located: fl.prop?.[0] })
+          return {}
+        },
+      },
+    })
+    await render(
+      h(shellView(), { modelValue: { userName: 'Ada' } }, () => [
+        h(Fields.UserName),
+        h(Fields.UserName, { 'fl:prop': 'userName' }),
+      ]),
+    )
+    // The table never reinterprets the key's location — only the tag is normalized.
+    expect(snapshots[0]).toMatchObject({ located: 'user-name' })
+    expect(snapshots[1]).toMatchObject({ located: 'userName' })
+    // `parsePath` has no `-` in an unquoted key, so only the relocated tag binds.
+    expect(seen[0]!.modelValue).toBeUndefined()
+    expect(seen[1]!.modelValue).toBe('Ada')
   })
 
   it('does not wrap an embed control in an outer Item', async () => {
@@ -368,7 +426,7 @@ describe('createFormFields props overlay', () => {
       name: {
         label: '姓名',
         component: Control,
-        props: (fl) => ({
+        props: (fl: TestFl) => ({
           placeholder: `请填写${String(fl.label)}`,
           // The tag's :fl:prop relocation must reach the props snapshot.
           located: fl.prop?.[0],
@@ -530,7 +588,7 @@ describe('createFormFields props overlay', () => {
       layout: { Row: DummyRow, Col: DummyCol },
       item: {
         component: DummyItem,
-        props: (fl) => {
+        props: (fl: TestFl) => {
           itemSnapshots.push({ ...fl })
           return { label: fl.label }
         },
