@@ -4,20 +4,14 @@ import type { FormInstance } from 'element-plus'
 import { ElMessage } from 'element-plus'
 
 const formRef = ref<FormInstance>()
-const form = reactive({
-  name: '',
-  gender: '',
-  mobile: '',
-  email: '',
-  idCard: '',
-  address: '',
-  remark: '',
-})
+const form = reactive<any>({})
 
 async function onSubmit() {
   await formRef.value?.validate()
   ElMessage.success('校验通过（基线混合布局）')
 }
+
+
 </script>
 
 <template>

@@ -6,15 +6,7 @@ import { FormView } from '../../ep'
 import { User } from './user'
 
 const formRef = ref<FormInstance>()
-const form = ref({
-  name: '',
-  gender: '',
-  mobile: '',
-  email: '',
-  idCard: '',
-  address: '',
-  remark: '',
-})
+const form = ref({})
 
 async function onSubmit() {
   await formRef.value?.validate()
@@ -26,7 +18,7 @@ async function onSubmit() {
   <FormView ref="formRef" v-model="form" label-width="96px">
     <p class="pg-section-title">基本信息</p>
     <FormView fl:layout :layout:column="3" :layout:gutter="16">
-      <User.Name />
+      <User.Name :item:rules="[{ required: true, message: '必填' }]" />
       <User.Gender />
       <User.Mobile />
     </FormView>

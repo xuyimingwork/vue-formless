@@ -40,10 +40,14 @@ function onReset() {
     :layout:column="3"
     :layout:gutter="16"
   >
-    <User.Name />
-    <User.Gender />
+    <User.Name :item:rules="[{ required: true, message: '请输入姓名', trigger: 'blur' }]" />
+    <User.Gender :item:rules="[{ required: true, message: '请选择性别', trigger: 'change' }]" />
     <User.Mobile />
-    <Range.DateRangeOne layout-item:span="16" />
+    <Range.DateRangeOne
+      layout-item:span="16"
+      :item:required="true"
+      :item:rules="[{ required: true, message: '请选择日期范围', trigger: 'change' }]"
+    />
     <User.Email />
     <Range.DateRangeTwo layout-item:span="max" :layout:column="2" />
     <User.IdCard />

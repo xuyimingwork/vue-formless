@@ -34,9 +34,14 @@ function onReset() {
     :layout:gutter="16"
     label-width="96px"
   >
-    <User.Name />
-    <User.Gender />
-    <User.Mobile />
+    <User.Name :item:rules="[{ required: true, message: '请输入姓名', trigger: 'blur' }]" />
+    <User.Gender :item:rules="[{ required: true, message: '请选择性别', trigger: 'change' }]" />
+    <User.Mobile
+      :item:rules="[
+        { required: true, message: '请输入手机号', trigger: 'blur' },
+        { pattern: /^1\d{10}$/, message: '手机号格式不正确', trigger: 'blur' },
+      ]"
+    />
     <User.Email />
     <User.IdCard />
     <User.Address />
