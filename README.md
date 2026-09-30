@@ -91,7 +91,7 @@ export const User = createFormFields({
 </FormView>
 ```
 
-`validate()` / `resetFields()` 走 FormView 的 ref（代理内层 Form）。栅格细节见 [docs/adr](./docs/adr/README.md)。
+`validate()` / `resetFields()` 走 FormView 的 ref（代理内层 Form）。栅格细节见 [docs/adr](./docs/adr.md)。
 
 ## 在线 Playground
 
@@ -109,7 +109,7 @@ packages/vue-formless              # 内核（npm：vue-formless）
 packages/layout                    # 内部栅格，打进内核 dist
 playground                         # Element Plus 基线 vs Formless
 playground-layout                  # 24 格布局工作台
-docs/adr                           # 架构决策
+docs/adr.md                        # 架构决策（单篇汇总）
 ```
 
 ## 开发

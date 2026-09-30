@@ -1,6 +1,6 @@
 # vue-formless 设计文档
 
-> 本文件是 vue-formless 的**完整设计规格**。**以代码与 [`decision.md`](./decision.md) 为准**：当本文与代码或 decision.md 冲突时，按代码与 decision.md 修正本文。历史决策记录见 [`docs/adr/`](./adr/README.md)。
+> 本文件是 vue-formless 的**完整设计规格**。**以代码与 [`decision.md`](./decision.md) 为准**：当本文与代码或 decision.md 冲突时，按代码与 decision.md 修正本文。历史决策记录见 [`docs/adr.md`](./adr.md)。
 >
 > 本文吸收了 ADR-001 ~ ADR-021 的结论，并做了收束：`LayoutCell → LayoutItem`、`FormCell` / `FormItem` 概念移除、`FormField` 上位、绑定下沉并输出 `$bindings`、组装位置键为 `fl:field`、通道为 `fl` / `layout-item` / `layout` / `item`。ADR-020 / 021 提出的 `cell` 三态与 `fl:tree` / `fl:grid` / `cell:` / `row:` 词表已被本文取代（见 §2、§5）。
 
@@ -75,7 +75,7 @@ control-config.ts   → 删除（FormControlFormless + vue 增强并入 field-sc
 create-field-component.tsx → 删除（类型并入 field-schema.ts）
 ```
 
-类型体系收敛（见 [ADR-022](./adr/022-type-taxonomy.md)）：
+类型体系收敛（见 [ADR-022](./adr.md)）：
 
 ```text
 FieldSchema          → CreateFormFieldOptions（合并 FieldSchemaInput / FieldFactoryInput；= 工厂入参，extends 锚点）

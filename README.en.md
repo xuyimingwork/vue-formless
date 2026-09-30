@@ -94,7 +94,7 @@ export const User = createFormFields({
 </FormView>
 ```
 
-`validate()` / `resetFields()` go through the FormView ref (proxied host Form). Layout details: [docs/adr](./docs/adr/README.md).
+`validate()` / `resetFields()` go through the FormView ref (proxied host Form). Layout details: [docs/adr](./docs/adr.md).
 
 ## Live playgrounds
 
@@ -112,7 +112,7 @@ packages/vue-formless              # kernel (npm: vue-formless)
 packages/layout                    # internal grid, bundled into the kernel
 playground                         # Element Plus baseline vs Formless
 playground-layout                  # 24-col layout studio
-docs/adr                           # architecture decisions
+docs/adr.md                        # architecture decisions (single doc)
 ```
 
 ## Development
