@@ -1,5 +1,5 @@
 import { toCamel, upperFirst, type ToCamel, type UpperFirst } from '../shared/utils'
-import { type CreateFormFieldOptions, type FormControlProps } from '../shared/field-schema'
+import { type CreateFormFieldOptions, type FormControlProps } from '../shared/form-field-types'
 import { createFormField, type FormFieldComponent } from './create-form-field'
 
 /**

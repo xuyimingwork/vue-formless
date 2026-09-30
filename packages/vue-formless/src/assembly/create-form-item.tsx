@@ -6,7 +6,7 @@ import {
   type PropType,
   type VNodeChild,
 } from 'vue'
-import type { FormFieldFormless, HostProps } from '../shared/field-schema'
+import type { FormFieldFormless, HostProps } from '../shared/form-field-types'
 import type { JsxHost } from '../shared/utils'
 
 export interface CreateFormItemOptions {

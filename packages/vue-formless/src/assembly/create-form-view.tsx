@@ -15,7 +15,7 @@ import { createLayoutView, type LayoutViewProps } from '@vue-formless/layout'
 import { createFormItem } from './create-form-item'
 import { FORM_FIELD_KEY, FORM_VIEW_KEY, type FormFieldContext } from '../shared/injection-keys'
 import { useFormViewValue } from '../hooks/use-form-view-value'
-import type { FormFieldFormless, HostProps } from '../shared/field-schema'
+import type { FormFieldFormless, HostProps } from '../shared/form-field-types'
 import { getAttrBoolean, type JsxHost } from '../shared/utils'
 import { VIEW_ATTR_CHANNELS, useDispatch } from '../hooks/use-dispatch'
 

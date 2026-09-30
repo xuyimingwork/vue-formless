@@ -15,7 +15,7 @@ import type {
   FormFieldVModel,
   FormFieldVModelRaw,
   LockedVModelKeys,
-} from './field-schema'
+} from './form-field-types'
 
 describe('CreateFormFieldOptions extras', () => {
   it('the extras anchor is empty until augmented; FormFieldProps are only the fl / layout keys', () => {

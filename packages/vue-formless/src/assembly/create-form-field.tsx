@@ -19,7 +19,7 @@ import type {
   FormFieldFormlessRaw,
   FormFieldProps,
   HostProps,
-} from '../shared/field-schema'
+} from '../shared/form-field-types'
 import { dispatch, FIELD_SLOT_CHANNELS, FIELD_ATTR_CHANNELS, useDispatch } from '../hooks/use-dispatch'
 import { getAttrBoolean, toCamel, upperFirst, type JsxHost } from '../shared/utils'
 

@@ -8,6 +8,7 @@
 
 ### Changed
 
+- **`shared/field-schema.ts` 更名 `shared/form-field-types.ts`**（纯内部重命名）：该文件早已超出「schema」范畴，实为字段域的类型总集——声明入参（`FormFieldCustomOptions` / `CreateFormFieldOptions`）、归一化快照（`FormFieldFormless` / `FormFieldFormlessRaw`）、绑定两态（`FormFieldVModel(Raw)` / `FormFieldProp(Raw)`）、标签 props（`FormFieldProps` / `ToFormlessProps`）、组装位置（`FormFieldFormlessField(Raw)`），以及并入的 control 公开 props（`FormControlProps` / `LockedVModelKeys` / `ComponentPublicProps`）。测试同更名 `form-field-types.test.ts`。公开导出与运行时行为不变；`design.md` / `functional-props.md` 的文件引用同步
 - **`FormFieldFormless` 快照不再开放索引签名**（破坏性；0.x）：归一化快照的类型面收敛为「内核四键（`model` / `prop` / `field` / `item`）+ 经 `FormFieldCustomOptions` augmentation 声明的 extras」，删掉 `[extra: string]: unknown`。此前任何未声明的键都能以 `unknown` 读到，既绕开了「extras 必须经锚点声明」的设计，又让 `keyof FormFieldFormless` 塌成 `string`（`field-schema.test.ts` 的 `not.toHaveProperty` 断言因此编不过）。声明态 `FormFieldFormlessRaw` 保留索引签名（标签 / 预设确实可以带内核不读的键）；`component` / 内核不读的 `props` 运行时照样透传，但不再进快照类型。内核测试里读 `label` 的回调改用具名本地类型 `TestFl = FormFieldFormless & { label?: string }` 标注形参（锚点仍保持「内核不预声明 extras」的断言）
 - **`createFormFields` 域名表键放宽到 camelCase / kebab-case**：键先经 `utils.toCamel` 归一再 `upperFirst`，`timeRange` 与 `time-range` 落同一个标签 `<User.TimeRange />`（类型面同步为 `UpperFirst<ToCamel<K>>`，与运行时同口径）。归一**只作用于标签名**：默认 `prop` 仍是键原样（域表不解释位置——kebab 键要绑数据需显式 `fl:prop`，`parsePath` 不接受不加引号的 `-`），调试用 `name` 取 `pascalKey`
 - **类型体系收敛：Scope 词表 + Raw 两态**（破坏性；0.x，见 [ADR-022](./docs/adr.md)）。类型名前缀统一到四个概念词（`FormView` / `FormItem` / `FormField` / `FormControl`），只有「解析前与解析后类型不同」的键才成对（解析前 + `Raw`）：

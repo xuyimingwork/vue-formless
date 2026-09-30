@@ -36,4 +36,4 @@ export type {
   FormControlFormless,
   FormFieldFormless,
   FormFieldProps,
-} from './shared/field-schema'
+} from './shared/form-field-types'

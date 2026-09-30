@@ -70,9 +70,9 @@ toAttrBoolean       → getAttrBoolean
 field-identity.ts   → 删除（身份 / 快照逻辑并入 FormFieldCore）
 fl-keys.ts          → 删除
 use-form-view-model → use-form-view-value
-control-binding.ts  → 删除（类型并入 field-schema.ts）
-control-config.ts   → 删除（FormControlFormless + vue 增强并入 field-schema.ts）
-create-field-component.tsx → 删除（类型并入 field-schema.ts）
+control-binding.ts  → 删除（类型并入 form-field-types.ts）
+control-config.ts   → 删除（FormControlFormless + vue 增强并入 form-field-types.ts）
+create-field-component.tsx → 删除（类型并入 form-field-types.ts）
 ```
 
 类型体系收敛（见 [ADR-022](./adr.md)）：
@@ -766,7 +766,7 @@ quoted   := '"' keychar* '"' | "'" keychar* "'"   转义 '\'
 | `path/path-access.ts` / `path/path-parse.ts` | 不可变 get/set + 路径解析；`bindPathAccess(source)` 把 get/set 绑到可写源上（`PathAccess` / `WritableSource`，§15） |
 | `hooks/use-dispatch.ts` | 通道分发的全部：通道表 `CHANNELS`（`fl` / `layout-item` / `layout` / `item`）；前缀由通道名派生（不写字面量常量），kebab → camel 归 `utils.toCamel`；`dispatch(bag, channels, { prefix })`（一次分桶）：每通道一桶 + `default` 裸名残差；`prefix: 'drop'`（默认）= props + 还原成 `onXxx` 的监听同袋，`prefix: 'keep'` = 输入键形原样（可被同一张表再认领，供转发；`default` 两模式一致）；`onXxx` 命名还原（`on` + `upperFirst`）、读键（`resolveKey(raw, channels)`：前缀表全局、按本次认领的 `channels` 过滤，返回 `{ key, type?, channel? }`，认领不到则只余 `key` 落 `default`）；其上是通道认领的 attrs 关口 `useDispatch(attrs, channels, options?)` → 每桶一个 ref（`BucketRefs<C>`：桶名 = 通道名 camelCase，由 `Channel` 经 `utils.ToCamel` 派生；只给认领的通道建桶）+ 三个通道集：`VIEW_ATTR_CHANNELS`（`fl` / `layout`，`layout-item:` / `item:` 都透传，§5.3）/ `FIELD_ATTR_CHANNELS`（`fl` / `layout` / `layout-item` / `item`）/ `FIELD_SLOT_CHANNELS`（随 render 交给 `dispatch(slots, …)`：`item` 桶 → 宿主 Item 槽，`default` 桶 → control 槽） |
 | `shared/utils.ts` | 通用工具（无 formless 语义）：`upperFirst` / `UpperFirst`、`toCamel` / `ToCamel`（kebab → camel，通道名 / 桶名 / 域表键共用）、`getAttrBoolean`（Vue 布尔 attr 语义；带 `boolean` 种子时返回必为 `boolean`）、`JsxHost`（`Component` 是联合，JSX 需要可构造宿主；内核唯一一份，与 layout 包各留各的） |
-| `shared/field-schema.ts` | 字段类型总集：`FormFieldCustomOptions`（module augmentation 锚点，同时也是 extras 域本身；快照与 `fl:*` 标签 props 直接取它）/ `CreateFormFieldOptions`（`extends` 锚点的工厂入参，内核键也在此；含 `Component` 增强）/ `FormFieldProps` / `FormFieldFormless`（归一化快照）/ `FormFieldFormlessRaw`（未归一化 `fl` 袋）/ `FormFieldFormlessFieldRaw` / `FormFieldFormlessField` / `FormFieldVModelRaw` / `FormFieldVModel` / `FormFieldPropRaw` / `FormFieldProp` / `ToFormlessProps`（任意声明袋 → `fl:*` 标签 props）/ `FormControlFormless`（含 `ComponentCustomOptions.formless` 增强，`FormFieldCore` 直接读 `component.formless`）/ `HostProps`；control 公开 props 推断 `ComponentPublicProps` / `LockedVModelKeys` / `FormControlProps`（v-model 口剥离，原 `control-props.ts` 已并入） |
+| `shared/form-field-types.ts` | 字段类型总集：`FormFieldCustomOptions`（module augmentation 锚点，同时也是 extras 域本身；快照与 `fl:*` 标签 props 直接取它）/ `CreateFormFieldOptions`（`extends` 锚点的工厂入参，内核键也在此；含 `Component` 增强）/ `FormFieldProps` / `FormFieldFormless`（归一化快照）/ `FormFieldFormlessRaw`（未归一化 `fl` 袋）/ `FormFieldFormlessFieldRaw` / `FormFieldFormlessField` / `FormFieldVModelRaw` / `FormFieldVModel` / `FormFieldPropRaw` / `FormFieldProp` / `ToFormlessProps`（任意声明袋 → `fl:*` 标签 props）/ `FormControlFormless`（含 `ComponentCustomOptions.formless` 增强，`FormFieldCore` 直接读 `component.formless`）/ `HostProps`；control 公开 props 推断 `ComponentPublicProps` / `LockedVModelKeys` / `FormControlProps`（v-model 口剥离，原 `control-props.ts` 已并入） |
 | `hooks/use-form-view-value.ts` | 源解析：`useFormViewValue()`（本层 v-model 口 + 祖先源 → `value` / `getIn` / `setIn`，并 provide `FORM_VIEW_KEY`）、`useValueMeta` / `ValueSource` / `PORT_NAMES` / `PORT_EVENTS` |
 | `index.ts` | 公开导出 |
 
@@ -884,7 +884,7 @@ FormFieldCore（唯一装配点）：
 
 当前代码的未完成项（O 记为待办）：
 
-- 公开标签 `FormField` 的 props 类型就是 `FormFieldProps`（定义在 `shared/field-schema.ts`），`assembly/create-form-field.tsx` 只再叠 `FormFieldComponent` / `FormFieldSlotProps` 两个组件形状的类型。
+- 公开标签 `FormField` 的 props 类型就是 `FormFieldProps`（定义在 `shared/form-field-types.ts`），`assembly/create-form-field.tsx` 只再叠 `FormFieldComponent` / `FormFieldSlotProps` 两个组件形状的类型。
 
 `prop` / `bind` / `field` / `formless` 都是 `computed`（懒读）：`fl:prop` 可能被标签重述、`access` 来自祖先 FormView，所以位置与 model 都不能在 setup 拍死——`context?.getProp` / `context?.access` 每次现取。
 
@@ -900,7 +900,7 @@ FormFieldCore（唯一装配点）：
 - `FormFieldFormlessFieldRaw`：`'auto' | 'embed' | 'wrap-embed'`（写入口径；`'auto'` 省略即跟随 control 的体）。解算后的 `'wrap'` 只出现在 `FormFieldFormlessField`。
 - `FormFieldFormlessField`：`'wrap' | 'embed' | 'wrap-embed'`——归一态，`'auto'` 已被解掉。
 - `FormFieldVModelRaw` / `FormFieldPropRaw`：声明态 `string | readonly string[]`；**归一态** `FormFieldVModel` / `FormFieldProp` 是 `(string | undefined)[]`（下标即配对）。
-- `FormFieldProps`：公开 props 类型（`shared/field-schema.ts`）——内核 `fl:`/`layout:`/`layout-item:` 键 + extras 推导；`FormFieldComponent<FormControlProps<...>>` 再往上叠 control 的公开 props。
+- `FormFieldProps`：公开 props 类型（`shared/form-field-types.ts`）——内核 `fl:`/`layout:`/`layout-item:` 键 + extras 推导；`FormFieldComponent<FormControlProps<...>>` 再往上叠 control 的公开 props。
 - `FormItemProps` / `FormItemComponent`：宿主 Item 壳的 props（`{ fl: FormFieldFormless; item }`）与组件形状，定义在 `assembly/create-form-item.tsx`（与 `FormViewProps` 同规矩）。
 
 ---
@@ -944,11 +944,11 @@ FormFieldProps, FormFieldComponent, FormFieldSlotProps
 FormFieldCustomOptions, CreateFormFieldOptions, FormControlFormless, FormFieldFormless
 ```
 
-`FormFieldProps` 定义在 `shared/field-schema.ts`（不是 `assembly/create-form-field.tsx`）。layout 的 props 类型（`CreateLayoutViewOptions` / `LayoutViewProps` / `LayoutItemProps` / `LayoutItemSpan` / `LayoutItemPlace`）不再从本包转出口——需要就 `import type { ... } from '@vue-formless/layout'`。
+`FormFieldProps` 定义在 `shared/form-field-types.ts`（不是 `assembly/create-form-field.tsx`）。layout 的 props 类型（`CreateLayoutViewOptions` / `LayoutViewProps` / `LayoutItemProps` / `LayoutItemSpan` / `LayoutItemPlace`）不再从本包转出口——需要就 `import type { ... } from '@vue-formless/layout'`。
 
 - `FormView` / `LayoutView` 是工厂**产物**，不作为独立值导出；`FormViewComponent` 仅为类型。
 - 类型面只留「不给名字就用不了」的那些：`FormFieldCustomOptions`（module augmentation 锚点，extras 域）、`CreateFormFieldOptions`（工厂入参，`extends` 锚点）、`FormControlFormless`（消费者自己的 `ComponentCustomOptions.formless` 增强）、`FormFieldFormless`（适配层 snapshot）、`CreateFormViewOptions` / `NamespacedFields`（工厂入参 / 出参）、以及三个公开组件的 props / slot 契约。派生类型（`FormFieldFormlessRaw`、`FormFieldFormlessFieldRaw` / `FormFieldFormlessField`、`FormFieldVModelRaw` / `FormFieldVModel`、`FormFieldPropRaw` / `FormFieldProp`、`ToFormlessProps`、`HostProps`）不导出——声明的成员可以经索引访问取到，extras 经 augmentation 自动流进 `FormFieldFormless` / `FormFieldProps`。
-- 私有（不导出，可随内核演进）：`FormViewContext` / `FormFieldContext`、`FORM_VIEW_KEY` / `FORM_FIELD_KEY`、`FormFieldCore` / `createFormField` / `normalizeModel` / `normalizeProp`、`useFormViewValue` / `useValueMeta` / `ValueSource` / `PORT_NAMES` / `PORT_EVENTS`、`getIn` / `setIn` / `parsePath` / `bindPathAccess` / `WritableSource` / `PathAccess`、`dispatch` / `useDispatch` / `CHANNELS` / `VIEW_ATTR_CHANNELS` / `FIELD_ATTR_CHANNELS` / `FIELD_SLOT_CHANNELS`、`createFormItem` / `FormItemProps` / `FormItemComponent` / `CreateFormItemOptions`、`FormFieldFormlessRaw` / `FormFieldFormlessFieldRaw` / `FormFieldFormlessField` / `FormFieldVModelRaw` / `FormFieldVModel` / `FormFieldPropRaw` / `FormFieldProp` / `ToFormlessProps` / `HostProps`（`shared/field-schema.ts`，仅类型）、`upperFirst` / `toCamel` / `getAttrBoolean` / `JsxHost`。
+- 私有（不导出，可随内核演进）：`FormViewContext` / `FormFieldContext`、`FORM_VIEW_KEY` / `FORM_FIELD_KEY`、`FormFieldCore` / `createFormField` / `normalizeModel` / `normalizeProp`、`useFormViewValue` / `useValueMeta` / `ValueSource` / `PORT_NAMES` / `PORT_EVENTS`、`getIn` / `setIn` / `parsePath` / `bindPathAccess` / `WritableSource` / `PathAccess`、`dispatch` / `useDispatch` / `CHANNELS` / `VIEW_ATTR_CHANNELS` / `FIELD_ATTR_CHANNELS` / `FIELD_SLOT_CHANNELS`、`createFormItem` / `FormItemProps` / `FormItemComponent` / `CreateFormItemOptions`、`FormFieldFormlessRaw` / `FormFieldFormlessFieldRaw` / `FormFieldFormlessField` / `FormFieldVModelRaw` / `FormFieldVModel` / `FormFieldPropRaw` / `FormFieldProp` / `ToFormlessProps` / `HostProps`（`shared/form-field-types.ts`，仅类型）、`upperFirst` / `toCamel` / `getAttrBoolean` / `JsxHost`。
 - 定制路径只有三条：`$bindings` slot（§7.3）、`fl:component` 临场格（§7.4）、module augmentation（§18）——都不需要够到内核。
 
 ---
@@ -977,7 +977,7 @@ FormFieldCustomOptions, CreateFormFieldOptions, FormControlFormless, FormFieldFo
 3. `FormCell.tsx` → 并入 `FormField.tsx`：绑定下沉、`$bindings` 输出、支持 `fl:component`、删 `useFormCell`。
 4. `injection-keys.ts`：`FORM_FIELD_KEY` 值改为 `FormFieldContext`；`FormField.tsx` 只 inject `FORM_FIELD_KEY`、无条件 provide；工厂壳改为纯「schema → `fl:*` 预设 attrs」，无私有参数。（后修订：装配件抽成 `FormFieldCore`，收 `preset` + 五个通道桶；工厂壳不再预求值 `props`，改由 core 就着同一份快照求值——见 §16.3。再后修订：`field-identity.ts` 退场，身份 / 快照逻辑并入 `FormFieldCore`；`FormFieldContext` 收敛为 `access` / `getProp?` / 壳资源；`getModelBinding` / `getPropBinding` 两名作废——见 §16.2。）
 5. **裸名口径对齐 §5.2**：FormField 的宿主 Item 不再吃裸名（`item:*` 才有），工厂求出的 control props 因此不会漏到 ElFormItem 上；`fl:label` 走快照 → 适配 Item `label`。
-6. `field-schema.ts`：`FormFieldFormless`（原 `ItemFl`）拆平（去掉 `binding`，暴露 `model` / `prop`），后定名 `FormFieldFormless` 并补 `field` / `FormFieldFormlessRaw`、删从未实现的 `getValues`；适配器 `props` 函数跟进（playground `toEpItemProps`）。（已落地）
+6. `form-field-types.ts`：`FormFieldFormless`（原 `ItemFl`）拆平（去掉 `binding`，暴露 `model` / `prop`），后定名 `FormFieldFormless` 并补 `field` / `FormFieldFormlessRaw`、删从未实现的 `getValues`；适配器 `props` 函数跟进（playground `toEpItemProps`）。（已落地）
 7. `create-form-view.ts`：`layout.column` → `layout.props`（静态对象）。
 8. `FormField.tsx`：`switch(tree)` 键名跟进（已落地）。
 9. layout 包：`LayoutCell` → `LayoutItem`。

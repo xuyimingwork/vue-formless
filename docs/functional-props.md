@@ -6,7 +6,7 @@
 
 ## 1. 唯一载体：`HostProps<T>`
 
-所有函数式 props 都由同一个类型承载（`shared/field-schema.ts`）：
+所有函数式 props 都由同一个类型承载（`shared/form-field-types.ts`）：
 
 ```ts
 export type HostProps<TFl> =
