@@ -16,7 +16,7 @@ import { createFormItem } from './create-form-item'
 import { FORM_FIELD_KEY, FORM_VIEW_KEY, type FormFieldContext } from '../shared/injection-keys'
 import { useFormViewValue } from '../hooks/use-form-view-value'
 import type { FormFieldFormless, HostProps } from '../shared/form-field-types'
-import { getAttrBoolean, type JsxHost } from '../shared/utils'
+import { createExposeProxy, getAttrBoolean, type JsxHost } from '../shared/utils'
 import { VIEW_ATTR_CHANNELS, useDispatch } from '../hooks/use-dispatch'
 
 export interface FormViewLayoutBind {
@@ -91,25 +91,6 @@ export interface FormViewProps {
   'fl:item'?: boolean
 }
 
-/* v8 ignore start -- client-only: the host `ref` is only populated on client mount, not in SSR */
-function proxyExpose(host: { value: object | null }): object {
-  return new Proxy(
-    {},             
-    {
-      get(_target, key) {
-        const inner = host.value
-        if (inner == null) return undefined
-        const value = Reflect.get(inner, key, inner)
-        return typeof value === 'function' ? (value as (...args: unknown[]) => unknown).bind(inner) : value
-      },
-      has(_target, key) {
-        return host.value != null && key in host.value
-      },
-    },
-  )
-}
-/* v8 ignore stop */
-
 /**
  * Bind host layout / form / item once; returns a FormView (design.md §10).
  *
@@ -138,7 +119,7 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
     inheritAttrs: false,
     setup(_, { slots, attrs, expose }) {
       const formRef = ref<object | null>(null)
-      expose(proxyExpose(formRef))
+      expose(createExposeProxy(formRef))
 
       // Inject once: the ancestor source is both the nested test and this layer's
       // inheritance source.

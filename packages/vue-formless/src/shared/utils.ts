@@ -62,3 +62,29 @@ export function toCamel(s: string): string {
 export type ToCamel<S extends string> = S extends `${infer Head}-${infer Tail}`
   ? `${Head}${Capitalize<ToCamel<Tail>>}`
   : S
+
+/**
+ * A deferred `expose()` target: a Proxy whose property reads (`get`) and
+ * `in` checks forward to the **current** value of a ref-like holder.
+ *
+ * The holder is `null` until the host mounts (SSR renders no instance), so
+ * `expose()` gets a stable object that stays valid even before the real
+ * instance API exists. Reads return `undefined` while it's null; methods are
+ * bound to the inner object so `this` is the host instance once it does.
+ */
+export function createExposeProxy<T extends object>(host: { value: T | null }): T {
+  return new Proxy(
+    {},
+    {
+      get(_target, key) {
+        const inner = host.value
+        if (inner == null) return undefined
+        const value = Reflect.get(inner, key, inner)
+        return typeof value === 'function' ? (value as (...args: unknown[]) => unknown).bind(inner) : value
+      },
+      has(_target, key) {
+        return host.value != null && key in host.value
+      },
+    },
+  ) as T
+}
