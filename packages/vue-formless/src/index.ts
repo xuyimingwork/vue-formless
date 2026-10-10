@@ -1,4 +1,4 @@
-// Public API (design.md §19): 5 runtime values + the types a consumer must name.
+// Public API: 5 runtime values plus the types a consumer must name.
 // Everything else in `src` is kernel-private.
 
 // --- layout re-exports -----------------------------------------------------
@@ -28,8 +28,8 @@ export type { FormFieldComponent, FormFieldSlotProps } from './assembly/create-f
 // augments Vue's `ComponentCustomOptions` (`FormControlFormless`), and the
 // adapter snapshot (`FormFieldFormless`). Their derivations —
 // `FormFieldFormlessRaw`, `FormFieldFormlessField(Raw)`, `FormFieldVModel(Raw)` /
-// `FormFieldProp(Raw)`, `ToFormlessProps`, `HostProps` — stay private;
-// the declaration's own members are reachable via indexed access.
+// `FormFieldProp(Raw)`, `ToFormlessProps`, `HostProps` — stay private; the
+// declaration's own members are reachable via indexed access.
 export type {
   CreateFormFieldOptions,
   FormFieldCustomOptions,

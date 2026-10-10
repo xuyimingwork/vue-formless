@@ -29,10 +29,15 @@ export interface FormFieldSlotProps {
 
 export type FormFieldComponent<P = {}> = DefineComponent<FormFieldProps & P>
 
+/**
+ * Normalize a declared port name / location into an array (the one primitive
+ * behind `normalizeModel` / `normalizeProp`). `undefined` means "not configured",
+ * anything else means "configured". Non-string array entries are **kept** as
+ * `undefined` placeholders — `model[i] ↔ prop[i]` is aligned by index, so
+ * filtering would shift them.
+ */
 function normalizeModelOrProp(value: unknown): (string | undefined)[] | undefined {
-  // undefined 视为用户未配置，其余场景均视为用户已配置
   if (typeof value === 'undefined') return
-  // 此处不能过滤数组中的非法值，因为 model 与 prop 按顺序匹配
   return (Array.isArray(value) ? value : [value])
     .map(item => {
       if (typeof item !== 'string') return
@@ -41,15 +46,16 @@ function normalizeModelOrProp(value: unknown): (string | undefined)[] | undefine
 }
 
 /**
- * One Field's runtime assembly — the single implementation, addressed by channel
- * buckets (design.md §16.3). Both call sites reach it the same way: merge each
- * layer's preset **in bucket key space** (prefix already stripped, so nothing has
- * to be spelled back), then hand the buckets over.
+ * One field's runtime assembly — the single implementation, addressed by channel
+ * buckets. Both call sites reach it the same way: merge each layer's preset
+ * **in bucket key space** (prefix already stripped, so nothing has to be spelled
+ * back), then hand the buckets over.
  *
  * - `FormField` dispatches the tag's own attrs and passes the buckets straight
  *   through; the public tag declares `fl:component` / `fl:model` itself.
- * - The factory shell presets `fl` (creation-time, static) and passes `schema.props`
- *   as the `control` layer, evaluated here against the core's own `FormFieldFormless`.
+ * - The factory shell presets `fl` (creation-time, static) and passes
+ *   `schema.props` as the `control` layer, evaluated here against the core's own
+ *   `FormFieldFormless`.
  *
  * Identity and the `provide` live here and nowhere else; the shell never provides.
  */
@@ -70,7 +76,8 @@ const FormFieldCore = defineComponent({
     control: { type: [Object, Function] as PropType<HostProps<FormFieldFormless>>, required: true },
   },
   setup(props, { slots }) {
-    // FormField 唯一消费的上行上下文：model 源 + 身份映射 + 壳资源都在这里。
+    // FormField's only upstream context: model source + identity mapping + shell
+    // resources all live here.
     const context = inject(FORM_FIELD_KEY, null)
 
     const controlFormless = computed(() => (props.fl?.component as any)?.formless)
@@ -79,23 +86,27 @@ const FormFieldCore = defineComponent({
       ...props.fl,
     }))
 
-    // 模型名
+    // Port names: tag fl:model > schema.model > control static formless.model >
+    // ['modelValue'].
     const model = computed(() => {
       return normalizeModelOrProp(propFormless.value?.model)
         || normalizeModelOrProp(controlFormless.value?.model)
         || ['modelValue']
     })
 
-    // 属性名
+    // Locations: own fl:prop first; only when absent, resolve per port from the
+    // ancestor getProp(model).
     const prop = computed(() => {
       return normalizeModelOrProp(propFormless.value?.prop)
         || context?.getProp?.(model.value)
     })
 
     /**
-     * 绑定属性（design.md §14）：按口组装，值和写口监听分开。control 上两者的
-     * 合并口径不同——数据键「后者覆盖」，写口监听要和外部监听**融合**（`controlAttrs`），
-     * 所以这里就分开交付，不让两类键挤在一袋里被同一套规则处理。
+     * Per-port bindings: assembled with value keys and write listeners delivered
+     * separately. Their merge semantics on the control differ — data keys are
+     * "last one wins", write listeners must **fuse** with external listeners
+     * (`controlAttrs`) — so they are split here rather than packed into one bag
+     * and run through one rule.
      */
     const bind = computed(() => {
       const values: Record<string, unknown> = {}
@@ -113,10 +124,11 @@ const FormFieldCore = defineComponent({
       return { values, events }
     })
 
-    /** `$bindings`（design.md §7.3 / §14）：值和写口拼回一袋，供 default 插槽消费。 */
+    /** `$bindings`: values and write listeners joined back into one bag for the default slot. */
     const bindings = computed(() => ({ ...bind.value.values, ...bind.value.events }))
 
-    // 向下继续提供上下文
+    // Provide unconditionally: getProp is rewritten per cell; the rest (access /
+    // shell resources / page fl) is passed through.
     provide(FORM_FIELD_KEY, {
       ...(context as any),
       getProp(m: (string | undefined)[]) {
@@ -128,7 +140,8 @@ const FormFieldCore = defineComponent({
       }
     })
 
-    // FormField 的渲染方式
+    // Assembly placement: the inner nature (control static formless.field) is
+    // combined with the outer placement (fl:field).
     const field = computed<FormFieldFormlessField>(() => {
       const inner = controlFormless.value?.field === 'embed' ? 'embed' : 'auto'
       const outer = propFormless.value?.field === 'embed' 
@@ -136,16 +149,17 @@ const FormFieldCore = defineComponent({
         : propFormless.value?.field === 'wrap-embed'
           ? 'wrap-embed'
           : 'auto'
-      // inner 是 auto，外层是 auto embed wrap-embed 三种情况
+      // Inner auto: outer takes auto / embed / wrap-embed (auto falls back to wrap).
       if (inner === 'auto') return outer === 'auto' ? 'wrap' : outer 
-      // inner 是 embed，外层只有 embed 和 wrap-embed 两种情况
+      // Inner embed: outer only has embed and wrap-embed (auto falls back to embed).
       return outer === 'auto' ? 'embed' : outer
     })
 
     /**
-     * 宿主 Item 壳开关（design.md §9）：页级 `fl:item` 默认 ← 本格 `fl:item`，近的赢；
-     * 裸 attr（`''`）算 `true`，没写跟页，页也没写则 `true`。结果恒为布尔，故
-     * control 的 `props` 与 `item.props` 看到的是**同一个归一化值**。
+     * Host Item shell switch: page-level `fl:item` default ← this cell's
+     * `fl:item`, nearest wins; a bare attr (`''`) counts as `true`, absent defers
+     * to the page, and no page either means `true`. Always a boolean, so the
+     * control's `props` and `item.props` see the **same normalized value**.
      */
     const item = computed(() =>
       getAttrBoolean(
@@ -166,19 +180,24 @@ const FormFieldCore = defineComponent({
     })
 
     /**
-     * control 的最终 props（design.md §16.3）。两层口径：
+     * The control's final props. Two layers of semantics:
      *
-     * - **外部两层**（schema `props` ← 标签裸名）仍是「覆盖」：同名监听
-     *   （`preset.props` 的 `onClick` vs 标签 `@click`）近的赢，先自行合成一层；
-     * - `bind` 是 formless 自己的写口：数据键覆盖外部，写口监听（`onUpdate:xxx`）
-     *   与外部监听**融合**成数组，两个都触发——`mergeProps` 对 `on*` 的语义，
-     *   与 SFC 编译器 `v-model` + `@update:xxx` 用的是同一实现。
+     * - **The outer two layers** (schema `props` ← tag bare names) still
+     *   "override": a same-named listener (`preset.props`'s `onClick` vs the tag's
+     *   `@click`) — nearest wins, composed into one layer first;
+     * - `bind` is formless's own write port: data keys override the outside,
+     *   write listeners (`onUpdate:xxx`) **fuse** with external listeners into an
+     *   array, both firing — `mergeProps`'s `on*` semantics, the same
+     *   implementation the SFC compiler uses for `v-model` + `@update:xxx`.
      *
-     * 参数顺序即融合顺序：`events` 在最前，外部监听追加其后，于是**内部写口先跑、
-     * 外部监听随后被通知**（写回本身 batch 到 nextTick，两者都拿到同一个值）；
-     * `values` 在最后，数据键照旧覆盖外部。外部先合成一层还顺带保住了
-     * `class` / `style` 的覆盖口径：`mergeProps` 会合并这两键，但外部层内已经
-     * 覆盖完，而 `bind` 不带它们（它是中间层也无从干扰）。
+     * Argument order is the fusion order: `events` first, external listeners
+     * appended after, so the **internal write runs first, the external listener
+     * is then notified** (the write-back itself batches to nextTick; both see the
+     * same value); `values` last, data keys overriding the outside as usual.
+     * Composing the outside into one layer also preserves the `class` / `style`
+     * override semantics: `mergeProps` merges those two keys, but the outside
+     * layer has already overridden within itself, and `bind` carries neither (it
+     * is a middle layer, so it cannot interfere).
      */
     const controlAttrs = computed(() => {
       const preset = typeof props.preset?.props === 'function' ? props.preset?.props(formless.value) : props.preset?.props
@@ -220,9 +239,9 @@ const FormFieldCore = defineComponent({
 })
 
 /**
- * The public Field tag: one `dispatch`, then buckets. It has no preset, so the
- * tag's `fl:component` / `fl:model` are its own declaration (design.md §7.2);
- * locking those to a schema is the factory shell's job, not this one's.
+ * The public field tag: one `dispatch`, then buckets. It has no preset, so the
+ * tag's `fl:component` / `fl:model` are its own declaration; locking those to a
+ * schema is the factory shell's job, not this one's.
  */
 export function createFormField(options: CreateFormFieldOptions = {}) {
   const { name, component, props, ...preset } = options
@@ -245,7 +264,7 @@ export function createFormField(options: CreateFormFieldOptions = {}) {
           fl={{
             ...fl.value,
             // `fl.value` is the raw tag bucket (`Record<string, unknown>`); schema
-            // still wins over the tag's `fl:component` (design.md §11.2).
+            // still wins over the tag's `fl:component`.
             component: (component ?? fl.value.component) as Component | undefined,
           }}
           layoutItem={layoutItem.value}

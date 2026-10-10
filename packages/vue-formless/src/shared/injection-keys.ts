@@ -2,58 +2,74 @@ import type { Component, ComputedRef, InjectionKey, MaybeRefOrGetter } from 'vue
 import type { FormItemComponent } from '../assembly/create-form-item'
 
 /**
- * `FORM_VIEW_KEY`：只供嵌套 FormView 继承（读/写源 + nested 判定）。
+ * `FORM_VIEW_KEY`: only for nested FormViews to inherit (read/write source +
+ * the nested test).
  *
- * 三个成员同源——都绑在这一层或祖先的 v-model 上：`value` 读整值，
- * `getIn` / `setIn` 相对同一个根按位置读写，所以调用方不必再传 value。
+ * The three members share one source — all bound to this layer's or an
+ * ancestor's v-model: `value` reads the whole value, `getIn` / `setIn` read and
+ * write relative to that same root by location, so callers never pass the value
+ * again.
  *
- * 写通道只有一条（design.md §14.2）：`setIn` 一路转发到 owner 层的 writer，
- * 由它同 tick 合并后 emit。非 owner 层绝不自己 emit —— 否则多层各自从自己的
- * props 快照重建整值、互相覆盖。`value` 只是父快照，勿改。
+ * There is a single write channel: `setIn` forwards all the way to the owner
+ * layer's writer, which merges same-tick and emits. A non-owner layer never
+ * emits itself — otherwise each layer would rebuild the whole value from its own
+ * props snapshot and overwrite one another. `value` is just the parent snapshot,
+ * do not mutate it.
  */
 export interface FormViewContext {
-  /** 本源整值（父快照，勿改）。消费方：嵌套 FormView（拼 `fl.modelValue` / 重建子路径）。 */
+  /** The source whole value (parent snapshot, do not mutate). Consumer: nested FormView. */
   readonly value: ComputedRef<unknown>
-  /** 相对本源的位置读。 */
+  /** Read at a location relative to the source. */
   getIn(path: string): unknown
-  /** 相对本源的位置写。终点在 owner 层，emit 只在那里发生。 */
+  /** Write at a location relative to the source. Ends at the owner layer; emit happens only there. */
   setIn(path: string, value: unknown): void
 }
 
 /**
- * FormField 唯一消费的上行上下文，由 FormView 与 FormField 身份根共同提供：
- * - `getModelBinding`（model 源）+ `FormItem` / `LayoutView`（壳资源）来自 FormView；
- * - `getPropBinding`（口 → 位置对应）来自 FormField 身份根，缺失即「截断」。
+ * FormField's only upstream context, provided jointly by FormView and the
+ * FormField identity root:
+ * - `access` (model source) + `FormItem` / `LayoutView` (shell resources) come
+ *   from FormView;
+ * - `getProp` (port → location mapping) comes from the FormField identity root;
+ *   its absence is the "truncation".
  */
 export interface FormFieldContext {
   /**
-   * 
-   * @param model 自身绑定名，如：['modelValue']
+   * Port names → their locations (identity mapping, provided by this cell's
+   * FormField; absent on an ancestor = does not exist).
+   * @param model the ports this field binds, e.g. `['modelValue']`
    */
   getProp?(model: (string | undefined)[]): (string | undefined)[]
   /**
-   * FormView 提供，FormField 原样转发的数据更新工具
-   * @param prop 路径
+   * Model source: read a value and write it back by location (provided by
+   * FormView, passed through unchanged by FormField).
+   * @param prop location relative to the FormView root
    */
   access(prop?: MaybeRefOrGetter<string>): { value: ComputedRef, update: (v: unknown) => void }
-  /** 组装好的宿主 Item（由 FormView 提供，FormField 身份根透传）。 */
+  /** The assembled host Item (provided by FormView, passed through by the FormField identity root). */
   FormItem?: FormItemComponent
-  /** 工厂绑定的 LayoutView（wrap-embed 内层窗口；由 FormView 提供，透传）。 */
+  /** The factory-bound LayoutView (wrap-embed inner window; provided by FormView, passed through). */
   LayoutView?: Component
   /**
-   * 最近 FormView 下行的**页级 `fl`**（惰性），且**只装 FormField 会读的那部分**。
-   * 今天只有一个键 `item`：`fl:layout` / `fl:form` 是 FormView 自己的开关，它已自行消费，
-   * 不下行，所以页桶里其余键对 FormField 没有任何意义。
+   * The nearest FormView's **page-level `fl`** (lazy), holding **only what
+   * FormField reads**. Today that is one key, `item`: `fl:layout` / `fl:form` are
+   * FormView's own switches, consumed by it and not sent down, so the rest of the
+   * page bucket means nothing to FormField.
    *
-   * 页 `fl:item` 与本格 `fl.item` 的合并因此落在 FormFieldCore 一处（design.md §9 / §16.3），
-   * 格上的 `item` 才是归一化后的布尔。
+   * The page `fl:item` ↔ this cell's `fl.item` merge therefore lives in exactly
+   * one place, FormFieldCore; the cell's `item` is the normalized boolean.
    *
-   * 它不是本格物化值：随 `access` / 壳资源一路透传，且只有 FormView 回答——身份根
-   * 重写 `getProp` 时不动它，所以组合体内层格拿到的是同一个页默认。
+   * It is not this cell's materialized value: it passes through with `access` /
+   * the shell resources, and only FormView answers it — the identity root leaves
+   * it alone when rewriting `getProp`, so the inner cells of a composite see the
+   * same page default.
    *
-   * 值是**原始 attrs 形态**（裸 `fl:item` 是 `''`），由 FormFieldCore 与格值一起交给
-   * `getAttrBoolean` 归一。类型按项目既有契约写成 `boolean`（同 `FormViewProps['fl:item']` /
-   * `CreateFormFieldOptions.item` / `FormFieldProps['fl:item']`）；全可选的形状也让 provider 侧无需窄化。
+   * The value is in **raw attrs form** (a bare `fl:item` is `''`); FormFieldCore
+   * hands it to `getAttrBoolean` together with the cell value. The type is
+   * written as `boolean` per the existing contract (like
+   * `FormViewProps['fl:item']` / `CreateFormFieldOptions.item` /
+   * `FormFieldProps['fl:item']`); the all-optional shape also keeps providers
+   * from needing to narrow.
    */
   fl?: MaybeRefOrGetter<{ item?: boolean }>
 }

@@ -24,14 +24,14 @@ export interface FormViewLayoutBind {
   Col: Component
   /**
    * Default LayoutView props (density etc.): a static object. Tag `:layout:*`
-   * overlays them (near wins). `disabled` stays kernel-owned: always the
+   * overlays them (nearest wins). `disabled` stays kernel-owned: always the
    * `fl:layout` polarity flip.
    */
   props?: Record<string, unknown>
 }
 
 /**
- * Host item shell. `props` are defaults, static or mapped from the field
+ * Host Item shell. `props` are defaults, static or mapped from the field
  * snapshot (`HostProps<FormFieldFormless>`); `createFormItem` does the
  * projection.
  */
@@ -43,9 +43,9 @@ export interface FormViewItemBind {
 /**
  * Host Form shell. `props` are **static** defaults: formless has no form-level
  * snapshot to project from — the write model reaches the host as the bare
- * `modelValue` attr (no-prefix rule, design.md §10.1). A library whose model
- * port is named differently (`ElForm` → `model`) wraps the host in its own
- * component that declares `modelValue` and forwards it (`MyForm`).
+ * `modelValue` attr (no-prefix rule). A library whose model port is named
+ * differently (`ElForm` → `model`) wraps the host in its own component that
+ * declares `modelValue` and forwards it (`MyForm`).
  */
 export interface FormViewFormBind {
   component: Component
@@ -70,15 +70,16 @@ export interface FormViewProps {
   /**
    * FormView write model (the DTO). It is **not** a declared prop: the bare key
    * stays in `attrs` and, per the no-prefix rule, also reaches the host Form — a
-   * host that wants it declares `modelValue` itself (wrap ElForm in a `MyForm`;
-   * design.md §10.1). The `onUpdate:modelValue` listener is read here
-   * (`useFormViewValue`) and also rides through to the host Form.
+   * host that wants it declares `modelValue` itself (wrap ElForm in a `MyForm`).
+   * The `onUpdate:modelValue` listener is read here (`useFormViewValue`) and also
+   * rides through to the host Form.
    */
   modelValue?: unknown
   /**
    * Grid hosting switch. Default `false`.
-   * Density: factory `layout.props` plus `:layout:*` for **this** page LayoutView only.
-   * wrap-embed inner LayoutView inherits neither. Other `:layout:*` fall through to the host Row.
+   * Density: factory `layout.props` plus `:layout:*` for **this** page LayoutView
+   * only. A wrap-embed inner LayoutView inherits neither. Other `:layout:*` fall
+   * through to the host Row.
    */
   'fl:layout'?: FormViewLayoutProp
   'layout:column'?: LayoutViewProps['column']
@@ -92,7 +93,7 @@ export interface FormViewProps {
 }
 
 /**
- * Bind host layout / form / item once; returns a FormView (design.md §10).
+ * Bind host layout / form / item once; returns a FormView.
  *
  * Host shells stay in this closure. Ad-hoc fields use `FormField`.
  *
@@ -107,11 +108,8 @@ export interface FormViewProps {
  */
 export function createFormView(options: CreateFormViewOptions = {}): FormViewComponent {
   const { Row, Col } = options.layout ?? {}
-  // 布局组件
   const LayoutView = createLayoutView({ Row, Col })
-  // 表单组件
   const Form = options.form?.component ? markRaw(options.form.component) : undefined
-  // 表单项组件
   const FormItem = createFormItem(options.item)
 
   return defineComponent({
@@ -121,14 +119,14 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
       const formRef = ref<object | null>(null)
       expose(createExposeProxy(formRef))
 
-      // Inject once: the ancestor source is both the nested test and this layer's
-      // inheritance source.
+      // Inject once: the ancestor source is both the nested test and this
+      // layer's inheritance source.
       const parent = inject(FORM_VIEW_KEY, null)
       const nested = parent != null
       /**
-       * Page channels (design.md §5.3): `fl` is the kernel semantic source and
-       * `layout` the page window's props. `layout-item:*` and `item:*` are not
-       * FormView channels: both stay in default and fall through to the host Form.
+       * Page channels: `fl` is the kernel semantic source and `layout` the page
+       * window's props. `layout-item:*` and `item:*` are not FormView channels:
+       * both stay in default and fall through to the host Form.
        */
       const {
         fl: viewFormlessOptions,
@@ -137,11 +135,11 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
       } = useDispatch(attrs as Record<string, unknown>, VIEW_ATTR_CHANNELS)
 
       /**
-       * Page shell switches, resolved once (design.md §9). `fl:layout` is a plain
-       * boolean attr. `fl:form` is a three-way switch, not a Vue boolean attr, so
-       * it cannot ride `getAttrBoolean`: `'auto'` (and absent) defer to nesting —
-       * the root wraps, a nested FormView does not — while an explicit value
-       * wins; a bare `fl:form` arrives as `''` and counts as `true`.
+       * Page shell switches, resolved once. `fl:layout` is a plain boolean attr.
+       * `fl:form` is a three-way switch, not a Vue boolean attr, so it cannot
+       * ride `getAttrBoolean`: `'auto'` (and absent) defer to nesting — the root
+       * wraps, a nested FormView does not — while an explicit value wins; a bare
+       * `fl:form` arrives as `''` and counts as `true`.
        */
       const layout = computed(() => getAttrBoolean(false, viewFormlessOptions.value.layout))
       const form = computed(() => {
@@ -151,9 +149,8 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
         return !!value
       })
 
-      // 处理 FormView 的值
       const { getIn, setIn } = useFormViewValue()
-      
+
       provide(FORM_FIELD_KEY, {
         access(prop: MaybeRefOrGetter<string>) {
           return {
@@ -161,19 +158,21 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
             update: (v: string) => setIn(toValue(prop), v)
           }
         },
-        // 壳资源直接给出：页级 `fl:item` 默认改由 FormFieldCore 从 `fl` 桶里取
-        // （design.md §9 / §16.3），这里不再为 item 包一层。
+        // Shell resources given outright: the page-level `fl:item` default is
+        // instead read by FormFieldCore from the `fl` bucket, so nothing wraps
+        // `item` here.
         FormItem: markRaw(FormItem),
         LayoutView: markRaw(LayoutView),
-        // 页级 `fl` 桶：FormFieldCore 唯一的页默认来源。`layout` / `form` 是页自己的
-        // 开关（上面已消费），FormField 只读 `item`，故契约就是 `{ item?: boolean }`。
+        // Page `fl` bucket: FormFieldCore's only source of page defaults.
+        // `layout` / `form` are the page's own switches (consumed above);
+        // FormField only reads `item`, so the contract is `{ item?: boolean }`.
         fl: viewFormlessOptions,
       } as FormFieldContext)
 
       return (): VNodeChild => {
         const HostLayoutView = LayoutView as JsxHost
-        // Factory layout.props sets LayoutView defaults; tag :layout:* overlays (near wins).
-        // `disabled` is kernel-owned: fl:layout flips polarity (design.md §10.1).
+        // Factory layout.props sets LayoutView defaults; tag :layout:* overlays
+        // (nearest wins). `disabled` is kernel-owned: fl:layout flips polarity.
         const body = (
           <HostLayoutView
             {...{ ...options.layout?.props, ...viewLayoutAttrs.value }}
@@ -186,9 +185,9 @@ export function createFormView(options: CreateFormViewOptions = {}): FormViewCom
         if (!form.value) return body
 
         const HostForm = Form as JsxHost
-        // Factory form.props sets host defaults; tag host attrs overlay (near wins).
-        // The bare `modelValue` stays in the default bucket and reaches the host
-        // (no-prefix rule); its listener rides along too, on purpose.
+        // Factory form.props sets host defaults; tag host attrs overlay (nearest
+        // wins). The bare `modelValue` stays in the default bucket and reaches
+        // the host (no-prefix rule); its listener rides along too, on purpose.
         return (
           <HostForm
             ref={formRef}

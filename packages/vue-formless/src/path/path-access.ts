@@ -1,13 +1,13 @@
 /**
- * Immutable get/set over model paths (design.md §15). Path strings such as
- * `buyers[0].name` are parsed into segments by `./path-parse`.
+ * Immutable get/set over model paths. Path strings such as `buyers[0].name` are
+ * parsed into segments by `./path-parse`.
  *
  * Two halves:
  * - the **pure core** `getIn(root, path)` / `setIn(root, path, value)`: root is
  *   passed on every call, nothing is retained between calls;
  * - the **bound façade** `bindPathAccess(source)`: the same pair with the source
  *   (a writable `computed` / `ref`) captured once, so callers read and write a
- *   fixed location by path only — the FormView layer's channel (design.md §14.2).
+ *   fixed location by path only — the FormView layer's channel.
  */
 import { nextTick } from 'vue'
 import { parsePath, type PathSegment } from './path-parse'
@@ -26,8 +26,8 @@ function isObjectLike(value: unknown): value is Record<string, unknown> | unknow
  * always sets an own key (`{ ...base, [key]: value }`), so this keeps reads the
  * inverse of writes: a segment like `constructor` / `toString` / `__proto__` is
  * grammar-legal but not data, and reading it through the prototype chain would
- * hand back a value `setIn` never wrote (design.md §15). `Object.prototype.hasOwnProperty`
- * is called via `call` because `hasOwnProperty` is itself a reachable key.
+ * hand back a value `setIn` never wrote. `Object.prototype.hasOwnProperty` is
+ * called via `call` because `hasOwnProperty` is itself a reachable key.
  */
 const hasOwn = Object.prototype.hasOwnProperty
 
@@ -41,8 +41,8 @@ function readOwnProperty(container: Record<string, unknown>, key: string): unkno
  * reuses. A shape mismatch — key over an array, index over an object — reads as
  * `undefined` and stays silent: under the B-track grammar the two spellings are
  * fixed (keys are `name` / `.0` / `["…"]`, arrays are `[n]`), so a mismatch is a
- * caller-side `path` bug, and reads never guess or warn (design.md §15). A key reads
- * own properties only (`readOwnProperty`), so the prototype chain is not data.
+ * caller-side `path` bug, and reads never guess or warn. A key reads own
+ * properties only (`readOwnProperty`), so the prototype chain is not data.
  */
 function readSegment(container: unknown, segment: PathSegment): unknown {
   // Nothing to descend into: missing nodes and primitives read as `undefined`.
@@ -73,7 +73,9 @@ function readSegments(root: unknown, segments: PathSegment[]): unknown {
 /**
  * Immutable read at a full `path` location (`buyers[0].name`). An invalid or
  * empty `path` reads as `undefined`: `parsePath` reports failure with
- * `undefined` instead of throwing, and the caller owns fixing `path` (design.md §15).
+ * `undefined` instead of throwing, and the caller owns fixing `path`.
+ * @param root the object to read from
+ * @param path the location to read
  */
 export function getIn(root: unknown, path: string): unknown {
   const segments = parsePath(path)
@@ -81,8 +83,8 @@ export function getIn(root: unknown, path: string): unknown {
 }
 
 /**
- * Immutable write at a full `path` location (`buyers[0].name`). Contract
- * (design.md §15): the write side stays as silent as the read side.
+ * Immutable write at a full `path` location (`buyers[0].name`). The write side
+ * stays as silent as the read side.
  *
  * - walk `segments` with `readSegment` above; an invalid or empty `path` returns
  *   `root` unchanged (no throw, no warn);
@@ -94,6 +96,10 @@ export function getIn(root: unknown, path: string): unknown {
  *   warns — a mismatched `path` is a caller-side bug and reads already stay
  *   quiet about it;
  * - never mutate `root`: clone every level on the way to the leaf.
+ *
+ * @param root  the object to write into (never mutated)
+ * @param path  the location to write
+ * @param value the value to write
  */
 export function setIn(root: unknown, path: string, value: unknown): unknown {
   const segments = parsePath(path)
@@ -150,14 +156,16 @@ interface PendingWrite {
 
 /**
  * Bind `getIn` / `setIn` to one writable `source`, returning this layer's own
- * path access (design.md §14.2). Generic — no notion of FormView layers or the
- * parent chain; owning layers call it, inherited layers forward to an ancestor.
+ * path access. Generic — no notion of FormView layers or the parent chain;
+ * owning layers call it, inherited layers forward to an ancestor.
  *
  * `getIn` reads the source as it is right now. `setIn` never mutates the source
  * *object*: same-tick writes merge into one write on nextTick, cloning from the
  * *latest* source value (`setIn` above; nested paths clone arrays on write), and
  * the single write (`source.value = next`) is the layer's `update:modelValue`:
  * a writable computed whose setter reports the rebuilt whole value.
+ *
+ * @param source the writable root to bind reads and writes to
  */
 export function bindPathAccess(source: WritableSource): PathAccess {
   let pending: PendingWrite[] | null = null
@@ -178,8 +186,8 @@ export function bindPathAccess(source: WritableSource): PathAccess {
         const batch = pending
         pending = null
 
-        // Invariant: non-empty while a flush is scheduled; the guard just
-        // keeps a (hypothetical) empty batch from writing an unchanged source.
+        // Invariant: non-empty while a flush is scheduled; the guard just keeps
+        // a (hypothetical) empty batch from writing an unchanged source.
         /* v8 ignore next */
         if (!batch?.length) return
 

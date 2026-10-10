@@ -2,16 +2,16 @@ import { computed, type ComputedRef } from 'vue'
 import { toCamel, upperFirst, type ToCamel } from '../shared/utils'
 
 /**
- * Channel dispatch, both halves (design.md §5.2 / §5.3): the plain primitive
- * `dispatch` — the channel table, the prefix derivation and one bucketing pass —
- * and its Vue binding `useDispatch`, which is what the component call sites use.
- * A channel shows up on tag attrs **and** on slot names, so the slot side of
- * FormField lives here too.
+ * Channel dispatch, both halves: the plain primitive `dispatch` — the channel
+ * table, the prefix derivation and one bucketing pass — and its Vue binding
+ * `useDispatch`, which is what the component call sites use. A channel shows up
+ * on tag attrs **and** on slot names, so the slot side of FormField lives here
+ * too.
  */
 
 /**
  * The closed set of channels. A channel name *is* a tag prefix minus its colon
- * (`item` ↔ `item:`), so there is no second table to keep in sync (design.md §5.1).
+ * (`item` ↔ `item:`), so there is no second table to keep in sync.
  *
  * The order carries no meaning: `resolveKey` looks a prefix up whole, colon
  * included, so `layout-item:` can never be answered by `layout:`.
@@ -37,8 +37,8 @@ type KeyMeta<C extends Channel> = { channel: C; type: 'prop' | 'listener' }
  *
  * Both the camelCase form and the listener form are computed from the channel
  * name (`on` + PascalCase), so adding a channel above teaches the table all four
- * spellings. Vue compiles `@item:validate` to the attr `onItem:validate`, which is
- * why the listener spelling has to be accepted here at all (design.md §5.1).
+ * spellings. Vue compiles `@item:validate` to the attr `onItem:validate`, which
+ * is why the listener spelling has to be accepted here at all.
  *
  * The table itself is *global* — it knows every channel. Whether a channel is
  * actually claimed for a given call is decided later, per call, in `resolveKey`
@@ -62,7 +62,7 @@ const CHANNEL_PREFIX_TABLE = new Map<string, KeyMeta<Channel>>(
  * The result of one dispatch: one bucket per claimed channel, plus a `default`
  * bucket for every key no claimed channel answered for. `T` is whatever the bag
  * carried — prop values when dispatching attrs, slot functions when dispatching
- * slot names (design.md §5.2).
+ * slot names.
  */
 export type ChannelBuckets<T, C extends Channel> = {
   readonly [K in C]: Record<string, T>
@@ -71,7 +71,7 @@ export type ChannelBuckets<T, C extends Channel> = {
 }
 
 /**
- * Which key shape a bucket carries (design.md §5.2):
+ * Which key shape a bucket carries:
  *
  * - `drop` — the normalized key: channel prefix stripped, listener tail renamed
  *   back to Vue's `onXxx` (`onItem:validate` → `onValidate`).
@@ -88,7 +88,7 @@ export interface DispatchOptions {
 }
 
 /**
- * One pass over `bag`, one bucket per channel (design.md §5.2):
+ * One pass over `bag`, one bucket per channel:
  *
  * - `item:label-width` → `item` bucket, key `label-width`
  * - `onItem:validate` → `item` bucket, key `onValidate`
@@ -129,17 +129,19 @@ export function dispatch<T, C extends Channel>(
   const buckets: Record<string, Record<string, T>> = {}
   for (const channel of [...channels, 'default']) buckets[channel] = Object.create(null)
 
-  // Resolve every key once, up front: the two passes below then share the results,
-  // and `resolveKey` never runs twice for the same key. `rawKey` rides along for
-  // the `keep` shape only; `default` never needs it (its keys are already raw).
+  // Resolve every key once, up front: the two passes below then share the
+  // results, and `resolveKey` never runs twice for the same key. `rawKey` rides
+  // along for the `keep` shape only; `default` never needs it (its keys are
+  // already raw).
   const entries = Object.entries(bag)
     .map(([rawKey, value]) => ({ ...resolveKey(rawKey, channels), rawKey, value }))
 
-  // Two passes, props first: a listener overwrites a prop when both resolve to the
-  // same key in the same bucket (`item:onClick` and `onItem:click` both become
-  // `onClick`), because the explicit listener spelling is the stronger intent.
-  // This precedence is the whole reason the loops are split — see the
-  // "lets a listener win over a prop on a key collision" case in use-dispatch.test.ts.
+  // Two passes, props first: a listener overwrites a prop when both resolve to
+  // the same key in the same bucket (`item:onClick` and `onItem:click` both
+  // become `onClick`), because the explicit listener spelling is the stronger
+  // intent. This precedence is the whole reason the loops are split — see the
+  // "lets a listener win over a prop on a key collision" case in
+  // use-dispatch.test.ts.
   for (const { rawKey, key, value, channel, type } of entries) {
     if (type === 'listener') continue
     buckets[channel || 'default'][keep && channel ? rawKey : key] = value
@@ -157,7 +159,7 @@ export function dispatch<T, C extends Channel>(
 }
 
 /**
- * Reads a single key against the channels a call site claims.
+ * Read a single key against the channels a call site claims.
  *
  * A claimed key comes back as `{ key, channel, type }`: the prefix stripped, and
  * for a listener the tail renamed back to Vue's `onXxx` (`onItem:validate` →
@@ -168,8 +170,8 @@ export function dispatch<T, C extends Channel>(
  * Any key that is not claimed whole comes back as `{ key }` alone — `channel` and
  * `type` left undefined, the key byte-for-byte unchanged. That covers four cases:
  * no colon at all, a prefix with an empty tail (`item:`, `onItem:`), an unknown
- * prefix (`onUpdate:modelValue` is not any channel's listener prefix), and a known
- * prefix whose channel this caller did not list.
+ * prefix (`onUpdate:modelValue` is not any channel's listener prefix), and a
+ * known prefix whose channel this caller did not list.
  *
  * @param key      a raw attr / listener / slot name
  * @param channels the channels the caller claims; a channel not listed never claims
@@ -213,10 +215,10 @@ export function resolveKey<K extends string, C extends Channel>(
 export const VIEW_ATTR_CHANNELS = ['fl', 'layout'] as const
 
 /**
- * The channels a FormField claims, the host Item shell included (design.md §5.2):
- * `fl` / `layout` / `layout-item` go to the kernel, the page window and this
- * cell; `item` to the host Item shell; `default` — the bare names — to the
- * control, never to the Item.
+ * The channels a FormField claims, the host Item shell included: `fl` /
+ * `layout` / `layout-item` go to the kernel, the page window and this cell;
+ * `item` to the host Item shell; `default` — the bare names — to the control,
+ * never to the Item.
  */
 export const FIELD_ATTR_CHANNELS = ['fl', 'layout', 'layout-item', 'item'] as const
 
@@ -238,9 +240,9 @@ export type BucketRefs<C extends Channel> = {
 }
 
 /**
- * Reactive attrs → one ref per claimed channel (design.md §5.2). The entry point
- * for component attrs; `dispatch` stays the plain primitive for bags that are not
- * a component's own attrs (`slots`, the factory shell's merged preset).
+ * Reactive attrs → one ref per claimed channel. The entry point for component
+ * attrs; `dispatch` stays the plain primitive for bags that are not a component's
+ * own attrs (`slots`, the factory shell's merged preset).
  *
  * `C` is inferred from `channels`, never widened to `Channel`: only the claimed
  * channels get a bucket, so a widened type would promise refs that do not exist.
@@ -248,6 +250,10 @@ export type BucketRefs<C extends Channel> = {
  * `options.prefix` is forwarded as-is (`'drop'` by default; `'keep'` keeps the
  * input key spelling so a call site can hand the slice to a child component that
  * re-claims the same channel).
+ *
+ * @param attrs    merged props / listeners (or slot names) to split
+ * @param channels the channels this call site claims; anything else falls to `default`
+ * @param options  key shape (`prefix: 'keep' | 'drop'`, default `'drop'`)
  */
 export function useDispatch<C extends Channel>(
   attrs: Record<string, unknown>,

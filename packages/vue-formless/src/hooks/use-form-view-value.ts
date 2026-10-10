@@ -9,18 +9,28 @@ import {
 import { FORM_VIEW_KEY, type FormViewContext } from '../shared/injection-keys'
 import { bindPathAccess } from '../path/path-access'
 
+// The v-model write port's key and listener names, in both spellings
+// (camelCase and DOM-case).
 export const PORT_NAMES = ['modelValue', 'model-value'] as const
 export const PORT_EVENTS = ['onUpdate:modelValue', 'onUpdate:model-value'] as const
 
 /**
- * 本层值的来源（decision.md「实现逻辑」三条）：
+ * Where this layer's value comes from:
  *
- * - `controlled` — attrs 带 v-model key，值由使用方控制（受控组件，decision.md:26）；
- * - `inherit` — 无 key 但有上层 FormView，值继承自祖先（借 CSS `inherit` 的语义）；
- * - `local` — 两者都没有，值由本层自行持有（decision.md:28）。
+ * - `controlled` — attrs carry a v-model key, the value is controlled by the
+ *   caller (a controlled component);
+ * - `inherit` — no key but there is an ancestor FormView, the value is inherited
+ *   (borrowing CSS `inherit`'s meaning);
+ * - `local` — neither, the value is held by this layer itself.
  */
 export type ValueSource = 'controlled' | 'inherit' | 'local'
 
+/**
+ * Recognize the v-model write port's key / listener in `attrs`, and decide this
+ * layer's value source from them.
+ * @param attrs      the component's attrs
+ * @param hasContext whether an ancestor FormView exists
+ */
 export function useValueMeta(attrs:  Record<string, unknown>, hasContext: boolean): {
   key: ComputedRef<(typeof PORT_NAMES)[number] | undefined>
   event: ComputedRef<(typeof PORT_EVENTS)[number] | undefined>
@@ -36,32 +46,39 @@ export function useValueMeta(attrs:  Record<string, unknown>, hasContext: boolea
   }
 }
 
+/**
+ * This layer's v-model read/write context: decide the value source, produce
+ * `value` / `getIn` / `setIn`, and provide `FORM_VIEW_KEY` for nested FormViews
+ * to inherit.
+ */
 export function useFormViewValue(): FormViewContext {
-  // 当前组件的传入属性
   const attrs = useAttrs()
 
-  // inject 只在 setup 时读取，此处不是响应式的
+  // The ancestor FormView's value context (a non-reactive object; reactivity
+  // lives on its computed members).
   const context = inject(FORM_VIEW_KEY, null)
 
-  // 解析 value 的控制方
   const { source, key, event } = useValueMeta(attrs, !!context)
 
-  // 本地变量
+  // The value this layer holds itself under the `local` source.
   const local = ref()
 
-  // 非 inherit 的完整读写
+  // The non-inherit whole-value read/write: controlled reads attrs, local reads
+  // local; the write updates local and notifies the outside.
   const bound = computed({
     get: () => {
       return source.value === 'controlled' ? attrs[key.value!] : local.value
     },
     set: (v: unknown) => {
-      // controlled 场景下该步骤跳过，local 场景下，内部数据更新早于通知外部
+      // Controlled skips the local update; under local, internal data updates
+      // before the outside is told.
       if (source.value === 'local') local.value = v
       if (event.value) (attrs[event.value] as any)(v)
     }
   })
   
-  // 完整读写拆分为按属性读写
+  // Bind the whole-value read/write into a per-location read/write (path-access's
+  // bound façade).
   const access = bindPathAccess(bound)
 
   const value = computed(() => {
@@ -77,7 +94,8 @@ export function useFormViewValue(): FormViewContext {
       return access.setIn(path, v)
   }
 
-  // 由于 FormView 仅有值方面的上下文信息，因此上下文在值中一起处理
+  // FormView only carries value-related context, so it is provided together with
+  // this hook.
   provide(FORM_VIEW_KEY, {
     value, getIn, setIn
   })

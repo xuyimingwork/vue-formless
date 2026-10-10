@@ -3,9 +3,10 @@ import { type CreateFormFieldOptions, type FormControlProps } from '../shared/fo
 import { createFormField, type FormFieldComponent } from './create-form-field'
 
 /**
- * PascalCase field tags. `S` must not be `Record<string, _>` or `keyof` collapses
- * to `string` and Volar/TS lose `User.Name` / `User.IdCard` as named keys.
- * Tag props are `fl:*` plus the control's public props (v-model ports locked).
+ * PascalCase field tags. `S` must not be `Record<string, _>` or `keyof`
+ * collapses to `string` and Volar/TS lose `User.Name` / `User.IdCard` as named
+ * keys. Tag props are `fl:*` plus the control's public props (v-model ports
+ * locked).
  *
  * Keys may be camelCase (`timeRange`) or kebab-case (`time-range`); both land on
  * the same tag (`<User.TimeRange />`). The runtime normalizes via
@@ -17,10 +18,9 @@ export type FormFields<S> = {
 }
 
 /**
- * Build a static namespaced field table (design.md §11).
- * Schema keys are camelCase (`timeRange`) or kebab-case (`time-range`) field
- * names; only the **tag name** is normalized (`<User.TimeRange />`). The key as
- * written still supplies the default `prop`.
+ * Build a static namespaced field table. Schema keys are camelCase (`timeRange`)
+ * or kebab-case (`time-range`) field names; only the **tag name** is normalized
+ * (`<User.TimeRange />`). The key as written still supplies the default `prop`.
  */
 export function createFormFields<const S extends { [K in keyof S]: CreateFormFieldOptions }>(
   options: S,

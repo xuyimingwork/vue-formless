@@ -12,11 +12,11 @@
  *   index      := [0-9]+                         array index
  *   quoted     := '"' keychar* '"' | "'" keychar* "'"
  *                keychar: any char, except the closing quote and unescaped
- *                backslash; '\' escapes the next character (design.md §15)
+ *                backslash; '\' escapes the next character
  *
- * The quoted form is the **total** escape hatch: it carries any string key a
- * JS object can hold — spaces, dots, brackets, and the empty string (`obj['']`
- * is legal and stays reachable here). Only the *unquoted* `name` form is
+ * The quoted form is the **total** escape hatch: it carries any string key a JS
+ * object can hold — spaces, dots, brackets, and the empty string (`obj['']` is
+ * legal and stays reachable here). Only the *unquoted* `name` form is
  * restricted, and only because it is sugar, not because the key is illegal.
  *
  * Array items are addressed **only** by bracket numerals (`[0]`); a dot-form
@@ -24,18 +24,18 @@
  * key, so numeric-keyed maps stay reachable. Object keys never mean array
  * indexes, so a numeric segment is unambiguous without runtime shape checks.
  *
- * Implemented as a character-driven state machine in the style of a toy
- * HTML tokenizer: every state is a function that consumes one character and
- * returns the next state, and a single `EOF` sentinel is fed after the input
- * runs out. That makes "unterminated bracket" an ordinary `FAILED` transition
- * instead of a special case after the loop. `FAILED` is a plain sentinel the
- * driver folds into `undefined` — parsing never throws, so a bad `path` is a
- * value the caller has to handle, not an exception (design.md §15).
+ * Implemented as a character-driven state machine in the style of a toy HTML
+ * tokenizer: every state is a function that consumes one character and returns
+ * the next state, and a single `EOF` sentinel is fed after the input runs out.
+ * That makes "unterminated bracket" an ordinary `FAILED` transition instead of a
+ * special case after the loop. `FAILED` is a plain sentinel the driver folds
+ * into `undefined` — parsing never throws, so a bad `path` is a value the caller
+ * has to handle, not an exception.
  *
  * The separator gets its own state (`afterDot`): a single `betweenSegments`
- * that swallows '.' in a loop also accepts `a..b`, `.a` and `a.`, none of
- * which the grammar allows. Splitting it into expectSegment / afterSegment /
- * afterDot makes "at most one dot, never leading or trailing" fall out of the
+ * that swallows '.' in a loop also accepts `a..b`, `.a` and `a.`, none of which
+ * the grammar allows. Splitting it into expectSegment / afterSegment / afterDot
+ * makes "at most one dot, never leading or trailing" fall out of the
  * transitions instead of needing a lookahead flag.
  *
  *   expectSegment  a segment must start here — path start, or right after '.'
@@ -86,7 +86,8 @@ const DIGIT = /[0-9]/
  * Split a `path` into segments. A syntactically invalid path — and the empty
  * string, which is not a legal location — returns `undefined` instead of
  * throwing or warning: the caller knows which `path` it passed, so surfacing a
- * failure is its job (design.md §15). A successful parse always yields >= 1 segment.
+ * failure is its job. A successful parse always yields >= 1 segment.
+ * @param path the path string to parse
  */
 export function parsePath(path: string): PathSegment[] | undefined {
   if (!path) return undefined
@@ -98,9 +99,9 @@ export function parsePath(path: string): PathSegment[] | undefined {
 
   /**
    * A segment must start here: at the beginning of the path or right after a
-   * '.'. `EOF` is the clean end of input (a non-empty path's last segment
-   * always ends by landing here). This is also the initial state, so a leading
-   * '.' is rejected.
+   * '.'. `EOF` is the clean end of input (a non-empty path's last segment always
+   * ends by landing here). This is also the initial state, so a leading '.' is
+   * rejected.
    */
   function expectSegment(c: Char): Transition {
     if (c === '[') return inBracket
@@ -123,9 +124,9 @@ export function parsePath(path: string): PathSegment[] | undefined {
   }
 
   /**
-   * Right after a '.': a segment is mandatory. A trailing '.' ends on `EOF`
-   * and `a..b` surfaces as a second '.' here, which is what keeps separators
-   * to a single dot.
+   * Right after a '.': a segment is mandatory. A trailing '.' ends on `EOF` and
+   * `a..b` surfaces as a second '.' here, which is what keeps separators to a
+   * single dot.
    */
   function afterDot(c: Char): Transition {
     if (c === EOF) return FAILED // trailing "."
@@ -145,8 +146,8 @@ export function parsePath(path: string): PathSegment[] | undefined {
   }
 
   /**
-   * Inside brackets: digits accumulate an *array index*, a quote opens a
-   * quoted *object key*, anything else is a syntax error.
+   * Inside brackets: digits accumulate an *array index*, a quote opens a quoted
+   * *object key*, anything else is a syntax error.
    */
   function inBracket(c: Char): Transition {
     if (c === EOF) return FAILED // unclosed bracket
@@ -188,7 +189,7 @@ export function parsePath(path: string): PathSegment[] | undefined {
     if (c === EOF) return FAILED // unclosed bracket
     if (c !== ']') return FAILED // expected "]" after the quoted key
     // A quoted key carries any string, including '' — the empty-string key is
-    // legal in JS (`obj['']`) and stays reachable (design.md §15).
+    // legal in JS (`obj['']`) and stays reachable.
     segments.push({ type: 'key', key: buffer })
     buffer = ''
     return afterSegment

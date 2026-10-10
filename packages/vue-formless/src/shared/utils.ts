@@ -12,7 +12,10 @@
  */
 export type JsxHost = new () => { $props: Record<string, unknown> }
 
-/** `name` → `Name`, `idCard` → `IdCard`, `''` → `''`. lodash `upperFirst`. */
+/**
+ * `name` → `Name`, `idCard` → `IdCard`, `''` → `''`. lodash `upperFirst`.
+ * @param s the string to capitalize
+ */
 export function upperFirst(s: string): string {
   if (!s) return s
   return s.charAt(0).toUpperCase() + s.slice(1)
@@ -30,6 +33,9 @@ export function upperFirst(s: string): string {
  *
  * Not for three-way switches: `fl:form`'s `'auto'` cannot ride this (it would
  * read as `true`); FormView resolves that in its own `form` computed.
+ *
+ * @param seed   a boolean floor; the result is then always a boolean
+ * @param values the attr values to resolve, nearest wins
  */
 export function getAttrBoolean(seed: boolean, ...values: unknown[]): boolean
 export function getAttrBoolean(...values: unknown[]): boolean | undefined
@@ -44,7 +50,7 @@ export function getAttrBoolean(...values: unknown[]): boolean | undefined {
   }, undefined) as boolean | undefined
 }
 
-/** Type-level `upperFirst`: `'name'` → `'Name'` (design.md §11). */
+/** Type-level `upperFirst`: `'name'` → `'Name'`. */
 export type UpperFirst<S extends string> = S extends `${infer F}${infer R}`
   ? `${Uppercase<F>}${R}`
   : S
@@ -53,6 +59,7 @@ export type UpperFirst<S extends string> = S extends `${infer F}${infer R}`
  * `layout-item` → `layoutItem`. Kebab-case only; segments before the last one
  * are left as they are (`fl` → `fl`). Used for channel names, bucket names, and
  * domain-table keys (`createFormFields` normalizes kebab keys to camelCase).
+ * @param s the kebab-case string to convert
  */
 export function toCamel(s: string): string {
   return s.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())
@@ -64,13 +71,15 @@ export type ToCamel<S extends string> = S extends `${infer Head}-${infer Tail}`
   : S
 
 /**
- * A deferred `expose()` target: a Proxy whose property reads (`get`) and
- * `in` checks forward to the **current** value of a ref-like holder.
+ * A deferred `expose()` target: a Proxy whose property reads (`get`) and `in`
+ * checks forward to the **current** value of a ref-like holder.
  *
  * The holder is `null` until the host mounts (SSR renders no instance), so
- * `expose()` gets a stable object that stays valid even before the real
- * instance API exists. Reads return `undefined` while it's null; methods are
- * bound to the inner object so `this` is the host instance once it does.
+ * `expose()` gets a stable object that stays valid even before the real instance
+ * API exists. Reads return `undefined` while it's null; methods are bound to the
+ * inner object so `this` is the host instance once it does.
+ *
+ * @param host a holder whose current value the proxy forwards to
  */
 export function createExposeProxy<T extends object>(host: { value: T | null }): T {
   return new Proxy(
