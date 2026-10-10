@@ -6,6 +6,7 @@
     "dev": "pnpm --filter playground dev",
     "build": "pnpm --filter vue-formless build",
     "test": "pnpm --filter @vue-formless/layout test && pnpm --filter vue-formless test && pnpm --filter playground test",
+    "test:coverage": "pnpm --filter @vue-formless/layout test:coverage && pnpm --filter vue-formless test:coverage",
     "test:watch": "pnpm --filter vue-formless test:watch",
     "typecheck": "pnpm --filter @vue-formless/layout typecheck && pnpm --filter vue-formless typecheck && pnpm --filter playground typecheck && pnpm --filter playground-layout typecheck",
     "playground": "pnpm --filter playground dev",

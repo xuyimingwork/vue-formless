@@ -54,13 +54,9 @@ function readSegment(container: unknown, segment: PathSegment): unknown {
     return Array.isArray(container) ? undefined : readOwnProperty(container, segment.key)
   }
 
-  if (segment.type === 'index') {
-    return Array.isArray(container) ? container[segment.index] : undefined
-  }
-
-  // Unreachable while `PathSegment` stays a closed union; a future segment type
-  // reads as `undefined` instead of falling into whichever branch comes last.
-  return undefined
+  // `segment` is narrowed to `{ type: 'index' }` by the `key` branch above, so
+  // there is no second guard to leave an unreachable fallthrough behind.
+  return Array.isArray(container) ? container[segment.index] : undefined
 }
 
 /**
@@ -105,6 +101,7 @@ export function setIn(root: unknown, path: string, value: unknown): unknown {
 }
 
 function writeSegments(root: unknown, segments: PathSegment[], value: unknown): unknown {
+  /* v8 ignore next -- `parsePath` never yields an empty segment list */
   if (!segments.length) return root
   if (segments.length === 1) return writeSegment(root, segments[0], value)
   
@@ -121,12 +118,10 @@ function writeSegment(root: unknown, segment: PathSegment, value: unknown): unkn
     const base = isObjectLike(root) && !Array.isArray(root) ? root : {}
     return { ...base, [segment.key]: value }
   }
-  if (segment.type === 'index') {
-    const arr = Array.isArray(root) ? [...root] : []
-    arr[segment.index] = value
-    return arr
-  }
-  return root
+  // `segment` is narrowed to `{ type: 'index' }` by the `key` branch above.
+  const arr = Array.isArray(root) ? [...root] : []
+  arr[segment.index] = value
+  return arr
 }
 
 /**
@@ -185,6 +180,7 @@ export function bindPathAccess(source: WritableSource): PathAccess {
 
         // Invariant: non-empty while a flush is scheduled; the guard just
         // keeps a (hypothetical) empty batch from writing an unchanged source.
+        /* v8 ignore next */
         if (!batch?.length) return
 
         let next = source.value

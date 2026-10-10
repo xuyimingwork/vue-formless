@@ -2,9 +2,9 @@ import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { createSSRApp, defineComponent, h, nextTick, type VNode } from 'vue'
 import { renderToString } from 'vue/server-renderer'
 import { createFormFields } from './create-form-fields'
-import type { ComponentPublicProps, FormFieldFormless } from '../shared/form-field-types'
+import type { ComponentPublicProps, CreateFormFieldOptions, FormFieldFormless } from '../shared/form-field-types'
 import { createFormView } from './create-form-view'
-import { FormField, FormFieldCore } from './create-form-field'
+import { FormField } from './create-form-field'
 
 /** The kernel ships no extras; tests that read one widen the snapshot locally. */
 type TestFl = FormFieldFormless & { label?: string }
@@ -32,6 +32,14 @@ describe('createFormFields', () => {
     })
     expectTypeOf(User).toHaveProperty('Name')
     expectTypeOf(User).toHaveProperty('IdCard')
+  })
+
+  it('skips falsy field entries', () => {
+    const Fields = createFormFields({
+      name: {},
+      empty: null as unknown as CreateFormFieldOptions,
+    })
+    expect(Object.keys(Fields).sort()).toEqual(['Name'])
   })
 
   it('normalizes kebab-case keys to the same PascalCase tags', () => {
@@ -92,13 +100,6 @@ describe('createFormFields', () => {
     expectTypeOf<TimeProps>().toHaveProperty('format')
     expectTypeOf<TimeProps>().not.toHaveProperty('start')
     expectTypeOf<TimeProps>().not.toHaveProperty('end')
-  })
-})
-
-describe('FormField', () => {
-  it('is exported as a standalone field (not FormView.Field)', () => {
-    expect(FormField).toBeTruthy()
-    expect(FormField.name).toBe('FormField')
   })
 })
 
@@ -622,5 +623,95 @@ describe('createFormFields props overlay', () => {
     expect(itemSnapshots).toHaveLength(2)
     expect(html).not.toContain('class="item"')
     expect(html).toContain('class="probe"')
+  })
+
+  it('renders an outer fl:field="embed" as the bare control (no Item or grid shell)', async () => {
+    const html = await render(
+      h(shellView(), { modelValue: {} }, () =>
+        h(FormField, { 'fl:prop': 'name', 'fl:field': 'embed' }, { default: () => h('input', { class: 'emb' }) }),
+      ),
+    )
+    expect(html).toContain('class="emb"')
+    expect(html).not.toContain('class="item"')
+    expect(html).not.toContain('class="col"')
+    expect(html).not.toContain('class="row"')
+  })
+
+  it('renders a standalone FormField with no FormView context', async () => {
+    const html = await render(
+      h(FormField, { 'fl:prop': 'name' }, { default: () => h('span', 'x') }),
+    )
+    expect(html).toContain('x')
+    expect(html).not.toContain('class="item"')
+  })
+
+  it('leaves a non-string model port unbound', async () => {
+    const seen: Record<string, unknown>[] = []
+    const Control = defineComponent({
+      inheritAttrs: false,
+      setup(_, { attrs }) {
+        seen.push({ ...attrs })
+        return () => h('input', { class: 'mixed' })
+      },
+    })
+    await render(
+      h(shellView(), { modelValue: { a: 'A' } }, () =>
+        h(FormField, {
+          'fl:model': ['start', null] as unknown as string[],
+          'fl:prop': ['a', 'b'],
+          'fl:component': Control,
+        }),
+      ),
+    )
+    expect(seen[0]).toMatchObject({ start: 'A' })
+    expect(seen[0]).toHaveProperty('onUpdate:start')
+    expect(seen[0]).not.toHaveProperty('onUpdate:undefined')
+  })
+
+  it('leaves a non-string prop entry unbound', async () => {
+    const seen: Record<string, unknown>[] = []
+    const Control = defineComponent({
+      inheritAttrs: false,
+      setup(_, { attrs }) {
+        seen.push({ ...attrs })
+        return () => h('input', { class: 'mixed' })
+      },
+    })
+    await render(
+      h(shellView(), { modelValue: { a: 'A' } }, () =>
+        h(FormField, {
+          'fl:prop': [123] as unknown as string[],
+          'fl:component': Control,
+        }),
+      ),
+    )
+    expect(seen[0]).toEqual({})
+  })
+
+  it('resolves unclaimed and non-string nested ports to undefined through getProp', async () => {
+    const bags: Record<string, unknown>[] = []
+    const Weird = defineComponent({
+      formless: { field: 'embed' as const },
+      inheritAttrs: false,
+      setup() {
+        return () => [
+          h(FormField, { 'fl:model': 'middle' }, (sp: { $bindings: Record<string, unknown> }) => {
+            bags.push(sp.$bindings)
+            return h('input', { class: 'mid' })
+          }),
+          h(FormField, { 'fl:model': [null] as unknown as string[] }, (sp: { $bindings: Record<string, unknown> }) => {
+            bags.push(sp.$bindings)
+            return h('input', { class: 'nil' })
+          }),
+        ]
+      },
+    })
+    await render(
+      h(shellView(), { modelValue: { a: 'A', b: 'B' } }, () =>
+        h(FormField, { 'fl:component': Weird, 'fl:model': ['start', 'end'], 'fl:prop': ['a', 'b'] }),
+      ),
+    )
+    expect(bags[0]).toEqual({})
+    expect(bags[1]).toEqual({})
   })
 })

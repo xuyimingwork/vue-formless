@@ -135,6 +135,10 @@ describe('parsePath', () => {
       expect(parsePath('map["x')).toBeUndefined()
     })
 
+    it("returns undefined for an unterminated escape in 'map[\"x\\'", () => {
+      expect(parsePath('map["x\\')).toBeUndefined()
+    })
+
     // A quoted segment is the total escape hatch: any string key a JS object
     // can hold is reachable, including '' (`obj['']` is legal) and blanks —
     // nothing is trimmed or rejected (design.md §15). Only the *unquoted* form is

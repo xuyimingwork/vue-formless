@@ -91,9 +91,10 @@ export interface FormViewProps {
   'fl:item'?: boolean
 }
 
+/* v8 ignore start -- client-only: the host `ref` is only populated on client mount, not in SSR */
 function proxyExpose(host: { value: object | null }): object {
   return new Proxy(
-    {},
+    {},             
     {
       get(_target, key) {
         const inner = host.value
@@ -107,6 +108,7 @@ function proxyExpose(host: { value: object | null }): object {
     },
   )
 }
+/* v8 ignore stop */
 
 /**
  * Bind host layout / form / item once; returns a FormView (design.md §10).

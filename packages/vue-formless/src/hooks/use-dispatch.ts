@@ -147,6 +147,9 @@ export function dispatch<T, C extends Channel>(
 
   for (const { rawKey, key, value, channel, type } of entries) {
     if (type !== 'listener') continue
+    // A listener's prefix only resolves through a claimed channel, so `channel`
+    // is never falsy here; the `'default'` fallback mirrors the prop pass only.
+    /* v8 ignore next */
     buckets[channel || 'default'][keep && channel ? rawKey : key] = value
   }
 

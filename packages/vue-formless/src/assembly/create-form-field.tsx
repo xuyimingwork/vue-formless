@@ -29,22 +29,13 @@ export interface FormFieldSlotProps {
 
 export type FormFieldComponent<P = {}> = DefineComponent<FormFieldProps & P>
 
-function normalizeModel(model: unknown): (string | undefined)[] | undefined {
+function normalizeModelOrProp(value: unknown): (string | undefined)[] | undefined {
   // undefined 视为用户未配置，其余场景均视为用户已配置
-  if (typeof model === 'undefined') return
+  if (typeof value === 'undefined') return
   // 此处不能过滤数组中的非法值，因为 model 与 prop 按顺序匹配
-  return (Array.isArray(model) ? model : [model])
+  return (Array.isArray(value) ? value : [value])
     .map(item => {
       if (typeof item !== 'string') return
-      return item
-    })
-}
-
-function normalizeProp(prop: unknown): (string | undefined)[] | undefined {
-  if (typeof prop === 'undefined') return
-  return (Array.isArray(prop) ? prop : [prop])
-    .map(item => {
-      if (typeof item !== 'string') return 
       return item
     })
 }
@@ -62,7 +53,7 @@ function normalizeProp(prop: unknown): (string | undefined)[] | undefined {
  *
  * Identity and the `provide` live here and nowhere else; the shell never provides.
  */
-export const FormFieldCore = defineComponent({
+const FormFieldCore = defineComponent({
   name: 'FormFieldCore',
   inheritAttrs: false,
   props: {
@@ -90,14 +81,14 @@ export const FormFieldCore = defineComponent({
 
     // 模型名
     const model = computed(() => {
-      return normalizeModel(propFormless.value?.model)
-        || normalizeModel(controlFormless.value?.model)
+      return normalizeModelOrProp(propFormless.value?.model)
+        || normalizeModelOrProp(controlFormless.value?.model)
         || ['modelValue']
     })
 
     // 属性名
     const prop = computed(() => {
-      return normalizeProp(propFormless.value?.prop)
+      return normalizeModelOrProp(propFormless.value?.prop)
         || context?.getProp?.(model.value)
     })
 
@@ -222,6 +213,7 @@ export const FormFieldCore = defineComponent({
         default: () => control,
       }} /> : control
 
+      /* v8 ignore next -- v8 emits a phantom join block for the `FormItem ? … : …` ternary here */
       return <LayoutItem {...props.layoutItem}>{body}</LayoutItem>
     }
   },
