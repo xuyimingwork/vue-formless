@@ -26,7 +26,10 @@
  *
  * Array items are addressed **only** by bracket numerals (`[0]`); a numeric
  * object key is spelled `["0"]`, so the two spellings never collide and a
- * segment's kind is fixed by syntax, with no runtime shape check.
+ * segment's kind is fixed by syntax alone — `parsePath` never consults the data.
+ * Matching that kind against the container's actual shape is the read/write
+ * layer's job (`readSegment` / `writeSegment`), where a key over an array or an
+ * index over an object is a mismatch.
  *
  * Implemented as a character-driven state machine in the style of a toy HTML
  * tokenizer: every state is a function that consumes one character and returns

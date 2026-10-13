@@ -22,12 +22,14 @@ function isObjectLike(value: unknown): value is Record<string, unknown> | unknow
 }
 
 /**
- * Read `key` off `container` **only when it is an own property**. The write side
- * always sets an own key (`{ ...base, [key]: value }`), so this keeps reads the
- * inverse of writes: a segment like `constructor` / `toString` / `__proto__` is
- * grammar-legal but not data, and reading it through the prototype chain would
- * hand back a value `setIn` never wrote. `Object.prototype.hasOwnProperty` is
- * called via `call` because `hasOwnProperty` is itself a reachable key.
+ * Read `key` off `container` **only when it is an own property**. Reads expose
+ * exactly what writes can carry: `writeSegment` rebuilds every level by spread
+ * (`{ ...base }`), which copies **own enumerable** properties only — so a value
+ * reached through the prototype chain is one no write can preserve, and reading
+ * it would let an otherwise-readable value vanish on a later, unrelated write.
+ * It also keeps grammar-legal non-data like `constructor` / `toString` /
+ * `__proto__` out of the model. `Object.prototype.hasOwnProperty` is called via
+ * `call` because `hasOwnProperty` is itself a reachable key.
  */
 const hasOwn = Object.prototype.hasOwnProperty
 
@@ -42,7 +44,10 @@ function readOwnProperty(container: Record<string, unknown>, key: string): unkno
  * `undefined` and stays silent: the grammar fixes the two spellings (keys are
  * `name` / `["…"]`, arrays are `[n]`), so a mismatch is a caller-side `path`
  * bug, and reads never guess or warn. A key reads own properties only
- * (`readOwnProperty`), so the prototype chain is not data.
+ * (`readOwnProperty`), so the prototype chain is not data; and a key never
+ * addresses an array, so an array's own props (`length`, `["0"]`, a stray key)
+ * are not data either — that half of the guard is deliberate narrowing, not
+ * just bug-spotting.
  */
 function readSegment(container: unknown, segment: PathSegment): unknown {
   // Nothing to descend into: missing nodes and primitives read as `undefined`.
@@ -50,6 +55,13 @@ function readSegment(container: unknown, segment: PathSegment): unknown {
 
   // One block per segment type, each pairing its shape guard with its read, so
   // the branches stay symmetric and no type is treated as "the default".
+  //
+  // The array guard is load-bearing, not redundant: a `key` segment never
+  // addresses array storage. A key write into an array overwrites it with an
+  // object, so no key write can produce or keep a value on an array; exposing
+  // `length` / `["0"]` / a stray own prop here would hand back a value the write
+  // side cannot round-trip, and would make `[0]` and `["0"]` read the same cell
+  // — the grammar keeps those two spellings apart (path-parse.ts).
   if (segment.type === 'key') {
     return Array.isArray(container) ? undefined : readOwnProperty(container, segment.key)
   }
