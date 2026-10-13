@@ -18,7 +18,7 @@ import type {
 } from './form-field-types'
 
 describe('CreateFormFieldOptions extras', () => {
-  it('the extras anchor is empty until augmented; FormFieldProps are only the fl / layout keys', () => {
+  it('should keep the extras anchor empty until augmented, so FormFieldProps are only the fl / layout keys', () => {
     // The anchor *is* the extras domain: no `Omit` alias can leak a kernel key in.
     expectTypeOf<FormFieldCustomOptions>().toEqualTypeOf<{}>()
     expectTypeOf<FormFieldProps>().toEqualTypeOf<{
@@ -34,14 +34,14 @@ describe('CreateFormFieldOptions extras', () => {
     }>()
   })
 
-  it('prefixes extra keys as optional fl: tag props', () => {
+  it('should prefix extra keys as optional fl: tag props', () => {
     expectTypeOf<ToFormlessProps<{ label?: string; count: number }>>().toEqualTypeOf<{
       'fl:label'?: string
       'fl:count'?: number
     }>()
   })
 
-  it('maps a bag onto an arbitrary tag prefix', () => {
+  it('should map a bag onto an arbitrary tag prefix', () => {
     expectTypeOf<ToFormlessProps<LayoutItemProps, 'layout-item:'>>().toEqualTypeOf<{
       'layout-item:span'?: LayoutItemSpan
       'layout-item:place'?: LayoutItemPlace
@@ -54,28 +54,28 @@ describe('CreateFormFieldOptions extras', () => {
 })
 
 describe('two-state pairs (declared vs normalized)', () => {
-  it('`field` loses `auto` once assembled', () => {
+  it('should drop `auto` from `field` once assembled', () => {
     expectTypeOf<Extract<FormFieldFormlessFieldRaw, 'auto'>>().toEqualTypeOf<'auto'>()
     expectTypeOf<Extract<FormFieldFormlessField, 'auto'>>().toEqualTypeOf<never>()
     expectTypeOf<FormFieldFormlessRaw['field']>().toEqualTypeOf<FormFieldFormlessFieldRaw | undefined>()
     expectTypeOf<FormFieldFormless['field']>().toEqualTypeOf<FormFieldFormlessField>()
   })
 
-  it('`model` / `prop` become aligned arrays once normalized', () => {
+  it('should align `model` / `prop` as arrays once normalized', () => {
     expectTypeOf<FormFieldFormlessRaw['model']>().toEqualTypeOf<FormFieldVModelRaw | undefined>()
     expectTypeOf<FormFieldFormlessRaw['prop']>().toEqualTypeOf<FormFieldPropRaw | undefined>()
     expectTypeOf<FormFieldFormless['model']>().toEqualTypeOf<FormFieldVModel>()
     expectTypeOf<FormFieldFormless['prop']>().toEqualTypeOf<FormFieldVModel | undefined>()
   })
 
-  it('`item` has no second state: the declaration already says boolean', () => {
+  it('should keep `item` a single state, since the declaration already says boolean', () => {
     expectTypeOf<FormFieldFormlessRaw['item']>().toEqualTypeOf<boolean | undefined>()
     expectTypeOf<FormFieldFormless['item']>().toEqualTypeOf<boolean>()
   })
 })
 
 describe('FormFieldFormless snapshot', () => {
-  it('is the normalized snapshot: aligned model / prop + resolved field', () => {
+  it('should be the normalized snapshot with aligned model / prop and resolved field', () => {
     expectTypeOf<FormFieldFormless['model']>().toEqualTypeOf<(string | undefined)[]>()
     expectTypeOf<FormFieldFormless['prop']>().toEqualTypeOf<(string | undefined)[] | undefined>()
     expectTypeOf<FormFieldFormless['field']>().toEqualTypeOf<'wrap' | 'embed' | 'wrap-embed'>()
@@ -85,7 +85,7 @@ describe('FormFieldFormless snapshot', () => {
     expectTypeOf<FormFieldFormless>().not.toHaveProperty('getValues')
   })
 
-  it('FormFieldFormlessRaw keeps the declared shape optional and stays open', () => {
+  it('should keep the declared shape optional and open on FormFieldFormlessRaw', () => {
     expectTypeOf<FormFieldFormlessRaw['model']>().toEqualTypeOf<FormFieldVModelRaw | undefined>()
     expectTypeOf<FormFieldFormlessRaw['prop']>().toEqualTypeOf<FormFieldPropRaw | undefined>()
     expectTypeOf<FormFieldFormlessRaw['field']>().toEqualTypeOf<FormFieldFormlessFieldRaw | undefined>()
@@ -100,23 +100,23 @@ describe('FormFieldFormless snapshot', () => {
 })
 
 describe('LockedVModelKeys', () => {
-  it('defaults to modelValue', () => {
+  it('should default to modelValue', () => {
     expectTypeOf<LockedVModelKeys<undefined>>().toEqualTypeOf<
       'modelValue' | 'onUpdate:modelValue'
     >()
   })
 
-  it('locks a single named port', () => {
+  it('should lock a single named port', () => {
     expectTypeOf<LockedVModelKeys<'start'>>().toEqualTypeOf<'start' | 'onUpdate:start'>()
   })
 
-  it('locks tuple ports', () => {
+  it('should lock tuple ports', () => {
     expectTypeOf<LockedVModelKeys<['start', 'end']>>().toEqualTypeOf<
       'start' | 'end' | 'onUpdate:start' | 'onUpdate:end'
     >()
   })
 
-  it('does not treat a wide string[] as port names', () => {
+  it('should not treat a wide string[] as port names', () => {
     expectTypeOf<LockedVModelKeys<string[]>>().toEqualTypeOf<
       'modelValue' | 'onUpdate:modelValue'
     >()
@@ -124,7 +124,7 @@ describe('LockedVModelKeys', () => {
 })
 
 describe('ComponentPublicProps', () => {
-  it('reads declared props from defineComponent', () => {
+  it('should read declared props from defineComponent', () => {
     const Control = defineComponent({
       props: {
         placeholder: { type: String, default: '' },
@@ -136,7 +136,7 @@ describe('ComponentPublicProps', () => {
     expectTypeOf<ComponentPublicProps<typeof Control>>().toHaveProperty('rows')
   })
 
-  it('is empty for omitted controls', () => {
+  it('should be empty for omitted controls', () => {
     expectTypeOf<ComponentPublicProps<undefined>>().toEqualTypeOf<{}>()
     expectTypeOf<ComponentPublicProps<never>>().toEqualTypeOf<{}>()
   })
@@ -152,7 +152,7 @@ describe('FormControlProps', () => {
     setup: () => () => null,
   })
 
-  it('keeps control props and strips the default v-model port', () => {
+  it('should keep control props and strip the default v-model port', () => {
     type Props = FormControlProps<{ component: typeof Control }>
     expectTypeOf<Props>().toHaveProperty('placeholder')
     expectTypeOf<Props>().toHaveProperty('rows')
@@ -160,7 +160,7 @@ describe('FormControlProps', () => {
     expectTypeOf<Props>().not.toHaveProperty('onUpdate:modelValue')
   })
 
-  it('strips schema model ports', () => {
+  it('should strip schema model ports', () => {
     const Range = defineComponent({
       props: {
         start: { type: String, default: '' },
@@ -178,7 +178,7 @@ describe('FormControlProps', () => {
     expectTypeOf<Props>().not.toHaveProperty('end')
   })
 
-  it('is empty when component is omitted', () => {
+  it('should be empty when component is omitted', () => {
     expectTypeOf<FormControlProps<{ label: string }>>().toEqualTypeOf<{}>()
   })
 })

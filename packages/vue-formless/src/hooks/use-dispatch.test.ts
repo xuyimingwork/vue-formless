@@ -18,7 +18,7 @@ const CHANNELS = ['fl', 'layout-item', 'layout', 'item'] as const
 
 describe('resolveKey', () => {
   describe('a claimed key', () => {
-    it('strips the channel prefix', () => {
+    it('should strip the channel prefix', () => {
       expect(resolveKey('item:label-width', ['item'])).toEqual({
         channel: 'item',
         key: 'label-width',
@@ -26,7 +26,7 @@ describe('resolveKey', () => {
       })
     })
 
-    it('derives the listener prefix from the channel name', () => {
+    it('should derive the listener prefix from the channel name', () => {
       expect(resolveKey('onLayout-item:close', ['layout-item'])).toEqual({
         channel: 'layout-item',
         key: 'onClose',
@@ -34,20 +34,20 @@ describe('resolveKey', () => {
       })
     })
 
-    it('leaves the tail after a listener prefix alone, colons included', () => {
+    it('should leave the tail after a listener prefix alone, colons included', () => {
       expect(resolveKey('onItem:update:modelValue', ['item']).key).toBe('onUpdate:modelValue')
     })
 
-    it('accepts the camelCase spelling of a hyphenated channel', () => {
+    it('should accept the camelCase spelling of a hyphenated channel', () => {
       expect(resolveKey('layoutItem:span', ['layout-item']).channel).toBe('layout-item')
       expect(resolveKey('onLayoutItem:close', ['layout-item']).key).toBe('onClose')
     })
 
-    it('claims a channel name whole, so a longer sibling never answers to a shorter one', () => {
+    it('should claim a channel name whole, so a longer sibling never answers to a shorter one', () => {
       expect(resolveKey('layout-item:span', ['layout']).channel).toBeUndefined()
     })
 
-    it('only answers for the channels it was handed', () => {
+    it('should only answer for the channels it was handed', () => {
       expect(resolveKey('item:label', ['fl']).channel).toBeUndefined()
     })
   })
@@ -59,14 +59,14 @@ describe('resolveKey', () => {
       ['onItem:', 'the listener prefix on its own'],
       ['onUpdate:modelValue', 'a colon from another vocabulary'],
       ['plain', 'no colon at all'],
-    ])('leaves %s (%s) exactly as it was', (key) => {
+    ])('should leave %s (%s) exactly as it was', (key) => {
       expect(resolveKey(key, ['item'])).toEqual({ channel: undefined, key })
     })
   })
 })
 
 describe('dispatch', () => {
-  it('gives every listed channel a bucket, empty ones included', () => {
+  it('should give every listed channel a bucket, empty ones included', () => {
     expect(dispatch({}, ['fl', 'layout-item'])).toEqual({
       fl: {},
       'layout-item': {},
@@ -74,7 +74,7 @@ describe('dispatch', () => {
     })
   })
 
-  it('sends each key to its own channel, and the unclaimed ones to default', () => {
+  it('should send each key to its own channel, and the unclaimed ones to default', () => {
     const validate = () => {}
     const bags = dispatch(
       {
@@ -101,13 +101,13 @@ describe('dispatch', () => {
     })
   })
 
-  it('keeps channels apart even when the resolved keys collide', () => {
+  it('should keep channels apart even when the resolved keys collide', () => {
     const bags = dispatch({ 'fl:span': 1, 'layout-item:span': 2 }, ['fl', 'layout-item'])
     expect(bags.fl).toEqual({ span: 1 })
     expect(bags['layout-item']).toEqual({ span: 2 })
   })
 
-  it('lets a listener win over a prop on a key collision', () => {
+  it('should let a listener win over a prop on a key collision', () => {
     const prop = () => {}
     const listener = () => {}
     expect(
@@ -115,13 +115,13 @@ describe('dispatch', () => {
     ).toEqual({ onClick: listener })
   })
 
-  it('preserves values untouched, undefined included', () => {
+  it('should preserve values untouched, undefined included', () => {
     const bags = dispatch({ 'item:label': undefined, bare: undefined }, ['item'])
     expect(bags.item).toEqual({ label: undefined })
     expect(bags.default).toEqual({ bare: undefined })
   })
 
-  it('loses nothing and doubles nothing', () => {
+  it('should lose nothing and double nothing', () => {
     const bag = {
       'fl:prop': 'a',
       'onFl:validate': 1,
@@ -145,7 +145,7 @@ describe('dispatch', () => {
 })
 
 describe('the default bag', () => {
-  it('drops a claimed channel whole: props and listeners alike', () => {
+  it('should drop a claimed channel whole: props and listeners alike', () => {
     const validate = () => {}
     expect(
       dispatch(
@@ -161,7 +161,7 @@ describe('the default bag', () => {
     ).toEqual({})
   })
 
-  it('keeps every unclaimed key, bare and colon-carrying alike', () => {
+  it('should keep every unclaimed key, bare and colon-carrying alike', () => {
     const validate = () => {}
     const update = () => {}
     expect(
@@ -190,7 +190,7 @@ describe('the default bag', () => {
     })
   })
 
-  it('drops one channel and keeps the others', () => {
+  it('should drop one channel and keep the others', () => {
     expect(
       dispatch(
         { 'item:label': 'x', 'onItem:validate': () => {}, 'layout:gutter': 16 },
@@ -201,7 +201,7 @@ describe('the default bag', () => {
 })
 
 describe('dispatch with prefix: keep', () => {
-  it('round-trips: a kept slice re-claims to the same buckets', () => {
+  it('should round-trip: a kept slice re-claims to the same buckets', () => {
     const change = () => {}
     const bag = {
       'fl:label': '名字',
@@ -222,7 +222,7 @@ describe('dispatch with prefix: keep', () => {
     }
   })
 
-  it('keeps the input spelling: prefix, camelCase and listener forms alike', () => {
+  it('should keep the input spelling: prefix, camelCase and listener forms alike', () => {
     const close = () => {}
     const bags = dispatch(
       {
@@ -242,14 +242,14 @@ describe('dispatch with prefix: keep', () => {
     })
   })
 
-  it('does not rename a listener tail back to onXxx', () => {
+  it('should not rename a listener tail back to onXxx', () => {
     const validate = () => {}
     expect(
       dispatch({ 'onItem:update:modelValue': validate }, ['item'], { prefix: 'keep' }).item,
     ).toEqual({ 'onItem:update:modelValue': validate })
   })
 
-  it('leaves the default bag byte-for-byte identical to drop mode', () => {
+  it('should leave the default bag byte-for-byte identical to drop mode', () => {
     const bag = {
       'fl:label': 'x',
       'item:label': 'y',
@@ -262,7 +262,7 @@ describe('dispatch with prefix: keep', () => {
       .toEqual(dispatch(bag, ['fl']).default)
   })
 
-  it('loses nothing and doubles nothing', () => {
+  it('should lose nothing and double nothing', () => {
     const bag = {
       'fl:prop': 'a',
       'onFl:validate': 1,
@@ -286,7 +286,7 @@ describe('dispatch with prefix: keep', () => {
 })
 
 describe('the channel table', () => {
-  it('derives bucket names that never collide, and never spell default', () => {
+  it('should derive bucket names that never collide, and never spell default', () => {
     const bucketNames = CHANNELS.map(toCamel)
     expect(new Set(bucketNames).size).toBe(bucketNames.length)
     expect(bucketNames).not.toContain('default')
@@ -294,7 +294,7 @@ describe('the channel table', () => {
 })
 
 describe('useDispatch', () => {
-  it('claims fl / layout and leaves layout-item:* / item:* to the host Form', () => {
+  it('should claim fl / layout and leave layout-item:* / item:* to the host Form', () => {
     const validate = () => {}
     const bags = useDispatch(
       {
@@ -319,7 +319,7 @@ describe('useDispatch', () => {
     })
   })
 
-  it('names each bucket after the camelCase spelling of its channel', () => {
+  it('should name each bucket after the camelCase spelling of its channel', () => {
     const bags = useDispatch({ 'layout-item:span': 2 }, FIELD_ATTR_CHANNELS)
     expect(bags.layoutItem.value).toEqual({ span: 2 })
     // Only the claimed channels get a bucket, and empty ones are still there.
@@ -330,12 +330,12 @@ describe('useDispatch', () => {
     expect(bags.default.value).toEqual({})
   })
 
-  it('keeps the input key shape when prefix is keep', () => {
+  it('should keep the input key shape when prefix is keep', () => {
     const bags = useDispatch({ 'item:label-width': 96 }, ['item'], { prefix: 'keep' })
     expect(bags.item.value).toEqual({ 'item:label-width': 96 })
   })
 
-  it('follows the attrs as they change', () => {
+  it('should follow the attrs as they change', () => {
     const attrs = reactive<Record<string, unknown>>({ 'fl:label': 'a', bare: 1 })
     const bags = useDispatch(attrs, ['fl'])
     expect(bags.fl.value).toEqual({ label: 'a' })

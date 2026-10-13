@@ -735,16 +735,21 @@ owner 层的 `bound` 是本层 v-model 口折成的一个 get/set computed：`ge
 path 语法：
 
 ```text
-path     := segment ('.'? segment)*    一个可选 '.'；前导/尾随/连续 '.' 非法
-segment  := name | '[' index ']' | '[' quoted ']'
-name     := [a-zA-Z_$0-9][a-zA-Z0-9_$]*
-index    := [0-9]+                     数组下标，仅括号形式
-quoted   := '"' keychar* '"' | "'" keychar* "'"   转义 '\'
+path     := segment ('.' name | bracket)*   '.' 只引 name；前导/尾随/连续 '.' 非法
+segment  := name | bracket
+bracket  := '[' index ']' | '[' quoted ']'
+name     := [a-zA-Z_$][a-zA-Z0-9_$]*        对象键（JS IdentifierName 的子集）
+index    := 0 | [1-9][0-9]*                 规范下标（仅括号形式，无前导零）
+quoted   := '"' [^"]* '"' | "'" [^']* "'"          引号段：段内除该定界符外任意字符，无转义
 ```
 
-例：`name`、`buyers[0].name`、`[2].title`、`map["x.y"].title`。
+例：`name`、`buyers[0].name`、`[2].title`、`map["0"].name`、`map["x.y"].title`。
 
-- 数组项仅用 `[0]` 寻址；`map.0.name` 或 `map["0"]` 是**对象键**（数字键 map 可达）。
+- 语法是 **JS 成员链的子集**：`.` 后必须是 name，`]` 后接 name 必须先有 `.`。
+  于是 `map.0.name`（name 不能数字开头）、`buyers[0]name`（缺 `.`）、`a.[0]`（`.` 后非 name）均非法。
+- 数组项仅用 `[0]` 寻址；数字键只能走引号段（`map["0"]`），`[n]` 与引号段永不互指。
+- 引号段**无转义**：`\` 是普通字符，引号恒为定界符。含**一种**引号的键换另一种定界符即可
+  （`map['say "hi"']`、`map["it's"]`）；同时含 `'` 与 `"` 的键没有写法——这是不要转义的既定代价。
 - 读取仅限**自有属性**（`hasOwnProperty.call`），原型链不是数据（`constructor`/`__proto__` 读作 undefined）。
 - `parsePath` 失败返回 `undefined`（不 throw），调用方负责处理。
 

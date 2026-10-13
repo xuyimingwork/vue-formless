@@ -39,10 +39,10 @@ function readOwnProperty(container: Record<string, unknown>, key: string): unkno
  * Read the value stored on `container` under `segment` (record key or array
  * index) — the per-segment step of `readSegments`, and the descent step `setIn`
  * reuses. A shape mismatch — key over an array, index over an object — reads as
- * `undefined` and stays silent: under the B-track grammar the two spellings are
- * fixed (keys are `name` / `.0` / `["…"]`, arrays are `[n]`), so a mismatch is a
- * caller-side `path` bug, and reads never guess or warn. A key reads own
- * properties only (`readOwnProperty`), so the prototype chain is not data.
+ * `undefined` and stays silent: the grammar fixes the two spellings (keys are
+ * `name` / `["…"]`, arrays are `[n]`), so a mismatch is a caller-side `path`
+ * bug, and reads never guess or warn. A key reads own properties only
+ * (`readOwnProperty`), so the prototype chain is not data.
  */
 function readSegment(container: unknown, segment: PathSegment): unknown {
   // Nothing to descend into: missing nodes and primitives read as `undefined`.

@@ -16,7 +16,7 @@ const fl: FormFieldFormless = {
 }
 
 describe('createFormItem', () => {
-  it('renders null when unbound and there is no default slot', async () => {
+  it('should render null when unbound and there is no default slot', async () => {
     // No host component → passthrough; no default slot → the `?? null` fallback.
     const Item = createFormItem()
     const html = await render(h(Item, { fl, item: {} }))

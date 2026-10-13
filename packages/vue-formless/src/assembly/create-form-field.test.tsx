@@ -69,7 +69,7 @@ const LabeledItem = defineComponent({
 })
 
 describe('FormField', () => {
-  it('is exported as a standalone field (not attached on FormView)', () => {
+  it('should be exported as a standalone field (not attached on FormView)', () => {
     const View = createFormView({ layout: { Row, Col } })
     expect(FormField).toBeTruthy()
     expect(FormField.name).toBe('FormField')
@@ -99,7 +99,7 @@ describe('FormField', () => {
   //   expect(html).toContain('x')
   // })
 
-  it('drops Item when fl:item is false but keeps Col', async () => {
+  it('should drop Item when fl:item is false but keep Col', async () => {
     const FormView = createFormView({
       layout: { Row, Col },
       item: { component: LabeledItem },
@@ -118,7 +118,7 @@ describe('FormField', () => {
     expect(html).toContain('x')
   })
 
-  it('merges the page :fl:item default and lets the field fl:item win', async () => {
+  it('should merge the page :fl:item default and let the field fl:item win', async () => {
     const FormView = createFormView({
       layout: { Row, Col },
       item: { component: Item },
@@ -156,7 +156,7 @@ describe('FormField', () => {
     expect(htmlBare).toContain('x')
   })
 
-  it('never wraps Item when the factory omitted item.component', async () => {
+  it('should never wrap Item when the factory omitted item.component', async () => {
     const FormView = createFormView({ layout: { Row, Col } })
     const Field = defineComponent({
       setup() {
@@ -172,7 +172,7 @@ describe('FormField', () => {
     expect(html).toContain('x')
   })
 
-  it('renders an ad-hoc control from fl:component and binds fl:prop', async () => {
+  it('should render an ad-hoc control from fl:component and bind fl:prop', async () => {
     const emit = vi.fn()
     const seen: Record<string, unknown>[] = []
     const Control = defineComponent({
@@ -203,7 +203,7 @@ describe('FormField', () => {
     expect(emit.mock.calls[0]![0]).toEqual({ name: 'Zed' })
   })
 
-  it('lets fl:prop drive the field slot write', async () => {
+  it('should let fl:prop drive the field slot write', async () => {
     const emit = vi.fn()
     const FormView = createFormView({ layout: { Row, Col }, item: { component: Item } })
     const Probe = defineComponent({
@@ -225,7 +225,7 @@ describe('FormField', () => {
     expect(emit.mock.calls[0]![0]).toEqual({ name: 'Zed' })
   })
 
-  it('declares its own v-model ports from fl:model at the identity root', async () => {
+  it('should declare its own v-model ports from fl:model at the identity root', async () => {
     const emit = vi.fn()
     const seen: Record<string, unknown>[] = []
     const TwoPorts = defineComponent({
@@ -255,7 +255,7 @@ describe('FormField', () => {
     expect(emit.mock.calls[0]![0]).toEqual({ fromTime: 'a', toTime: 'z' })
   })
 
-  it('provides its identity from the root FormField (no factory shell)', async () => {
+  it('should provide its identity from the root FormField (no factory shell)', async () => {
     const emit = vi.fn()
     const FormView = View()
     const Inner = defineComponent({
@@ -279,7 +279,7 @@ describe('FormField', () => {
     expect(emit.mock.calls[0]![0]).toEqual({ name: 'Bob' })
   })
 
-  it('routes item:* props and @item:* listeners to the host Item', async () => {
+  it('should route item:* props and @item:* listeners to the host Item', async () => {
     const seen: Record<string, unknown>[] = []
     const validate = () => {}
     const ProbeItem = defineComponent({
@@ -313,7 +313,7 @@ describe('FormField', () => {
     expect(seen[0]).not.toHaveProperty('placeholder')
   })
 
-  it('binds a nested sub-form to its own model (identity does not cross FormView)', async () => {
+  it('should bind a nested sub-form to its own model (identity does not cross FormView)', async () => {
     const InnerView = createFormView({ layout: { Row, Col }, item: { component: Item } })
     const seen: Record<string, unknown>[] = []
     const Field = defineComponent({
@@ -338,7 +338,7 @@ describe('FormField', () => {
     expect(seen[0]).toMatchObject({ modelValue: 'NYC' })
   })
 
-  it('does not inherit identity across a nested FormView (fl:model only stays unwired)', async () => {
+  it('should not inherit identity across a nested FormView (fl:model only stays unwired)', async () => {
     const InnerView = createFormView({ layout: { Row, Col }, item: { component: Item } })
     const bags: Record<string, unknown>[] = []
     const Field = defineComponent({

@@ -10,7 +10,7 @@ import { FormField } from './create-form-field'
 type TestFl = FormFieldFormless & { label?: string }
 
 describe('createFormFields', () => {
-  it('exposes PascalCase components for camelCase field keys', () => {
+  it('should expose PascalCase components for camelCase field keys', () => {
     const User = createFormFields({
       name: {},
       timeRange: {
@@ -25,7 +25,7 @@ describe('createFormFields', () => {
     expect((User as { name?: unknown }).name).toBeUndefined()
   })
 
-  it('types PascalCase keys without a string index', () => {
+  it('should type PascalCase keys without a string index', () => {
     const User = createFormFields({
       name: {},
       idCard: {},
@@ -34,7 +34,7 @@ describe('createFormFields', () => {
     expectTypeOf(User).toHaveProperty('IdCard')
   })
 
-  it('skips falsy field entries', () => {
+  it('should skip falsy field entries', () => {
     const Fields = createFormFields({
       name: {},
       empty: null as unknown as CreateFormFieldOptions,
@@ -42,7 +42,7 @@ describe('createFormFields', () => {
     expect(Object.keys(Fields).sort()).toEqual(['Name'])
   })
 
-  it('normalizes kebab-case keys to the same PascalCase tags', () => {
+  it('should normalize kebab-case keys to the same PascalCase tags', () => {
     const User = createFormFields({
       name: {},
       'time-range': {
@@ -57,14 +57,14 @@ describe('createFormFields', () => {
     expect((User as Record<string, unknown>)['time-range']).toBeUndefined()
   })
 
-  it('types kebab-case keys as their PascalCase tags', () => {
+  it('should type kebab-case keys as their PascalCase tags', () => {
     const User = createFormFields({
       'id-card': {},
     })
     expectTypeOf(User).toHaveProperty('IdCard')
   })
 
-  it('forwards control public props onto the namespaced tag', () => {
+  it('should forward control public props onto the namespaced tag', () => {
     const Control = defineComponent({
       props: {
         placeholder: { type: String, default: '' },
@@ -84,7 +84,7 @@ describe('createFormFields', () => {
     expectTypeOf<RemarkProps>().not.toHaveProperty('onUpdate:modelValue')
   })
 
-  it('locks schema model ports on the tag', () => {
+  it('should lock schema model ports on the tag', () => {
     const Range = defineComponent({
       props: {
         start: { type: String, default: '' },
@@ -152,7 +152,7 @@ describe('createFormFields props overlay', () => {
     })
   }
 
-  it('merges field then tag; functions see label', async () => {
+  it('should merge field then tag, so functions see label', async () => {
     const seen: Record<string, unknown>[] = []
     const Control = defineComponent({
       inheritAttrs: false,
@@ -192,7 +192,7 @@ describe('createFormFields props overlay', () => {
     expect(seen[2]).toMatchObject({ placeholder: '姓名' })
   })
 
-  it('keeps the raw key as the default prop, so a kebab key needs an explicit fl:prop', async () => {
+  it('should keep the raw key as the default prop, so a kebab key needs an explicit fl:prop', async () => {
     const snapshots: Record<string, unknown>[] = []
     const seen: Record<string, unknown>[] = []
     const Control = defineComponent({
@@ -225,7 +225,7 @@ describe('createFormFields props overlay', () => {
     expect(seen[1]!.modelValue).toBe('Ada')
   })
 
-  it('does not wrap an embed control in an outer Item', async () => {
+  it('should not wrap an embed control in an outer Item', async () => {
     const Fields = createFormFields({
       range: { component: Two, prop: ['fromTime', 'toTime'] },
     })
@@ -243,7 +243,7 @@ describe('createFormFields props overlay', () => {
     expect(html).toContain('class="e"')
   })
 
-  it('wraps wrap-embed in Col-Item-Row', async () => {
+  it('should wrap wrap-embed in Col-Item-Row', async () => {
     const Fields = createFormFields({
       range: { label: '签证', component: Two, prop: ['fromTime', 'toTime'] },
     })
@@ -260,7 +260,7 @@ describe('createFormFields props overlay', () => {
     expect(html).toContain('data-span="24"')
   })
 
-  it('skips Item for internal false but keeps Col', async () => {
+  it('should skip Item for internal false but keep Col', async () => {
     const Control = defineComponent({
       inheritAttrs: false,
       setup: () => () => h('input', { class: 'agency' }),
@@ -280,7 +280,7 @@ describe('createFormFields props overlay', () => {
     expect(html).toContain('class="agency"')
   })
 
-  it('lets the tag wrap Item over internal false', async () => {
+  it('should let the tag wrap Item over internal false', async () => {
     const Control = defineComponent({
       inheritAttrs: false,
       setup: () => () => h('input', { class: 'agency' }),
@@ -300,7 +300,7 @@ describe('createFormFields props overlay', () => {
     expect(html).toContain('class="col"')
   })
 
-  it('keeps an inner Row when wrap-embed and page layout is off', async () => {
+  it('should keep an inner Row when wrap-embed and page layout is off', async () => {
     const Fields = createFormFields({
       range: { label: '签证', component: Two, prop: ['fromTime', 'toTime'] },
     })
@@ -318,7 +318,7 @@ describe('createFormFields props overlay', () => {
     expect(html.match(/class="col"/g)?.length).toBe(2)
   })
 
-  it('declares the schema v-model ports on the identity root', async () => {
+  it('should declare the schema v-model ports on the identity root', async () => {
     const emit = vi.fn()
     const seen: Record<string, unknown>[] = []
     const TwoPorts = defineComponent({
@@ -347,7 +347,7 @@ describe('createFormFields props overlay', () => {
     expect(emit.mock.calls[0]![0]).toEqual({ fromTime: 'a', toTime: 'z' })
   })
 
-  it('merges the tag write listener with the field port, and lets the port data win', async () => {
+  it('should merge the tag write listener with the field port, and let the port data win', async () => {
     const seen: Record<string, unknown>[] = []
     const Control = defineComponent({
       inheritAttrs: false,
@@ -382,7 +382,7 @@ describe('createFormFields props overlay', () => {
     expect(emit.mock.calls[0]![0]).toEqual({ name: 'Zed' })
   })
 
-  it('renders exactly like a FormField preset with the same attrs', async () => {
+  it('should render exactly like a FormField preset with the same attrs', async () => {
     const Control = defineComponent({
       inheritAttrs: false,
       props: { placeholder: { type: String, default: '' } },
@@ -414,7 +414,7 @@ describe('createFormFields props overlay', () => {
     expect(fromFactory).toBe(handWritten)
   })
 
-  it('resolves snapshot-dependent props into bare attrs', async () => {
+  it('should resolve snapshot-dependent props into bare attrs', async () => {
     const seen: Record<string, unknown>[] = []
     const Control = defineComponent({
       inheritAttrs: false,
@@ -447,7 +447,7 @@ describe('createFormFields props overlay', () => {
     expect(seen[1]).toMatchObject({ located: 'buyers[0].name' })
   })
 
-  it('leaves a multi-port field unbound on the host Item', async () => {
+  it('should leave a multi-port field unbound on the host Item', async () => {
     const props: Record<string, unknown>[] = []
     const Control = defineComponent({
       inheritAttrs: false,
@@ -489,7 +489,7 @@ describe('createFormFields props overlay', () => {
     expect(html).toContain('data-label="区间"')
   })
 
-  it('scopes a nested slice to its own port through the ancestor layer', async () => {
+  it('should scope a nested slice to its own port through the ancestor layer', async () => {
     const emit = vi.fn()
     const bags: Record<string, unknown>[] = []
     const Pair = defineComponent({
@@ -534,7 +534,7 @@ describe('createFormFields props overlay', () => {
     expect(emit.mock.calls[0]![0]).toEqual({ fromTime: 'a', toTime: 'z' })
   })
 
-  it('uses field :layout:column for the inner LayoutView', async () => {
+  it('should use field :layout:column for the inner LayoutView', async () => {
     const Fields = createFormFields({
       range: { label: '签证', component: Two, prop: ['fromTime', 'toTime'] },
     })
@@ -551,7 +551,7 @@ describe('createFormFields props overlay', () => {
     expect(spans.filter((s) => s === '12')).toHaveLength(2)
   })
 
-  it('inner LayoutView uses its own default density, not the page :layout:column', async () => {
+  it('should make the inner LayoutView use its own default density, not the page :layout:column', async () => {
     const Fields = createFormFields({
       range: { label: '签证', component: Two, prop: ['fromTime', 'toTime'] },
     })
@@ -568,7 +568,7 @@ describe('createFormFields props overlay', () => {
     expect(spans).not.toContain('12')
   })
 
-  it('resolves fl:item once, so control props and Item props agree (design.md §9)', async () => {
+  it('should resolve fl:item once, so control props and Item props agree (design.md §9)', async () => {
     const controlSnapshots: Record<string, unknown>[] = []
     const itemSnapshots: Record<string, unknown>[] = []
     const Controls = defineComponent({
@@ -625,7 +625,7 @@ describe('createFormFields props overlay', () => {
     expect(html).toContain('class="probe"')
   })
 
-  it('renders an outer fl:field="embed" as the bare control (no Item or grid shell)', async () => {
+  it('should render an outer fl:field="embed" as the bare control (no Item or grid shell)', async () => {
     const html = await render(
       h(shellView(), { modelValue: {} }, () =>
         h(FormField, { 'fl:prop': 'name', 'fl:field': 'embed' }, { default: () => h('input', { class: 'emb' }) }),
@@ -637,7 +637,7 @@ describe('createFormFields props overlay', () => {
     expect(html).not.toContain('class="row"')
   })
 
-  it('renders a standalone FormField with no FormView context', async () => {
+  it('should render a standalone FormField with no FormView context', async () => {
     const html = await render(
       h(FormField, { 'fl:prop': 'name' }, { default: () => h('span', 'x') }),
     )
@@ -645,7 +645,7 @@ describe('createFormFields props overlay', () => {
     expect(html).not.toContain('class="item"')
   })
 
-  it('leaves a non-string model port unbound', async () => {
+  it('should leave a non-string model port unbound', async () => {
     const seen: Record<string, unknown>[] = []
     const Control = defineComponent({
       inheritAttrs: false,
@@ -668,7 +668,7 @@ describe('createFormFields props overlay', () => {
     expect(seen[0]).not.toHaveProperty('onUpdate:undefined')
   })
 
-  it('leaves a non-string prop entry unbound', async () => {
+  it('should leave a non-string prop entry unbound', async () => {
     const seen: Record<string, unknown>[] = []
     const Control = defineComponent({
       inheritAttrs: false,
@@ -688,7 +688,7 @@ describe('createFormFields props overlay', () => {
     expect(seen[0]).toEqual({})
   })
 
-  it('resolves unclaimed and non-string nested ports to undefined through getProp', async () => {
+  it('should resolve unclaimed and non-string nested ports to undefined through getProp', async () => {
     const bags: Record<string, unknown>[] = []
     const Weird = defineComponent({
       formless: { field: 'embed' as const },

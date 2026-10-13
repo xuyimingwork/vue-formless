@@ -71,7 +71,7 @@ async function render(vnode: VNode): Promise<string> {
 }
 
 describe('createFormView', () => {
-  it('emits a new object from root v-model', async () => {
+  it('should emit a new object from root v-model', async () => {
     const FormView = View()
     const source = { name: 'Ada' }
     const emit = vi.fn()
@@ -88,7 +88,7 @@ describe('createFormView', () => {
     expect(emit.mock.calls[0]![0]).not.toBe(source)
   })
 
-  it('writes into a root array v-model and clones on emit', async () => {
+  it('should write into a root array v-model and clone on emit', async () => {
     const FormView = View()
     const source = [{ name: 'Ada' }]
     const emit = vi.fn()
@@ -106,7 +106,7 @@ describe('createFormView', () => {
     expect(source[0]).toEqual({ name: 'Ada' })
   })
 
-  it('merges same-tick nested array writes into one emit', async () => {
+  it('should merge same-tick nested array writes into one emit', async () => {
     const FormView = View()
     const source = { buyers: [{ name: 'Ada', gender: 'f' }] }
     const emit = vi.fn()
@@ -123,7 +123,7 @@ describe('createFormView', () => {
     expect(source.buyers[0]).toEqual({ name: 'Ada', gender: 'f' })
   })
 
-  it('wraps Form at the root by default and skips it for nested auto', async () => {
+  it('should wrap Form at the root by default and skip it for nested auto', async () => {
     const forms: unknown[] = []
     const FormView = View((props) => {
       forms.push(props)
@@ -137,7 +137,7 @@ describe('createFormView', () => {
     expect(forms[0]).toMatchObject({ modelValue: {} })
   })
 
-  it('still wraps Form when nested :fl:form="true"', async () => {
+  it('should still wrap Form when nested :fl:form="true"', async () => {
     const forms: unknown[] = []
     const FormView = View((props) => {
       forms.push(props)
@@ -151,7 +151,7 @@ describe('createFormView', () => {
     expect(forms[1]).toMatchObject({ modelValue: undefined })
   })
 
-  it('treats an explicit :fl:form="auto" as the default (root on, nested off)', async () => {
+  it('should treat an explicit :fl:form="auto" as the default (root on, nested off)', async () => {
     const forms: unknown[] = []
     const FormView = View((props) => {
       forms.push(props)
@@ -165,7 +165,7 @@ describe('createFormView', () => {
     expect(forms).toHaveLength(1)
   })
 
-  it('does not wrap Form when root :fl:form="false"', async () => {
+  it('should not wrap Form when root :fl:form="false"', async () => {
     const forms: unknown[] = []
     const FormView = View((props) => {
       forms.push(props)
@@ -174,7 +174,7 @@ describe('createFormView', () => {
     expect(forms).toHaveLength(0)
   })
 
-  it('treats a bare :fl:form as true', async () => {
+  it('should treat a bare :fl:form as true', async () => {
     const forms: unknown[] = []
     const FormView = View((props) => {
       forms.push(props)
@@ -183,7 +183,7 @@ describe('createFormView', () => {
     expect(forms).toHaveLength(1)
   })
 
-  it('renders without a layout binding', async () => {
+  it('should render without a layout binding', async () => {
     const FormView = createFormView()
     const emit = vi.fn()
     await render(h(FormView, { modelValue: { name: 'Ada' }, 'onUpdate:modelValue': emit }, () => h(Writer())))
@@ -192,7 +192,7 @@ describe('createFormView', () => {
     expect(emit.mock.calls[0]![0]).toEqual({ name: 'Bob' })
   })
 
-  it('inherits ancestor v-model from a nested FormView with no binding', async () => {
+  it('should inherit ancestor v-model from a nested FormView with no binding', async () => {
     const FormView = View()
     const emit = vi.fn()
     await render(
@@ -207,7 +207,7 @@ describe('createFormView', () => {
     expect(emit.mock.calls[0]![0]).toEqual({ name: 'Bob' })
   })
 
-  it('renders Row and Col span 8 when column is 3', async () => {
+  it('should render Row and Col span 8 when column is 3', async () => {
     const FormView = View()
     const html = await render(
       h(FormView, { modelValue: {}, 'fl:layout': true, 'layout:column': 3, 'layout:gutter': 12 }, () =>
@@ -220,7 +220,7 @@ describe('createFormView', () => {
     expect(html).toContain('<grid-col')
   })
 
-  it('does not render Row or Col when layout is off', async () => {
+  it('should not render Row or Col when layout is off', async () => {
     const FormView = View()
     const html = await render(
       h(FormView, { modelValue: {} }, () => h(FormField, { 'fl:prop': 'name' })),
@@ -229,7 +229,7 @@ describe('createFormView', () => {
     expect(html).not.toContain('<grid-col')
   })
 
-  it('nests layout only on the inner FormView', async () => {
+  it('should nest layout only on the inner FormView', async () => {
     const FormView = View()
     const html = await render(
       h(FormView, { modelValue: {} }, () =>
@@ -242,7 +242,7 @@ describe('createFormView', () => {
     expect(html).toContain('span="8"')
   })
 
-  it('treats incoming modelValue: undefined as this layer', async () => {
+  it('should treat incoming modelValue: undefined as this layer', async () => {
     const FormView = View()
     const innerEmit = vi.fn()
     const outerEmit = vi.fn()
@@ -264,7 +264,7 @@ describe('createFormView', () => {
     expect(innerEmit.mock.calls[0]![0]).toEqual({ name: 'Bob' })
   })
 
-  it('treats listener-only as this layer and emits from {}', async () => {
+  it('should treat listener-only as this layer and emit from {}', async () => {
     const FormView = View()
     const emit = vi.fn()
     await render(h(FormView, { 'onUpdate:modelValue': emit }, () => h(Writer())))
@@ -273,7 +273,7 @@ describe('createFormView', () => {
     expect(emit.mock.calls[0]![0]).toEqual({ name: 'Bob' })
   })
 
-  it('passes static form.props to the host and lets tag attrs overlay', async () => {
+  it('should pass static form.props to the host and let tag attrs overlay', async () => {
     const seen: Array<Record<string, unknown>> = []
     const Form = defineComponent({
       inheritAttrs: false,
@@ -303,7 +303,7 @@ describe('createFormView', () => {
     })
   })
 
-  it('lets an explicit tag attr overlay a static form.props default', async () => {
+  it('should let an explicit tag attr overlay a static form.props default', async () => {
     const seen: unknown[] = []
     const Form = defineComponent({
       inheritAttrs: false,
@@ -324,7 +324,7 @@ describe('createFormView', () => {
     expect(seen).toEqual([b])
   })
 
-  it('does not strip v-model listeners off the host Form', async () => {
+  it('should not strip v-model listeners off the host Form', async () => {
     const seen: Array<Record<string, unknown>> = []
     const Form = defineComponent({
       inheritAttrs: false,
@@ -345,7 +345,7 @@ describe('createFormView', () => {
     expect(seen[0]).toMatchObject({ 'onUpdate:modelValue': emit })
   })
 
-  it('uses column 1 when factory omits column', async () => {
+  it('should use column 1 when factory omits column', async () => {
     const FormView = View()
     const html = await render(
       h(FormView, { modelValue: {}, 'fl:layout': true }, () =>
@@ -355,7 +355,7 @@ describe('createFormView', () => {
     expect(html).toContain('span="24"')
   })
 
-  it('lets factory density set default span', async () => {
+  it('should let factory density set default span', async () => {
     const FormView = createFormView({
       layout: { Row, Col, props: { column: 3 } },
       item: { component: Item },
@@ -369,7 +369,7 @@ describe('createFormView', () => {
     expect(html).toContain('span="8"')
   })
 
-  it('lets tag :layout:* overlay factory layout.props', async () => {
+  it('should let tag :layout:* overlay factory layout.props', async () => {
     const FormView = createFormView({
       layout: { Row, Col, props: { column: 3 } },
       item: { component: Item },
@@ -383,7 +383,7 @@ describe('createFormView', () => {
     expect(html).toContain('span="12"')
   })
 
-  it('routes @layout:* to the page LayoutView, not the bare-name target', async () => {
+  it('should route @layout:* to the page LayoutView, not the bare-name target', async () => {
     const seen: Record<string, unknown>[] = []
     const onGutter = () => {}
     const ProbeRow = defineComponent({
@@ -407,7 +407,7 @@ describe('createFormView', () => {
     expect(seen[0]).toMatchObject({ onGutter })
   })
 
-  it('lets item:* and layout-item:* fall through to the host Form', async () => {
+  it('should let item:* and layout-item:* fall through to the host Form', async () => {
     const seen: Record<string, unknown>[] = []
     const ProbeForm = defineComponent({
       name: 'ProbeForm',
