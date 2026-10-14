@@ -93,14 +93,15 @@ export const User = createFormFields({
 
 `validate()` / `resetFields()` 走 FormView 的 ref（代理内层 Form）。栅格细节见 [docs/adr](./docs/adr.md)。
 
-## 在线 Playground
+## 在线站点
 
 GitHub Pages（仓库需在 **Settings → Pages → Source** 选 GitHub Actions，推 `main` 后生成）：
 
-- 表单对照：[https://xuyimingwork.github.io/vue-formx/](https://xuyimingwork.github.io/vue-formx/)
-- 24 格布局：[https://xuyimingwork.github.io/vue-formx/layout/](https://xuyimingwork.github.io/vue-formx/layout/)
+- 文档站点：[https://xuyimingwork.github.io/vue-formless/](https://xuyimingwork.github.io/vue-formless/)
+- 表单 Playground：[https://xuyimingwork.github.io/vue-formless/playground/demo/basic/baseline](https://xuyimingwork.github.io/vue-formless/playground/demo/basic/baseline)
+- 24 格布局：[https://xuyimingwork.github.io/vue-formless/layout/](https://xuyimingwork.github.io/vue-formless/layout/)
 
-本地预览打包结果：`PAGES_BASE=/vue-formx/ pnpm build:pages`，再用任意静态服务器打开 `site/`。
+本地预览打包结果：`PAGES_BASE=/vue-formless/ pnpm build:pages`，再用任意静态服务器打开 `site/`。
 
 ## 仓库结构
 
@@ -109,6 +110,7 @@ packages/vue-formless              # 内核（npm：vue-formless）
 packages/layout                    # 内部栅格，打进内核 dist
 playground                         # Element Plus 基线 vs Formless
 playground-layout                  # 24 格布局工作台
+website                            # VitePress 文档站点（部署到 GitHub Pages）
 docs/adr.md                        # 架构决策（单篇汇总）
 ```
 

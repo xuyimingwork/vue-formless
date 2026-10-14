@@ -325,19 +325,18 @@ FormField 包裹：LayoutItem → ElFormItem? → control（LayoutView 仅 wrap-
 - 废弃二：`layout.column` / `layout.gutter` 工厂字段（退场，收进 `layout.props`）。
 - 废弃三：`layout.props` / `form.props` 写成函数、吃 snapshot（收敛为静态对象）。
 
-### 问题 19：行内占用用 `take` 吗？筛选窗口落地了吗？
+### 问题 19：筛选窗口落地了吗？
 
 **解决方式**：
 
-- **`take` 不实现**：行内占用保持 `place` **单轴**（`auto` / `start` / `end`）。`span` 是宿主 Col 实宽，`place` 已经是「行内落位 / 占行模式」，不再新开 `take`。
+- 行内占用保持 `place` **单轴**（`auto` / `start` / `end`）。`span` 是宿主 Col 实宽，`place` 已经是「行内落位 / 占行模式」。
 - ADR-019 的筛选窗口（`layout:row` + `layout-item:show`）**尚未落地**：当前 `LayoutView` 只有 `disabled` / `column`，`LayoutItem` 只有 `span` / `place`。
 
 **废弃**：
-- 废弃一：`take="rest"` / `span="rest"`——模型承诺 9 格只交付 1 格；区域宽度是运行时值（随 `column` / 前面的格 / `v-if` 变），不适合承载第二个轴。
-- 废弃二：页面 `visible = column * 2` + `v-if`（一改密度或混 `2x` 即错）。
-- 废弃三：`filter` 回调（不语义化，作者仍要算预算）。
-- 废弃四：容器 `max-height` 裁两行（会裁掉 DOM 末尾的查询 / 重置）。
-- 废弃五：窗口键叫 `rows`（与 `column` 不对称）。
+- 废弃一：页面 `visible = column * 2` + `v-if`（一改密度或混 `2x` 即错）。
+- 废弃二：`filter` 回调（不语义化，作者仍要算预算）。
+- 废弃三：容器 `max-height` 裁两行（会裁掉 DOM 末尾的查询 / 重置）。
+- 废弃四：窗口键叫 `rows`（与 `column` 不对称）。
 
 ---
 
@@ -478,5 +477,5 @@ declare module 'vue-formless' {
 | LayoutView `layout:row` 窗口 + `LayoutItem` `layout-item:show`（筛选条收起） | 未落地（问题 19） |
 | `fl:grid` 栅格开关 | 未落地，开关仍写 `fl:layout` |
 | `ItemFl.getValues()` | 已删除（声明了但从未实现） |
-| `take` / `span="rest"` / `item: 'self'` | 已否 |
+| `item: 'self'` | 已否 |
 | `LayoutItem` 级多断点 span | 已否 |

@@ -1,0 +1,60 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import type { FormInstance } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { User } from './user'
+
+const formRef = ref<FormInstance>()
+const form = ref({})
+
+async function onSubmit() {
+  await formRef.value?.validate()
+  ElMessage.success('校验通过（formless 混合布局）')
+}
+</script>
+
+<template>
+  <FormView ref="formRef" v-model="form" label-width="96px">
+    <p class="demo-section">基本信息</p>
+    <FormView fl:layout :layout:column="3" :layout:gutter="16">
+      <User.Name :item:rules="[{ required: true, message: '必填' }]" />
+      <User.Gender />
+      <User.Mobile />
+    </FormView>
+
+    <p class="demo-section">证件与联系</p>
+    <FormView fl:layout :layout:column="3" :layout:gutter="16">
+      <User.IdCard layout-item:span="max" />
+      <User.Email layout-item:span="16" />
+      <User.Address layout-item:span="8" />
+    </FormView>
+
+    <p class="demo-section">其他</p>
+    <FormView fl:layout :layout:column="1" :layout:gutter="16">
+      <User.Remark />
+    </FormView>
+  </FormView>
+
+  <div class="demo-actions">
+    <el-button type="primary" @click="onSubmit">提交</el-button>
+  </div>
+  <pre class="demo-preview">{{ form }}</pre>
+</template>
+
+<style scoped>
+.demo-section {
+  font-weight: 600;
+  margin: 16px 0 8px;
+}
+.demo-actions {
+  margin: 16px 0 8px;
+}
+.demo-preview {
+  background: #f6f8fa;
+  border-radius: 6px;
+  padding: 12px;
+  font-size: 12px;
+  overflow: auto;
+  max-height: 220px;
+}
+</style>

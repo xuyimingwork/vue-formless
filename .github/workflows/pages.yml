@@ -31,7 +31,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Build playgrounds
+      - name: Build site
         env:
           PAGES_BASE: /${{ github.event.repository.name }}/
         run: node scripts/build-pages.mjs

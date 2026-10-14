@@ -96,14 +96,15 @@ export const User = createFormFields({
 
 `validate()` / `resetFields()` go through the FormView ref (proxied host Form). Layout details: [docs/adr](./docs/adr.md).
 
-## Live playgrounds
+## Live site
 
 GitHub Pages (set **Settings → Pages → Source** to GitHub Actions; deploys from `main`):
 
-- Forms: [https://xuyimingwork.github.io/vue-formx/](https://xuyimingwork.github.io/vue-formx/)
-- 24-col layout: [https://xuyimingwork.github.io/vue-formx/layout/](https://xuyimingwork.github.io/vue-formx/layout/)
+- Docs: [https://xuyimingwork.github.io/vue-formless/](https://xuyimingwork.github.io/vue-formless/)
+- Forms playground: [https://xuyimingwork.github.io/vue-formless/playground/demo/basic/baseline](https://xuyimingwork.github.io/vue-formless/playground/demo/basic/baseline)
+- 24-col layout: [https://xuyimingwork.github.io/vue-formless/layout/](https://xuyimingwork.github.io/vue-formless/layout/)
 
-Local preview of the Pages bundle: `PAGES_BASE=/vue-formx/ pnpm build:pages`, then serve `site/`.
+Local preview of the Pages bundle: `PAGES_BASE=/vue-formless/ pnpm build:pages`, then serve `site/`.
 
 ## Layout
 
@@ -112,6 +113,7 @@ packages/vue-formless              # kernel (npm: vue-formless)
 packages/layout                    # internal grid, bundled into the kernel
 playground                         # Element Plus baseline vs Formless
 playground-layout                  # 24-col layout studio
+website                            # VitePress docs site (deploys to GitHub Pages)
 docs/adr.md                        # architecture decisions (single doc)
 ```
 

@@ -1,0 +1,78 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import type { FormInstance } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { Range } from './range'
+import { User } from './user'
+
+const formRef = ref<FormInstance>()
+const form = ref({
+  name: '',
+  gender: '',
+  mobile: '',
+  email: '',
+  startTime: '',
+  endTime: '',
+  fromTime: '',
+  toTime: '',
+  idCard: '',
+  address: '',
+  remark: '',
+})
+
+async function onSubmit() {
+  await formRef.value?.validate()
+  ElMessage.success('校验通过（formless DateRange）')
+}
+
+function onReset() {
+  formRef.value?.resetFields()
+}
+</script>
+
+<template>
+  <FormView
+    ref="formRef"
+    v-model="form"
+    label-width="96px"
+    fl:layout
+    :layout:column="3"
+    :layout:gutter="16"
+  >
+    <User.Name :item:rules="[{ required: true, message: '请输入姓名', trigger: 'blur' }]" />
+    <User.Gender :item:rules="[{ required: true, message: '请选择性别', trigger: 'change' }]" />
+    <User.Mobile />
+    <Range.DateRangeOne
+      layout-item:span="16"
+      :item:required="true"
+      :item:rules="[{ required: true, message: '请选择日期范围', trigger: 'change' }]"
+    />
+    <User.Email />
+    <Range.DateRangeTwo layout-item:span="max" :layout:column="2" />
+    <User.IdCard />
+    <User.Address />
+    <FormField fl:prop="'remark'" fl:label="备注" layout-item:span="max" v-slot="{ $bindings }">
+      <el-input v-bind="$bindings" type="textarea" :rows="3" placeholder="可选" />
+    </FormField>
+  </FormView>
+
+  <div class="demo-actions">
+    <el-button @click="onReset">重置</el-button>
+    <el-button type="primary" @click="onSubmit">提交</el-button>
+  </div>
+  <pre class="demo-preview">{{ form }}</pre>
+</template>
+
+<style scoped>
+.demo-actions {
+  margin: 16px 0 8px;
+}
+.demo-preview {
+  background: #f6f8fa;
+  border-radius: 6px;
+  padding: 12px;
+  font-size: 12px;
+  overflow: auto;
+  max-height: 220px;
+}
+</style>

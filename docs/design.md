@@ -657,7 +657,7 @@ interface LayoutItemProps {
 }
 ```
 
-- `span` 只决定宿主 Col 实宽；`place` 决定行内落位 / 占行模式。（`take` 已否，见 ADR-018。ADR-019 的 `show` / LayoutView `row` 窗口**尚未落地**——当前 `LayoutItem` 只有 `span` / `place`，`LayoutView` 只有 `disabled` / `column`。）
+- `span` 只决定宿主 Col 实宽；`place` 决定行内落位 / 占行模式。（ADR-019 的 `show` / LayoutView `row` 窗口**尚未落地**——当前 `LayoutItem` 只有 `span` / `place`，`LayoutView` 只有 `disabled` / `column`。）
 - 归一化：`normalizeColSpan(raw, column)`（`1x` = `24/column`，`max` = 24，clamp 1..24）；`normalizeColPlace`。
 - 渲染：`LayoutBlanks(before)` + `HostCol` + `LayoutBlanks(after)`，`disabled` 时直接透传 children。
 
