@@ -1,13 +1,14 @@
 import {
   defineComponent,
   markRaw,
+  ref,
   type Component,
   type DefineComponent,
   type PropType,
   type VNodeChild,
 } from 'vue'
 import type { FormFieldFormless, HostProps } from '../shared/form-field-types'
-import type { JsxHost } from '../shared/utils'
+import { createExposeProxy, type JsxHost } from '../shared/utils'
 
 export interface CreateFormItemOptions {
   /** Host Item (e.g. ElFormItem). Omit = only passthrough children. */
@@ -49,7 +50,14 @@ export function createFormItem(options: CreateFormItemOptions = {}): FormItemCom
       fl: { type: Object as PropType<FormFieldFormless>, required: true },
       item: { type: Object as PropType<Record<string, unknown>>, required: true },
     },
-    setup(props, { slots }) {
+    setup(props, { slots, expose }) {
+      // Expose the host Item instance (like FormView exposes the host Form):
+      // a stable, lazily-forwarding proxy so reads are valid before mount and
+      // resolve to the real instance afterwards. Stays null when the host is
+      // not rendered (`fl:item` false / no host bound).
+      const itemRef = ref<object | null>(null)
+      expose(createExposeProxy(itemRef))
+
       return (): VNodeChild => {
         if (!Host || !props.fl?.item) return slots.default?.() ?? null
         const HostItem = Host as JsxHost
@@ -60,6 +68,7 @@ export function createFormItem(options: CreateFormItemOptions = {}): FormItemCom
           : options.props
         return (
           <HostItem
+            ref={itemRef}
             {...{
               ...base,
               ...props.item

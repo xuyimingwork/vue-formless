@@ -97,3 +97,33 @@ export function createExposeProxy<T extends object>(host: { value: T | null }): 
     },
   ) as T
 }
+
+/**
+ * Compose an expose target: keys not named in `override` forward to `base`
+ * (itself a live `createExposeProxy`, so reads resolve lazily), while keys in
+ * `override` shadow them. Lazy keys use an accessor getter — `Reflect.get`
+ * re-evaluates it on every read, so e.g. `{ get itemRef() { ... } }` can return
+ * `null` before the host mounts and the live instance afterwards. Plain values
+ * are returned as-is (a nested `createExposeProxy` keeps its own lazy
+ * forwarding + method binding).
+ *
+ * @param base     the live proxy whose keys are forwarded by default
+ * @param override named keys that shadow `base`; accessor getters stay lazy
+ */
+export function mergeExposeProxy(
+  base: Record<string, unknown>,
+  override: Record<string, unknown>,
+): Record<string, unknown> {
+  return new Proxy(
+    {},
+    {
+      get(_target, key) {
+        if (key in override) return Reflect.get(override, key)
+        return Reflect.get(base, key)
+      },
+      has(_target, key) {
+        return key in override || key in base
+      },
+    },
+  )
+}

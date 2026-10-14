@@ -19,7 +19,7 @@ export type { FormFields } from './assembly/create-form-fields'
 
 // --- FormField -------------------------------------------------------------
 export { FormField } from './assembly/create-form-field'
-export type { FormFieldComponent, FormFieldSlotProps } from './assembly/create-form-field'
+export type { FormFieldComponent, FormFieldExposed, FormFieldSlotProps } from './assembly/create-form-field'
 
 // --- declaration / binding types -------------------------------------------
 // The types a consumer has to name: the module-augmentation anchor

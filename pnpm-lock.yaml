@@ -43,6 +43,9 @@ importers:
       '@vue-formless/layout':
         specifier: workspace:*
         version: link:../layout
+      happy-dom:
+        specifier: ^18.0.1
+        version: 18.0.1
       typescript:
         specifier: ^5.8.3
         version: 5.9.3

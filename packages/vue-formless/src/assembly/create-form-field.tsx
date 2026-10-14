@@ -4,6 +4,7 @@ import {
   inject,
   mergeProps,
   provide,
+  ref,
   toValue,
   type Component,
   type DefineComponent,
@@ -21,10 +22,25 @@ import type {
   HostProps,
 } from '../shared/form-field-types'
 import { dispatch, FIELD_SLOT_CHANNELS, FIELD_ATTR_CHANNELS, useDispatch } from '../hooks/use-dispatch'
-import { getAttrBoolean, toCamel, upperFirst, type JsxHost } from '../shared/utils'
+import { createExposeProxy, getAttrBoolean, mergeExposeProxy, toCamel, upperFirst, type JsxHost } from '../shared/utils'
 
 export interface FormFieldSlotProps {
   $bindings: Record<string, unknown>
+}
+
+/**
+ * What `<FormField ref>` exposes: the control's public instance at the top
+ * level (its methods, e.g. `focus`, are forwarded with `this` bound), plus the
+ * host Item's instance under the reserved `itemRef` key (`null` when no host
+ * Item is rendered).
+ *
+ * The control's API is dynamic (it depends on the concrete host), so its keys
+ * are `unknown` here — narrow with `as InstanceType<typeof ElInput>` when
+ * calling through. This shape's real value is the `itemRef` declaration.
+ */
+export interface FormFieldExposed extends Record<string, unknown> {
+  /** Host Item 的公开实例（如 `ElFormItem`）；无 Item 时为 `null`。 */
+  itemRef: Record<string, unknown> | null
 }
 
 export type FormFieldComponent<P = {}> = DefineComponent<FormFieldProps & P>
@@ -75,10 +91,23 @@ const FormFieldCore = defineComponent({
     item: { type: Object as PropType<Record<string, unknown>>, required: true },
     control: { type: [Object, Function] as PropType<HostProps<FormFieldFormless>>, required: true },
   },
-  setup(props, { slots }) {
+  setup(props, { slots, expose }) {
     // FormField's only upstream context: model source + identity mapping + shell
     // resources all live here.
     const context = inject(FORM_FIELD_KEY, null)
+
+    // Expose the control's public instance at the top level and the host Item's
+    // under the reserved `itemRef` key. Both holders stay null until the hosts
+    // mount; `itemRef` reads as `null` while there is no host Item.
+    const controlRef = ref<Record<string, unknown> | null>(null)
+    const itemRef = ref<Record<string, unknown> | null>(null)
+    const controlExpose = createExposeProxy(controlRef)
+    const itemExpose = createExposeProxy(itemRef)
+    expose(mergeExposeProxy(controlExpose, {
+      get itemRef() {
+        return itemRef.value ? itemExpose : null
+      },
+    }))
 
     const controlFormless = computed(() => (props.fl?.component as any)?.formless)
     const propFormless = computed(() => ({
@@ -213,7 +242,7 @@ const FormFieldCore = defineComponent({
       const Control = props.fl.component as unknown as JsxHost | undefined
 
       const pureControl: VNodeChild = Control
-        ? <Control {...controlAttrs.value} v-slots={controlSlots} />
+        ? <Control ref={controlRef} {...controlAttrs.value} v-slots={controlSlots} />
         : slots.default?.({ $bindings: bindings.value }) ?? null
 
       if (field.value === 'embed') return pureControl
@@ -225,7 +254,10 @@ const FormFieldCore = defineComponent({
         : pureControl
       
       const FormItem = context?.FormItem as JsxHost | undefined
-      const body = FormItem ? <FormItem 
+      // Only wrap (and only bind `itemRef`) when this cell wants an Item; the
+      // shell is otherwise skipped, so `itemRef` stays null and reads null.
+      const body = FormItem && item.value ? <FormItem 
+        ref={itemRef}
         fl={formless.value}
         item={props.item} v-slots={{ 
         ...itemSlots,
@@ -249,14 +281,20 @@ export function createFormField(options: CreateFormFieldOptions = {}) {
   return defineComponent({
     name: name ? `FormField${upperFirst(name)}` : 'FormField',
     inheritAttrs: false,
-    setup(_, { attrs, slots }) {
+    setup(_, { attrs, slots, expose }) {
       const { fl, layoutItem, layout, item, default: control } = useDispatch(
         attrs as Record<string, unknown>,
         FIELD_ATTR_CHANNELS,
       )
+
+      // Forward FormFieldCore's exposed instance (control at top level,
+      // `itemRef` for the host Item) straight through the public tag.
+      const coreRef = ref<Record<string, unknown> | null>(null)
+      expose(createExposeProxy(coreRef))
   
       return () => (
         <FormFieldCore
+          ref={coreRef}
           preset={{
             fl: preset,
             props

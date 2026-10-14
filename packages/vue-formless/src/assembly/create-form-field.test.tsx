@@ -1,5 +1,8 @@
+/**
+ * @vitest-environment happy-dom
+ */
 import { describe, expect, it, vi } from 'vitest'
-import { createSSRApp, defineComponent, h, nextTick, type PropType, type VNode } from 'vue'
+import { createApp, createSSRApp, defineComponent, h, nextTick, ref, type PropType, type VNode } from 'vue'
 import { renderToString } from 'vue/server-renderer'
 import { createFormView } from './create-form-view'
 import { FormField } from './create-form-field'
@@ -67,6 +70,33 @@ const LabeledItem = defineComponent({
     return () => h('item', { 'data-label': props.label }, slots.default?.())
   },
 })
+
+const ExposedItem = defineComponent({
+  name: 'ExposedItem',
+  inheritAttrs: false,
+  setup(_, { slots, expose }) {
+    expose({ validate: () => 'ok' })
+    return () => h('item', slots.default?.())
+  },
+})
+
+const FocusControl = defineComponent({
+  name: 'FocusControl',
+  inheritAttrs: false,
+  setup(_, { attrs, expose }) {
+    expose({ focus: () => 'focused' })
+    return () => h('input', attrs)
+  },
+})
+
+/** Mount a vnode tree in a real DOM and return the root element for cleanup. */
+async function mount(vnode: VNode): Promise<HTMLElement> {
+  const el = document.createElement('div')
+  document.body.appendChild(el)
+  createApp({ render: () => vnode }).mount(el)
+  await nextTick()
+  return el
+}
 
 describe('FormField', () => {
   it('should be exported as a standalone field (not attached on FormView)', () => {
@@ -363,5 +393,64 @@ describe('FormField', () => {
     // The inner field declares no fl:prop and identity is truncated at the FormView,
     // so it resolves no location and gets no v-model binding.
     expect(bags[0]).toEqual({})
+  })
+
+  it('should expose the control instance methods at the top level', async () => {
+    const FormView = createFormView({ layout: { Row, Col }, item: { component: Item } })
+    const fieldRef = ref<{ focus?: () => string } | null>(null)
+    const el = await mount(
+      h(FormView, { modelValue: {}, 'fl:layout': true }, () =>
+        h(FormField, { 'fl:prop': 'name', 'fl:component': FocusControl, ref: fieldRef }),
+      ),
+    )
+    expect(fieldRef.value?.focus?.()).toBe('focused')
+    el.remove()
+  })
+
+  it('should expose the host Item instance methods under itemRef', async () => {
+    const FormView = createFormView({ layout: { Row, Col }, item: { component: ExposedItem } })
+    const fieldRef = ref<{ itemRef?: { validate?: () => string } | null } | null>(null)
+    const el = await mount(
+      h(FormView, { modelValue: {}, 'fl:layout': true }, () =>
+        h(FormField, { 'fl:prop': 'name', 'fl:component': FocusControl, ref: fieldRef }),
+      ),
+    )
+    expect(fieldRef.value?.itemRef?.validate?.()).toBe('ok')
+    el.remove()
+  })
+
+  it('should expose itemRef as null when the field renders no Item (fl:item false)', async () => {
+    // `fl:item: false` → the Item shell is skipped → itemRef reads null.
+    const FormView = createFormView({ layout: { Row, Col }, item: { component: Item } })
+    const fieldRef = ref<{ itemRef?: unknown } | null>(null)
+    const el = await mount(
+      h(FormView, { modelValue: {}, 'fl:layout': true }, () =>
+        h(FormField, {
+          'fl:prop': 'name',
+          'fl:component': FocusControl,
+          'fl:item': false,
+          ref: fieldRef,
+        }),
+      ),
+    )
+    expect(fieldRef.value?.itemRef).toBeNull()
+    el.remove()
+  })
+
+  it('should keep the control ref across a wrap-embed inner LayoutView', async () => {
+    const FormView = createFormView({ layout: { Row, Col }, item: { component: Item } })
+    const fieldRef = ref<{ focus?: () => string } | null>(null)
+    const el = await mount(
+      h(FormView, { modelValue: {}, 'fl:layout': true }, () =>
+        h(FormField, {
+          'fl:prop': 'name',
+          'fl:component': FocusControl,
+          'fl:field': 'wrap-embed',
+          ref: fieldRef,
+        }),
+      ),
+    )
+    expect(fieldRef.value?.focus?.()).toBe('focused')
+    el.remove()
   })
 })

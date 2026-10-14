@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, it } from 'vitest'
-import { createExposeProxy, getAttrBoolean, upperFirst } from './utils'
+import { createExposeProxy, getAttrBoolean, mergeExposeProxy, upperFirst } from './utils'
 
 describe('upperFirst', () => {
   it('should convert camelCase field keys to PascalCase tags', () => {
@@ -73,5 +73,57 @@ describe('createExposeProxy', () => {
     expect('missing' in proxy).toBe(false)
     holder.value = null
     expect('count' in proxy).toBe(false)
+  })
+})
+
+describe('mergeExposeProxy', () => {
+  it('should forward keys not named in override to the base proxy', () => {
+    const base = createExposeProxy<{ count: number; read: () => number }>({
+      value: { count: 1, read() { return this.count } },
+    })
+    const merged = mergeExposeProxy(base, {})
+    expect(merged.count).toBe(1)
+    expect(merged.read()).toBe(1)
+  })
+
+  it('should let override keys shadow the base', () => {
+    const base = createExposeProxy<{ count: number }>({ value: { count: 1 } })
+    const merged = mergeExposeProxy(base, { count: 42 })
+    expect(merged.count).toBe(42)
+  })
+
+  it('should keep a nested proxy value lazy and bound', () => {
+    const holder: { value: { validate: () => string } | null } = { value: null }
+    const item = createExposeProxy(holder)
+    const base = createExposeProxy<{ count: number }>({ value: { count: 1 } })
+    const merged = mergeExposeProxy(base, { itemRef: item })
+    // Holder null → nested proxy reads undefined until mounted.
+    expect(merged.itemRef.validate).toBeUndefined()
+    holder.value = { validate: () => 'ok' }
+    expect(merged.itemRef.validate()).toBe('ok')
+    // Base key still forwards.
+    expect(merged.count).toBe(1)
+  })
+
+  it('should evaluate accessor getter overrides lazily on each read', () => {
+    const holder: { value: { validate: () => string } | null } = { value: null }
+    const item = createExposeProxy(holder)
+    const base = createExposeProxy<{ count: number }>({ value: { count: 1 } })
+    const merged = mergeExposeProxy(base, {
+      get itemRef() {
+        return holder.value ? item : null
+      },
+    })
+    expect(merged.itemRef).toBeNull()
+    holder.value = { validate: () => 'ok' }
+    expect(merged.itemRef.validate()).toBe('ok')
+  })
+
+  it('should forward `in` checks to base and override', () => {
+    const base = createExposeProxy<{ count: number }>({ value: { count: 1 } })
+    const merged = mergeExposeProxy(base, { itemRef: null })
+    expect('count' in merged).toBe(true)
+    expect('itemRef' in merged).toBe(true)
+    expect('missing' in merged).toBe(false)
   })
 })
